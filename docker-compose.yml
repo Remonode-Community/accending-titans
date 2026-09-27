@@ -13,7 +13,7 @@ services:
     container_name: acceding-titans-web
     restart: unless-stopped
     env_file:
-      - .env.local
+      - .env.production
     networks:
       - webnet
     # Not published — only nginx reaches it on the internal network.
@@ -65,3 +65,4 @@ networks:
 
 volumes:
   certbot-www:
+
