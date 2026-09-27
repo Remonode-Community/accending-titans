@@ -8,4 +8,4 @@ services:
     ports:
       - "3000:3000"      # optional: keep for direct debugging
     env_file:
-      - .env.local
+      - .env.production
