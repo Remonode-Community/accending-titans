@@ -37,27 +37,32 @@ export default function LoginPage() {
 
   return (
     <AuthProtectedRoute requireUnauthenticated={true} redirectTo="/dashboard">
-      <div className="relative min-h-screen bg-white flex items-center justify-center px-4 py-12 overflow-hidden">
+      <div className="relative min-h-screen bg-white flex items-start sm:items-center justify-center px-0 sm:px-4 py-0 sm:py-12 pb-[env(safe-area-inset-bottom)] overflow-hidden">
 
         {/* Subtle gold radial glow — barely there */}
         <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[280px] rounded-full bg-[#C9A84C]/[0.06] blur-3xl" />
 
         <div className="relative w-full max-w-[420px]">
 
-          {/* ── Card ── */}
-          <div className="rounded-2xl bg-white border border-gray-100 shadow-[0_2px_32px_rgba(0,0,0,0.07)] overflow-hidden">
+          {/* ── Card — flat/edge-to-edge on mobile, card from sm+ ── */}
+          <div className="sm:rounded-2xl sm:border sm:border-gray-100 sm:bg-white sm:shadow-[0_2px_32px_rgba(0,0,0,0.07)] sm:overflow-hidden">
 
-            {/* Signature element: 3px gold gradient top bar */}
-            <div className="h-[3px] bg-gradient-to-r from-[#C9A84C]/35 via-[#C9A84C] to-[#C9A84C]/35" />
+            {/* Signature element: 3px gold gradient top bar (card only) */}
+            <div className="hidden sm:block h-[3px] bg-gradient-to-r from-[#C9A84C]/35 via-[#C9A84C] to-[#C9A84C]/35" />
 
-            <div className="px-8 py-8">
+            <div className="px-5 sm:px-8 py-9 sm:py-8">
 
               {/* ── Header ── */}
               <div className="mb-7 text-center">
-                {/* Brand mark — swap with your logo if available */}
-                <div className="mx-auto mb-5 w-11 h-11 rounded-xl border border-[#C9A84C]/25 bg-[#FDFAF3] flex items-center justify-center">
-                  <div className="w-[18px] h-[18px] rounded-[5px] bg-[#C9A84C]" />
-                </div>
+                {/* Brand logo */}
+                <Image
+                  src="/icon.png"
+                  alt="Acceding Titans Logo"
+                  width={64}
+                  height={64}
+                  className="mx-auto mb-5 h-14 w-14 rounded-full ring-1 ring-[#C9A84C]/25 shadow-sm sm:h-16 sm:w-16"
+                  priority
+                />
                 <h2 className="text-[21px] font-semibold tracking-tight text-gray-900">
                   Welcome back
                 </h2>
@@ -162,7 +167,7 @@ export default function LoginPage() {
                   disabled={isLoading}
                   className={`
                     mt-1 flex w-full items-center justify-center gap-2
-                    rounded-xl py-[11px] text-sm font-semibold text-white
+                    rounded-xl py-3 sm:py-[11px] text-sm font-semibold text-white
                     transition-all
                     ${
                       isLoading
@@ -197,14 +202,14 @@ export default function LoginPage() {
               <div className="grid grid-cols-2 gap-2.5">
                 <button
                   type="button"
-                  className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white py-2.5 text-sm font-medium text-gray-600 transition-colors hover:border-gray-300 hover:bg-gray-50"
+                  className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white py-3 sm:py-2.5 text-sm font-medium text-gray-600 transition-colors hover:border-gray-300 hover:bg-gray-50"
                 >
                   <Chrome size={15} className="text-gray-500" />
                   Google
                 </button>
                 <button
                   type="button"
-                  className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white py-2.5 text-sm font-medium text-gray-600 transition-colors hover:border-gray-300 hover:bg-gray-50"
+                  className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white py-3 sm:py-2.5 text-sm font-medium text-gray-600 transition-colors hover:border-gray-300 hover:bg-gray-50"
                 >
                   <Facebook size={15} className="text-[#1877F2]" />
                   Facebook
