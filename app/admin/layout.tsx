@@ -34,6 +34,7 @@ import {
   Star,
 } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { clsx } from 'clsx';
 
 // ─── Navigation Configuration ─────────────────────────────────────────
@@ -190,9 +191,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {!mobile && (
         <div className="border-b border-gray-200 px-5 py-6">
           <Link href="/admin" className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#C9A84C]/30 bg-[#C9A84C]/10">
-              <div className="h-5 w-5 rounded-[4px] bg-[#C9A84C]" />
-            </div>
+            <Image
+              src="/icon.png"
+              alt="Acceding Titans Logo"
+              width={40}
+              height={40}
+              className="h-10 w-10 flex-shrink-0 rounded-full object-contain"
+            />
             {(sidebarOpen || mobile) && (
               <div>
                 <p className="text-lg font-black tracking-tight text-gray-900 leading-tight">
@@ -357,9 +362,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         >
           <div className="border-b border-gray-200 px-5 py-5 flex items-center justify-between">
             <Link href="/admin" className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#C9A84C]/30 bg-[#C9A84C]/10">
-                <div className="h-[14px] w-[14px] rounded-[4px] bg-[#C9A84C]" />
-              </div>
+              <Image
+                src="/icon.png"
+                alt="Acceding Titans Logo"
+                width={36}
+                height={36}
+                className="h-9 w-9 flex-shrink-0 rounded-full object-contain"
+              />
               <div>
                 <p className="text-sm font-black tracking-tight text-gray-900 leading-tight">
                   Acceding Titans

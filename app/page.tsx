@@ -20,7 +20,6 @@ import {
   Store,
   TrendingUp,
   Users,
-  Zap,
   Briefcase,
   Search,
   Share2,
@@ -267,33 +266,6 @@ export default function LandingPage() {
                 </div>
               </div>
             </div>
-          </div>
-
-          {/* Stats bar — 2-col on mobile, 4-col on sm+ */}
-          <div className="mt-10 sm:mt-16 md:mt-20 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-            {[
-              { label: 'Active Members', value: '10K+', icon: Users },
-              { label: 'Business Listings', value: '50K+', icon: Store },
-              { label: 'Daily Referrals', value: '25K+', icon: TrendingUp },
-              { label: 'Success Rate', value: '98%', icon: Zap },
-            ].map((stat) => {
-              const Icon = stat.icon;
-              return (
-                <div
-                  key={stat.label}
-                  className="group bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-md rounded-xl sm:rounded-2xl border border-[#C9A84C]/30 p-3 sm:p-4 md:p-5 hover:border-[#C9A84C]/60 hover:from-white/15 transition-all duration-300 cursor-pointer"
-                >
-                  <div className="flex items-center gap-2 sm:gap-3 mb-2">
-                    <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-br from-[#C9A84C]/30 to-[#C9A84C]/10">
-                      <Icon size={16} className="text-[#C9A84C] sm:hidden" />
-                      <Icon size={20} className="text-[#C9A84C] hidden sm:block" />
-                    </div>
-                    <h3 className="text-base sm:text-xl font-bold bg-gradient-to-r from-white to-[#C9A84C] bg-clip-text text-transparent">{stat.value}</h3>
-                  </div>
-                  <p className="text-xs text-white/70 group-hover:text-white/90 transition-colors leading-snug">{stat.label}</p>
-                </div>
-              );
-            })}
           </div>
 
           {/* Slide indicators */}

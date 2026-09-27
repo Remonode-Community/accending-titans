@@ -25,6 +25,8 @@ import {
 export function VerifyEmailForm() {
   const searchParams = useSearchParams();
   const defaultEmail = searchParams.get('email') || '';
+  // Where the member was heading before the verification guard interrupted them.
+  const nextPath = searchParams.get('next');
   const [countdown, setCountdown] = useState(0);
   const [showOTPInput, setShowOTPInput] = useState(false);
   const [hasError, setHasError] = useState(false);
@@ -76,7 +78,7 @@ export function VerifyEmailForm() {
 
   const onSubmit = async (data: VerifyEmailSchema) => {
     setHasError(false);
-    const result = await verifyEmail(data);
+    const result = await verifyEmail(data, nextPath);
     if (!result.success) {
       setHasError(true);
     }
@@ -101,24 +103,30 @@ export function VerifyEmailForm() {
   };
 
   return (
-    <div className="relative min-h-screen bg-white flex items-center justify-center px-4 py-12 overflow-hidden">
+    <div className="relative min-h-screen bg-white flex items-start sm:items-center justify-center px-0 sm:px-4 py-0 sm:py-12 pb-[env(safe-area-inset-bottom)] overflow-hidden">
 
       {/* Subtle gold radial glow — barely there */}
       <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[280px] rounded-full bg-[#C9A84C]/[0.06] blur-3xl" />
 
       <div className="relative w-full max-w-[420px]">
 
-        {/* ── Card ── */}
-        <div className="rounded-2xl bg-white border border-gray-100 shadow-[0_2px_32px_rgba(0,0,0,0.07)] overflow-hidden">
+        {/* ── Card — flat/edge-to-edge on mobile, card from sm+ ── */}
+        <div className="sm:rounded-2xl sm:border sm:border-gray-100 sm:bg-white sm:shadow-[0_2px_32px_rgba(0,0,0,0.07)] sm:overflow-hidden">
 
-          {/* Signature element: 3px gold gradient top bar */}
-          <div className="h-[3px] bg-gradient-to-r from-[#C9A84C]/35 via-[#C9A84C] to-[#C9A84C]/35" />
+          {/* Signature element: 3px gold gradient top bar (card only) */}
+          <div className="hidden sm:block h-[3px] bg-gradient-to-r from-[#C9A84C]/35 via-[#C9A84C] to-[#C9A84C]/35" />
 
-          <div className="px-8 py-8">
+          <div className="px-5 sm:px-8 py-9 sm:py-8">
             <div className="mb-8 text-center">
-              <div className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-[#C9A84C]/10 border border-[#C9A84C]/20">
-                <Mail className="h-5 w-5 text-[#C9A84C]" />
-              </div>
+              {/* Brand logo */}
+              <Image
+                src="/icon.png"
+                alt="Acceding Titans Logo"
+                width={64}
+                height={64}
+                className="mx-auto mb-4 h-14 w-14 rounded-full ring-1 ring-[#C9A84C]/25 shadow-sm sm:h-16 sm:w-16"
+                priority
+              />
 
               <h2 className="text-[21px] font-semibold tracking-tight text-gray-900">
                 Verify your email
@@ -204,7 +212,7 @@ export function VerifyEmailForm() {
               <button
                 type="submit"
                 disabled={isLoading || otp.length !== 6}
-                className={`mt-1 w-full rounded-xl py-[11px] text-sm font-semibold text-white transition-all ${
+                className={`mt-1 w-full rounded-xl py-3 sm:py-[11px] text-sm font-semibold text-white transition-all ${
                   isLoading || otp.length !== 6
                     ? 'bg-[#C9A84C]/55 cursor-not-allowed'
                     : 'bg-[#C9A84C] shadow-sm shadow-[#C9A84C]/25 hover:bg-[#B8962E]'
@@ -231,7 +239,7 @@ export function VerifyEmailForm() {
                 type="button"
                 onClick={handleResendCode}
                 disabled={countdown > 0 || isLoading}
-                className={`w-full rounded-xl py-2.5 text-sm font-semibold transition-colors ${
+                className={`w-full rounded-xl py-3 sm:py-2.5 text-sm font-semibold transition-colors ${
                   countdown > 0 || isLoading
                     ? 'text-gray-400 cursor-not-allowed'
                     : 'text-[#C9A84C] hover:text-[#B8962E]'

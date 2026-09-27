@@ -255,15 +255,8 @@ class ApiClient {
         
         const config = error.config as ExtendedAxiosRequestConfig;
 
-        // Retry logic for network errors
-        if (error.response?.status !== 401 && config && config.retry! < this.maxRetries) {
-          config.retry = (config.retry || 0) + 1;
-          this.log(`[ApiClient] Retrying request (attempt ${config.retry}/${this.maxRetries})`);
-          await this.delay(this.retryDelay * config.retry);
-          return this.axiosInstance(config);
-        }
-
         // Handle 401 - Unauthorized (session expired or invalid token)
+        // Checked before the retry gate: a dead session is never transient.
         if (error.response?.status === 401) {
           this.log('[ApiClient] Got 401 - session expired or invalid token, performing full logout');
           if (typeof window !== 'undefined') {
@@ -279,6 +272,20 @@ class ApiClient {
             window.location.href = '/';
           }
           return Promise.reject('Session expired - please login again');
+        }
+
+        // Retry only genuinely transient failures.
+        //
+        // The previous gate here was `status !== 401`, which retried *every*
+        // other failure — so a 404 (wrong URL, missing route) or a 422
+        // (validation) was re-sent three times with backoff. A deterministic
+        // client error will fail identically every time, so retrying it only
+        // multiplies load and delays the real error message.
+        if (this.isRetryable(error) && config && config.retry! < this.maxRetries) {
+          config.retry = (config.retry || 0) + 1;
+          this.log(`[ApiClient] Retrying request (attempt ${config.retry}/${this.maxRetries})`);
+          await this.delay(this.retryDelay * config.retry);
+          return this.axiosInstance(config);
         }
 
         // Handle 403 - Forbidden access
@@ -300,6 +307,22 @@ class ApiClient {
         return Promise.reject(this.formatError(error));
       }
     );
+  }
+
+  /**
+   * A failure is worth retrying only if the same request could plausibly
+   * succeed on a second attempt.
+   */
+  private isRetryable(error: AxiosError): boolean {
+    // No response at all: network drop, DNS failure, or client timeout.
+    if (!error.response) {
+      return error.code !== 'ERR_CANCELED';
+    }
+
+    const status = error.response.status;
+
+    // 408 request timeout, 429 rate limited, or any 5xx server fault.
+    return status === 408 || status === 429 || status >= 500;
   }
 
   private formatError(error: AxiosError): ApiResponse {

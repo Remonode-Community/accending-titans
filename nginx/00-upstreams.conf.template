@@ -1,0 +1,5 @@
+# Shared upstreams — rendered to conf.d/upstreams.conf by nginx envsubst
+upstream nextjs_backend {
+    server acceding-titans-web:3000;
+    keepalive 32;
+}

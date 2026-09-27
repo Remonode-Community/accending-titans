@@ -1,0 +1,83 @@
+# Rendered to conf.d/default.conf by nginx envsubst (templates dir).
+# Only ${VARS} defined in the container environment are substituted.
+# conf.d/*.conf loads 00-upstreams.conf first (sorted), so nextjs_backend exists.
+
+server {
+    listen 80;
+    server_name _;
+
+    # Dynamic-DNS safe: re-resolve backend every 30s (no restart on IP change)
+    resolver 1.1.1.1 8.8.8.8 valid=30s ipv6=off;
+    resolver_timeout 5s;
+
+    set $backend_origin ${BACKEND_ORIGIN};
+    set $backend_host ${BACKEND_HOST};
+
+    error_log /var/log/nginx/error.log warn;
+    access_log /var/log/nginx/access.log;
+
+    client_max_body_size 100M;
+
+    # Let's Encrypt HTTP-01 challenge
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    # Backend API — same-origin when NEXT_PUBLIC_API_BASE_URL=/api/v1
+    # /api/v1/x → ${BACKEND_ORIGIN}/api/v1/x
+    location /api/ {
+        proxy_pass $backend_origin;
+        proxy_http_version 1.1;
+        proxy_ssl_server_name on;
+        proxy_ssl_name $backend_host;
+        proxy_set_header Host $backend_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_connect_timeout 15s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 120s;
+    }
+
+    # phpMyAdmin on backend nginx
+    location /phpmyadmin/ {
+        proxy_pass $backend_origin;
+        proxy_http_version 1.1;
+        proxy_ssl_server_name on;
+        proxy_ssl_name $backend_host;
+        proxy_set_header Host $backend_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Accept-Encoding "";
+        proxy_redirect ~^(https?://[^/]+)?/(.*)$ /phpmyadmin/$2;
+        client_max_body_size 500M;
+        proxy_read_timeout 300s;
+    }
+
+    location /_next/static/ {
+        proxy_pass http://nextjs_backend;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_cache_valid 200 365d;
+        add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+
+    location / {
+        proxy_pass http://nextjs_backend;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_cache_bypass $http_upgrade;
+        proxy_buffering off;
+        proxy_request_buffering off;
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 120s;
+    }
+}

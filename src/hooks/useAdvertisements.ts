@@ -52,11 +52,11 @@ export const useAdvertisements = (options: UseAdvertisementsOptions = {}) => {
       actionValue: ad.actionValue || ad.action_value || '',
       image: {
         url: ad.image?.url || ad.image_url || '',
-        fallbackColor: ad.image?.fallbackColor || ad.fallback_color || '#cccccc',
+        fallbackColor: ad.image?.fallbackColor || ad.fallback_color || '#FDFAF3',
       },
       gradient: {
-        start: ad.gradient?.start || ad.gradient_start || '#0066ff',
-        end: ad.gradient?.end || ad.gradient_end || '#0044cc',
+        start: ad.gradient?.start || ad.gradient_start || '#C9A84C',
+        end: ad.gradient?.end || ad.gradient_end || '#B8962E',
       },
       displayDuration: ad.displayDuration || ad.display_duration || 5000,
       isActive: ad.isActive !== undefined ? ad.isActive : ad.is_active !== undefined ? ad.is_active : true,
@@ -178,11 +178,11 @@ export const useAdvertisementsAdmin = (initialParams?: UseAdvertisementsAdminOpt
       actionValue: ad.actionValue || ad.action_value || '',
       image: {
         url: ad.image?.url || ad.image_url || '',
-        fallbackColor: ad.image?.fallbackColor || ad.fallback_color || '#cccccc',
+        fallbackColor: ad.image?.fallbackColor || ad.fallback_color || '#FDFAF3',
       },
       gradient: {
-        start: ad.gradient?.start || ad.gradient_start || '#0066ff',
-        end: ad.gradient?.end || ad.gradient_end || '#0044cc',
+        start: ad.gradient?.start || ad.gradient_start || '#C9A84C',
+        end: ad.gradient?.end || ad.gradient_end || '#B8962E',
       },
       displayDuration: ad.displayDuration || ad.display_duration || 5000,
       isActive: ad.isActive !== undefined ? ad.isActive : ad.is_active !== undefined ? ad.is_active : true,

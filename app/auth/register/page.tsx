@@ -231,19 +231,28 @@ function RegisterPageContent() {
       {/* Subtle gold radial glow — barely there */}
       <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[280px] rounded-full bg-[#C9A84C]/[0.06] blur-3xl" />
 
-      <div className="relative z-10 flex min-h-screen items-center justify-center px-4 py-10">
+      <div className="relative z-10 flex min-h-screen items-start sm:items-center justify-center px-0 sm:px-4 py-0 sm:py-10 pb-[env(safe-area-inset-bottom)]">
         <div className="w-full max-w-[420px]">
 
-          {/* ── Card ── */}
-          <div className="rounded-2xl bg-white border border-gray-100 shadow-[0_2px_32px_rgba(0,0,0,0.07)] overflow-hidden">
+          {/* ── Card — flat/edge-to-edge on mobile, card from sm+ ── */}
+          <div className="sm:rounded-2xl sm:border sm:border-gray-100 sm:bg-white sm:shadow-[0_2px_32px_rgba(0,0,0,0.07)] sm:overflow-hidden">
 
-            {/* Signature element: 3px gold gradient top bar */}
-            <div className="h-[3px] bg-gradient-to-r from-[#C9A84C]/35 via-[#C9A84C] to-[#C9A84C]/35" />
+            {/* Signature element: 3px gold gradient top bar (card only) */}
+            <div className="hidden sm:block h-[3px] bg-gradient-to-r from-[#C9A84C]/35 via-[#C9A84C] to-[#C9A84C]/35" />
 
-            <div className="px-8 py-8">
+            <div className="px-5 sm:px-8 py-9 sm:py-8">
 
               {/* ── Header ── */}
               <div className="mb-6 text-center">
+                {/* Brand logo */}
+                <Image
+                  src="/icon.png"
+                  alt="Acceding Titans Logo"
+                  width={64}
+                  height={64}
+                  className="mx-auto mb-5 h-14 w-14 rounded-full ring-1 ring-[#C9A84C]/25 shadow-sm sm:h-16 sm:w-16"
+                  priority
+                />
                 <h1 className="text-[21px] font-semibold tracking-tight text-gray-900">Create Account</h1>
                 <p className="mt-1.5 text-sm text-gray-500">
                   Step {currentStep} of {STEPS.length} — {STEPS[currentStep - 1].description}
@@ -404,7 +413,7 @@ function RegisterPageContent() {
                     <button
                       type="button"
                       onClick={handleNext}
-                      className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#C9A84C] py-2.5 text-sm font-semibold text-white shadow-sm shadow-[#C9A84C]/25 transition hover:bg-[#B8962E] disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#C9A84C] py-3 sm:py-2.5 text-sm font-semibold text-white shadow-sm shadow-[#C9A84C]/25 transition hover:bg-[#B8962E] disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Continue
                       <ArrowRight size={14} />
@@ -414,7 +423,7 @@ function RegisterPageContent() {
                       type="submit"
                       fullWidth
                       isLoading={isLoading}
-                      className="flex-1 rounded-xl bg-[#C9A84C] py-2.5 font-semibold text-white hover:bg-[#B8962E]"
+                      className="flex-1 rounded-xl bg-[#C9A84C] py-3 sm:py-2.5 font-semibold text-white hover:bg-[#B8962E]"
                     >
                       <span className="inline-flex items-center justify-center gap-2">
                         Create Account
@@ -438,14 +447,14 @@ function RegisterPageContent() {
               <div className="grid grid-cols-2 gap-2.5">
                 <button
                   type="button"
-                  className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white py-2.5 text-sm font-medium text-gray-600 transition-colors hover:border-gray-300 hover:bg-gray-50"
+                  className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white py-3 sm:py-2.5 text-sm font-medium text-gray-600 transition-colors hover:border-gray-300 hover:bg-gray-50"
                 >
                   <Chrome size={14} className="text-gray-500" />
                   Google
                 </button>
                 <button
                   type="button"
-                  className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white py-2.5 text-sm font-medium text-gray-600 transition-colors hover:border-gray-300 hover:bg-gray-50"
+                  className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white py-3 sm:py-2.5 text-sm font-medium text-gray-600 transition-colors hover:border-gray-300 hover:bg-gray-50"
                 >
                   <Facebook size={14} className="text-[#1877F2]" />
                   Facebook

@@ -86,7 +86,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
   const navItems = [
     { href: '/dashboard', label: 'Dashboard', icon: Home },
-    { href: '/dashboard/catalogue', label: 'Business Catalogueo', icon: ShoppingBag },
+    { href: '/dashboard/catalogue', label: 'Business Catalogue', icon: ShoppingBag },
     { href: '/dashboard/subscriptions', label: 'Subscription', icon: Star },
     { href: '/dashboard/wallet', label: 'Wallet', icon: Wallet },
     { href: '/dashboard/rewards', label: 'Birthday Rewards', icon: Gift },
@@ -108,9 +108,13 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
       {/* Logo */}
       <div className="border-b border-gray-100 px-5 py-5">
         <Link href="/dashboard" className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#C9A84C]/25 bg-[#FDFAF3] flex-shrink-0">
-            <div className="h-[14px] w-[14px] rounded-[4px] bg-[#C9A84C]" />
-          </div>
+          <Image
+            src="/icon.png"
+            alt="Acceding Titans Logo"
+            width={36}
+            height={36}
+            className="h-9 w-9 flex-shrink-0 rounded-full object-contain"
+          />
           {(sidebarOpen || mobile) && (
             <div>
               <p className="text-sm font-black tracking-tight text-gray-900 leading-tight">
@@ -292,9 +296,13 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
           >
             <div className="flex items-center justify-between border-b border-gray-100 px-5 py-5">
               <Link href="/dashboard" className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#C9A84C]/25 bg-[#FDFAF3] flex-shrink-0">
-                  <div className="h-[14px] w-[14px] rounded-[4px] bg-[#C9A84C]" />
-                </div>
+                <Image
+                  src="/icon.png"
+                  alt="Acceding Titans Logo"
+                  width={36}
+                  height={36}
+                  className="h-9 w-9 flex-shrink-0 rounded-full object-contain"
+                />
                 <div>
                   <p className="text-sm font-black tracking-tight text-gray-900 leading-tight">
                     Acceding Titans

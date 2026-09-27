@@ -11,6 +11,7 @@ import {
   ChevronRight,
   Clock,
   CreditCard,
+  ExternalLink,
   FileText,
   ReceiptText,
   Send,
@@ -24,6 +25,7 @@ import { AdCarousel } from '@/components/dashboard/AdCarousel';
 import { walletService } from '@/services/wallet.service';
 import { transactionService } from '@/services/transaction.service';
 import { customerService, DedicatedAccount } from '@/services/customer.service';
+import { portfolioService } from '@/services/portfolio.service';
 import { useAuth } from '@/hooks/useAuth';
 import { formatCurrency, formatDate } from '@/utils/format.utils';
 import { TRANSACTION_STATUSES } from '@/utils/constants';
@@ -84,7 +86,7 @@ const getTransactionStatusIcon = (status: string) => {
 };
 
 export default function DashboardPage() {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
 
   const [wallet, setWallet] = useState<WalletData | null>(null);
   const [transactions, setTransactions] = useState<TransactionData[]>([]);
@@ -99,6 +101,30 @@ export default function DashboardPage() {
     total: 0,
     perPage: 10,
   });
+
+  // Public catalogue id, so the hero can link straight to the member's page.
+  const [catalogueId, setCatalogueId] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    let cancelled = false;
+
+    portfolioService
+      .getMy()
+      .then((res) => {
+        if (!cancelled && res.success && res.data?.portfolio) {
+          setCatalogueId(res.data.portfolio.id);
+        }
+      })
+      .catch(() => {
+        // Members without a catalogue simply don't get the shortcut.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated]);
 
   useEffect(() => {
     const fetchAccountInfo = async () => {
@@ -126,7 +152,7 @@ export default function DashboardPage() {
         const [walletRes, transactionsRes] = await Promise.all([
           walletService.getBalance(),
           user?.id
-            ? transactionService.getTransactions(String(user.id), { page: currentPage, per_page: 10 })
+            ? transactionService.getTransactions({ page: currentPage, per_page: 10 })
             : Promise.resolve(null),
         ]);
         if (walletRes?.data) setWallet(walletRes.data as WalletData);
@@ -225,6 +251,17 @@ export default function DashboardPage() {
               >
                 Browse Opportunities
               </Link>
+              {catalogueId && (
+                <Link
+                  href={`/catalogue/${catalogueId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="Open my public catalogue page"
+                  className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 transition hover:border-[#C9A84C]/40 hover:text-[#C9A84C]"
+                >
+                  My public page <ExternalLink size={14} />
+                </Link>
+              )}
             </div>
           </div>
 
@@ -274,8 +311,13 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ── Stats ── */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      {/* ── Stats — horizontal snap scroller on mobile, grid from sm+ ── */}
+      <div
+        role="group"
+        aria-label="Account statistics"
+        tabIndex={0}
+        className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain scroll-pl-4 px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84C]/50 sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-x-visible sm:px-0 sm:pb-0"
+      >
         {[
           {
             label: 'Monthly Transactions',
@@ -306,7 +348,7 @@ export default function DashboardPage() {
           return (
             <div
               key={stat.label}
-              className="rounded-2xl border border-gray-200/80 bg-white p-5 shadow-sm"
+              className="w-[82vw] max-w-[360px] shrink-0 snap-start rounded-2xl border border-gray-200/80 bg-white p-5 shadow-sm sm:w-auto sm:max-w-none"
             >
               <div className="flex items-start justify-between">
                 <div>
@@ -337,14 +379,20 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {/* Horizontal snap scroller on mobile, grid from sm+ */}
+        <div
+          role="group"
+          aria-label="Quick actions"
+          tabIndex={0}
+          className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain scroll-pl-4 px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84C]/50 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-x-visible sm:px-0 sm:pb-0 xl:grid-cols-4"
+        >
           {quickActions.map((action) => {
             const Icon = action.icon;
             return (
               <Link
                 key={action.href}
                 href={action.href}
-                className="group flex flex-col rounded-2xl border border-gray-200/80 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-[#C9A84C]/30 hover:shadow-md"
+                className="group flex w-[82vw] max-w-[360px] shrink-0 snap-start flex-col rounded-2xl border border-gray-200/80 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-[#C9A84C]/30 hover:shadow-md sm:w-auto sm:max-w-none"
               >
                 <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl border border-[#C9A84C]/20 bg-[#FDFAF3] transition group-hover:bg-[#C9A84C] group-hover:border-[#C9A84C]">
                   <Icon

@@ -37,7 +37,12 @@ export interface Customer {
   basicInfo: BasicInfo;
   identityInfo: IdentityInfo;
   bankInfo: BankAccount[];
-  dedicatedAccount: DedicatedAccount;
+  /**
+   * Null until the payment provider provisions a dedicated virtual account.
+   * Consumers must handle null — the dashboard hides its card in that case
+   * rather than rendering a blank account number.
+   */
+  dedicatedAccount: DedicatedAccount | null;
 }
 
 export interface GetCustomerResponse {

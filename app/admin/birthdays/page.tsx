@@ -69,14 +69,22 @@ export default function AdminBirthdaysPage() {
     try {
       const res = await portfolioService.browse({ per_page: 50 });
       if (res.success && res.data) {
-        const portfolios = Array.isArray(res.data) ? res.data : (res.data as any).data ?? [];
-        // Collect all items from all portfolios
+        // The browse endpoint only returns active items per business, and does
+        // not include the items array — so fetch one business in full to
+        // collect giftable items.
         const allItems: PortfolioItem[] = [];
-        portfolios.forEach((p: any) => {
-          if (p.items) {
-            allItems.push(...p.items.filter((i: PortfolioItem) => i.is_active));
+
+        for (const business of res.data.portfolios ?? []) {
+          try {
+            const detail = await portfolioService.getPortfolio(business.id);
+            if (detail.success && detail.data?.portfolio?.items) {
+              allItems.push(...detail.data.portfolio.items.filter((i) => i.is_active));
+            }
+          } catch {
+            // Skip businesses that fail to load rather than losing the whole list.
           }
-        });
+        }
+
         setPortfolioItems(allItems);
       }
     } catch (err) {

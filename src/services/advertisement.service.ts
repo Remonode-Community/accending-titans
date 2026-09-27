@@ -30,7 +30,7 @@ class AdvertisementService {
     if (params?.platform) queryParams.append('platform', params.platform);
 
     return apiClient.get(
-      `/advertisements${queryParams.toString() ? '?' + queryParams.toString() : ''}`
+      `/v1/advertisements${queryParams.toString() ? '?' + queryParams.toString() : ''}`
     );
   }
 
@@ -38,7 +38,7 @@ class AdvertisementService {
    * Get a single advertisement by ID
    */
   async getAdvertisement(adId: string): Promise<ApiResponse<Advertisement>> {
-    return apiClient.get(`/advertisements/${adId}`);
+    return apiClient.get(`/v1/advertisements/${adId}`);
   }
 
   /**

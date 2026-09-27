@@ -3,9 +3,69 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        # Direct backend (default): browser calls API origin directly (CORS).
+        # Same-origin mode: set NEXT_PUBLIC_API_BASE_URL=/api/v1 and nginx
+        # proxies /api/ to BACKEND_ORIGIN.
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-https://api.bb.remonode.com/api/v1}
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:8080}
+        NEXT_PUBLIC_VERBOSE_API_LOGGING: ${NEXT_PUBLIC_VERBOSE_API_LOGGING:-false}
     container_name: acceding-titans-web
     restart: unless-stopped
-    ports:
-      - "3000:3000"      # optional: keep for direct debugging
     env_file:
+<<<<<<< HEAD
       - .env.production
+=======
+      - .env.local
+    networks:
+      - webnet
+    # Not published — only nginx reaches it on the internal network.
+    # Uncomment for direct debugging:
+    # ports:
+    #   - "127.0.0.1:3000:3000"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  acceding-titans-nginx:
+    image: nginx:alpine
+    container_name: acceding-titans-nginx
+    restart: unless-stopped
+    ports:
+      - "${WEB_HTTP_PORT:-8080}:80"
+      # Enable after creating nginx/ssl.conf.template and ./certs/{fullchain,privkey}.pem:
+      # - "${WEB_HTTPS_PORT:-8443}:443"
+    environment:
+      # Backend origin (scheme + host, no trailing path). Used for /api/ and /phpmyadmin/.
+      BACKEND_ORIGIN: ${BACKEND_ORIGIN:-https://api.bb.remonode.com}
+      BACKEND_HOST: ${BACKEND_HOST:-api.bb.remonode.com}
+    volumes:
+      # nginx image: /etc/nginx/templates/*.template → envsubst → conf.d/
+      - ./nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ./nginx/00-upstreams.conf.template:/etc/nginx/templates/00-upstreams.conf.template:ro
+      # SSL mode — swap these two mounts (comment the default.conf template above):
+      # - ./nginx/ssl.conf.template:/etc/nginx/templates/ssl.conf.template:ro
+      # - ./certs:/etc/nginx/certs:ro
+      - certbot-www:/var/www/certbot:ro
+    networks:
+      - webnet
+    depends_on:
+      acceding-titans-web:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  webnet:
+    driver: bridge
+
+volumes:
+  certbot-www:
+>>>>>>> a48d0120d27090d34f854e5f3c233f16b51e5087
