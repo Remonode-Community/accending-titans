@@ -25,6 +25,8 @@ import {
 export function VerifyEmailForm() {
   const searchParams = useSearchParams();
   const defaultEmail = searchParams.get('email') || '';
+  // Where the member was heading before the verification guard interrupted them.
+  const nextPath = searchParams.get('next');
   const [countdown, setCountdown] = useState(0);
   const [showOTPInput, setShowOTPInput] = useState(false);
   const [hasError, setHasError] = useState(false);
@@ -76,7 +78,7 @@ export function VerifyEmailForm() {
 
   const onSubmit = async (data: VerifyEmailSchema) => {
     setHasError(false);
-    const result = await verifyEmail(data);
+    const result = await verifyEmail(data, nextPath);
     if (!result.success) {
       setHasError(true);
     }

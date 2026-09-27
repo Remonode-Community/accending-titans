@@ -40,24 +40,26 @@ export interface TransactionsApiResponse {
 }
 
 class TransactionService {
-  async getTransactions(userIdOrFilters?: string | TransactionFilters, filters?: TransactionFilters): Promise<TransactionsApiResponse> {
-    let userId = '';
-    let actualFilters = filters;
-
-    // Handle both call signatures:
-    // getTransactions(userId, filters)
-    // getTransactions(filters)
-    if (typeof userIdOrFilters === 'string') {
-      userId = userIdOrFilters;
-      actualFilters = filters;
-    } else if (typeof userIdOrFilters === 'object' && userIdOrFilters !== null) {
-      actualFilters = userIdOrFilters as TransactionFilters;
-    }
+  /**
+   * Transaction history for the signed-in member.
+   *
+   * The endpoint is always scoped to the authenticated user, so a user id is
+   * not part of the path. A legacy caller may still pass one as the first
+   * argument; it is accepted and ignored rather than being sent to the server.
+   */
+  async getTransactions(
+    filtersOrUserId?: TransactionFilters | string,
+    maybeFilters?: TransactionFilters
+  ): Promise<TransactionsApiResponse> {
+    const filters =
+      typeof filtersOrUserId === 'object' && filtersOrUserId !== null
+        ? filtersOrUserId
+        : maybeFilters;
 
     const params = new URLSearchParams();
 
-    if (actualFilters) {
-      Object.entries(actualFilters).forEach(([key, value]) => {
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
           params.append(key, String(value));
         }
@@ -65,12 +67,11 @@ class TransactionService {
     }
 
     const query = params.toString() ? `?${params.toString()}` : '';
-    const endpoint = userId ? `/transactions/me/${userId}${query}` : `/transactions${query}`;
-    return apiClient.get(endpoint) as Promise<TransactionsApiResponse>;
+    return apiClient.get(`/v1/transactions/me${query}`) as Promise<TransactionsApiResponse>;
   }
 
   async getTransaction(transactionId: string): Promise<ApiResponse<{ transaction: Transaction }>> {
-    return apiClient.get(`/transactions/${transactionId}`);
+    return apiClient.get(`/v1/transactions/me/${transactionId}`);
   }
 
   async purchaseAirtime(data: PurchaseAirtimeRequest): Promise<ApiResponse<{ transaction: Transaction }>> {

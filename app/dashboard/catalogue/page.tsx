@@ -1,12 +1,14 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
 import {
   AlertCircle,
   ArrowUpDown,
   Briefcase,
   Check,
   ChevronDown,
+  ExternalLink,
   Eye,
   EyeOff,
   Grid3x3,
@@ -22,41 +24,24 @@ import {
   Store,
   Tag,
   Trash2,
-  Upload,
   X,
 } from 'lucide-react';
 import { ProtectedPageWrapper } from '@/components/ProtectedPageWrapper';
+import { PageSkeleton } from '@/components/shared/SkeletonLoader';
+import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
+import { Modal } from '@/components/shared/Modal';
+import { BusinessProfileForm } from '@/components/catalogue/BusinessProfileForm';
+import { useMyCatalogue } from '@/hooks/useMyCatalogue';
+import { formatCurrency } from '@/utils/format.utils';
+import type {
+  AddPortfolioItemRequest,
+  PortfolioItem,
+  UpdatePortfolioItemRequest,
+} from '@/types/portfolio.types';
 
-// ── Types ────────────────────────────────────────────────────────────────────
-type ItemStatus = 'active' | 'draft' | 'out_of_stock';
-type ItemType = 'product' | 'service';
+// ── Local view state ─────────────────────────────────────────────────────────
 type ViewMode = 'grid' | 'list';
 type SortKey = 'newest' | 'oldest' | 'name_asc' | 'price_high' | 'price_low';
-
-interface CatalogueItem {
-  id: string;
-  name: string;
-  description: string;
-  category: string;
-  type: ItemType;
-  price: number;
-  status: ItemStatus;
-  imageUrl: string | null;
-  createdAt: string;
-}
-
-interface StatusConfig {
-  label: string;
-  badgeBg: string;
-  badgeText: string;
-  dot: string;
-}
-
-const STATUS_CONFIG: Record<ItemStatus, StatusConfig> = {
-  active: { label: 'Active', badgeBg: 'bg-green-50 border-green-100', badgeText: 'text-green-700', dot: 'bg-green-500' },
-  draft: { label: 'Draft', badgeBg: 'bg-gray-50 border-gray-200', badgeText: 'text-gray-500', dot: 'bg-gray-300' },
-  out_of_stock: { label: 'Out of stock', badgeBg: 'bg-red-50 border-red-100', badgeText: 'text-red-600', dot: 'bg-red-400' },
-};
 
 const SORT_LABELS: Record<SortKey, string> = {
   newest: 'Newest first',
@@ -66,76 +51,24 @@ const SORT_LABELS: Record<SortKey, string> = {
   price_low: 'Price (low to high)',
 };
 
-// ── Mock data — swap with real fetch ────────────────────────────────────────
-const MOCK_ITEMS: CatalogueItem[] = [
-  {
-    id: '1',
-    name: 'Premium Leather Bag',
-    description: 'Handcrafted full-grain leather tote, made to order.',
-    category: 'Fashion',
-    type: 'product',
-    price: 45000,
-    status: 'active',
-    imageUrl: null,
-    createdAt: '2026-06-20T10:00:00Z',
-  },
-  {
-    id: '2',
-    name: 'Brand Identity Design',
-    description: 'Complete logo, palette, and brand guideline package.',
-    category: 'Design',
-    type: 'service',
-    price: 120000,
-    status: 'active',
-    imageUrl: null,
-    createdAt: '2026-06-15T10:00:00Z',
-  },
-  {
-    id: '3',
-    name: 'Organic Skincare Set',
-    description: 'Three-piece face care bundle with natural ingredients.',
-    category: 'Beauty',
-    type: 'product',
-    price: 18500,
-    status: 'out_of_stock',
-    imageUrl: null,
-    createdAt: '2026-06-10T10:00:00Z',
-  },
-  {
-    id: '4',
-    name: 'Bookkeeping Service',
-    description: 'Monthly financial record-keeping for small businesses.',
-    category: 'Finance',
-    type: 'service',
-    price: 35000,
-    status: 'draft',
-    imageUrl: null,
-    createdAt: '2026-06-05T10:00:00Z',
-  },
-];
-
 const inputClass =
   'w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 outline-none transition focus:border-[#C9A84C] focus:bg-white focus:ring-2 focus:ring-[#C9A84C]/10';
 
-const formatCurrency = (value: number): string =>
-  new Intl.NumberFormat('en-NG', {
-    style: 'currency',
-    currency: 'NGN',
-    maximumFractionDigits: 0,
-  }).format(value);
-
 // ── Status badge ─────────────────────────────────────────────────────────────
-const StatusBadge: React.FC<{ status: ItemStatus }> = ({ status }) => {
-  const config = STATUS_CONFIG[status];
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${config.badgeBg} ${config.badgeText}`}
-    >
-      <span className={`h-1.5 w-1.5 rounded-full ${config.dot}`} />
-      {config.label}
-    </span>
-  );
-};
+// The API models visibility as a single is_active flag, so the UI shows the two
+// states the backend can actually store.
+const StatusBadge: React.FC<{ isActive: boolean }> = ({ isActive }) => (
+  <span
+    className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
+      isActive
+        ? 'border-green-100 bg-green-50 text-green-700'
+        : 'border-gray-200 bg-gray-50 text-gray-500'
+    }`}
+  >
+    <span className={`h-1.5 w-1.5 rounded-full ${isActive ? 'bg-green-500' : 'bg-gray-300'}`} />
+    {isActive ? 'Active' : 'Hidden'}
+  </span>
+);
 
 // ── Stat card ────────────────────────────────────────────────────────────────
 interface StatCardProps {
@@ -162,23 +95,30 @@ const StatCard: React.FC<StatCardProps> = ({ label, value, sub, icon: Icon, icon
   </div>
 );
 
-// ── Item card (grid view) ───────────────────────────────────────────────────
-interface ItemCardProps {
-  item: CatalogueItem;
-  onEdit: (item: CatalogueItem) => void;
-  onDelete: (item: CatalogueItem) => void;
-  onToggleStatus: (item: CatalogueItem) => void;
+interface ItemActions {
+  onEdit: (item: PortfolioItem) => void;
+  onDelete: (item: PortfolioItem) => void;
+  onToggleStatus: (item: PortfolioItem) => void;
 }
 
-const ItemCard: React.FC<ItemCardProps> = ({ item, onEdit, onDelete, onToggleStatus }) => {
+// ── Item card (grid view) ───────────────────────────────────────────────────
+const ItemCard: React.FC<{ item: PortfolioItem } & ItemActions> = ({
+  item,
+  onEdit,
+  onDelete,
+  onToggleStatus,
+}) => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const cover = item.image_urls?.[0];
 
   return (
     <div className="group relative flex flex-col overflow-hidden rounded-2xl border border-gray-200/80 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-[#C9A84C]/30 hover:shadow-md">
       {/* Image */}
       <div className="relative h-40 flex-shrink-0 overflow-hidden bg-gray-50">
-        {item.imageUrl ? (
-          <img src={item.imageUrl} alt={item.name} className="h-full w-full object-cover" />
+        {cover ? (
+          // Member-supplied host, so the optimiser is bypassed.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={cover} alt={item.title} className="h-full w-full object-cover" />
         ) : (
           <div className="flex h-full w-full items-center justify-center">
             <ImageIcon size={28} className="text-gray-200" />
@@ -187,13 +127,14 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, onEdit, onDelete, onToggleSta
 
         {/* Type badge */}
         <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white/90 px-2.5 py-1 text-[10px] font-semibold capitalize text-gray-600 backdrop-blur-sm">
-          {item.type === 'product' ? <Package size={11} /> : <Briefcase size={11} />}
-          {item.type}
+          {item.item_type === 'product' ? <Package size={11} /> : <Briefcase size={11} />}
+          {item.item_type}
         </span>
 
         {/* Menu */}
         <div className="absolute right-3 top-3">
           <button
+            type="button"
             onClick={() => setMenuOpen((v) => !v)}
             className="flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 bg-white/90 text-gray-500 backdrop-blur-sm transition hover:text-gray-900"
             aria-label="Item actions"
@@ -206,20 +147,32 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, onEdit, onDelete, onToggleSta
               <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
               <div className="absolute right-0 z-20 mt-1.5 w-40 overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-lg">
                 <button
-                  onClick={() => { onEdit(item); setMenuOpen(false); }}
+                  type="button"
+                  onClick={() => {
+                    onEdit(item);
+                    setMenuOpen(false);
+                  }}
                   className="flex w-full items-center gap-2 px-3.5 py-2 text-left text-xs font-semibold text-gray-600 hover:bg-gray-50"
                 >
                   <Pencil size={12} /> Edit item
                 </button>
                 <button
-                  onClick={() => { onToggleStatus(item); setMenuOpen(false); }}
+                  type="button"
+                  onClick={() => {
+                    onToggleStatus(item);
+                    setMenuOpen(false);
+                  }}
                   className="flex w-full items-center gap-2 px-3.5 py-2 text-left text-xs font-semibold text-gray-600 hover:bg-gray-50"
                 >
-                  {item.status === 'draft' ? <Eye size={12} /> : <EyeOff size={12} />}
-                  {item.status === 'draft' ? 'Publish' : 'Unpublish'}
+                  {item.is_active ? <EyeOff size={12} /> : <Eye size={12} />}
+                  {item.is_active ? 'Unpublish' : 'Publish'}
                 </button>
                 <button
-                  onClick={() => { onDelete(item); setMenuOpen(false); }}
+                  type="button"
+                  onClick={() => {
+                    onDelete(item);
+                    setMenuOpen(false);
+                  }}
                   className="flex w-full items-center gap-2 px-3.5 py-2 text-left text-xs font-semibold text-red-500 hover:bg-red-50"
                 >
                   <Trash2 size={12} /> Delete
@@ -233,24 +186,30 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, onEdit, onDelete, onToggleSta
       {/* Body */}
       <div className="flex flex-1 flex-col p-4">
         <div className="mb-1.5 flex items-start justify-between gap-2">
-          <h3 className="text-sm font-black leading-tight text-gray-900">{item.name}</h3>
+          <h3 className="text-sm font-black leading-tight text-gray-900">{item.title}</h3>
         </div>
 
-        <p className="mb-3 line-clamp-2 flex-1 text-xs text-gray-400 leading-relaxed">
-          {item.description}
+        <p className="mb-3 line-clamp-2 flex-1 text-xs leading-relaxed text-gray-400">
+          {item.description || 'No description yet.'}
         </p>
 
-        <div className="mb-3 flex items-center gap-2">
-          <span className="inline-flex items-center gap-1 rounded-full bg-gray-50 px-2 py-0.5 text-[10px] font-semibold text-gray-500">
-            <Tag size={9} />
-            {item.category}
-          </span>
-          <StatusBadge status={item.status} />
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          {item.image_urls?.length > 1 && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-gray-50 px-2 py-0.5 text-[10px] font-semibold text-gray-500">
+              {item.image_urls.length} images
+            </span>
+          )}
+          <StatusBadge isActive={item.is_active} />
         </div>
 
         <div className="flex items-center justify-between border-t border-gray-100 pt-3">
-          <span className="text-sm font-black text-gray-900">{formatCurrency(item.price)}</span>
+          <span className="text-sm font-black text-gray-900">
+            {item.price !== null && item.price !== undefined
+              ? formatCurrency(item.price)
+              : 'Price on request'}
+          </span>
           <button
+            type="button"
             onClick={() => onEdit(item)}
             className="text-xs font-semibold text-[#C9A84C] transition hover:text-[#B8962E]"
           >
@@ -263,287 +222,458 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, onEdit, onDelete, onToggleSta
 };
 
 // ── Item row (list view) ────────────────────────────────────────────────────
-const ItemRow: React.FC<ItemCardProps> = ({ item, onEdit, onDelete, onToggleStatus }) => (
-  <div className="flex items-center gap-4 border-b border-gray-50 px-5 py-4 transition hover:bg-[#FDFAF3]/40">
-    <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center overflow-hidden rounded-xl border border-gray-100 bg-gray-50">
-      {item.imageUrl ? (
-        <img src={item.imageUrl} alt={item.name} className="h-full w-full object-cover" />
-      ) : (
-        <ImageIcon size={16} className="text-gray-200" />
-      )}
+const ItemRow: React.FC<{ item: PortfolioItem } & ItemActions> = ({
+  item,
+  onEdit,
+  onDelete,
+  onToggleStatus,
+}) => {
+  const cover = item.image_urls?.[0];
+
+  return (
+    <div className="flex items-center gap-4 border-b border-gray-50 px-5 py-4 transition last:border-0 hover:bg-[#FDFAF3]/40">
+      <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center overflow-hidden rounded-xl border border-gray-100 bg-gray-50">
+        {cover ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={cover} alt={item.title} className="h-full w-full object-cover" />
+        ) : (
+          <ImageIcon size={16} className="text-gray-200" />
+        )}
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-bold text-gray-900">{item.title}</p>
+        <p className="mt-0.5 flex items-center gap-2 text-[11px] text-gray-400">
+          <span className="capitalize">{item.item_type}</span>
+          {item.description && (
+            <>
+              <span>·</span>
+              <span className="truncate">{item.description}</span>
+            </>
+          )}
+        </p>
+      </div>
+
+      <span className="hidden shrink-0 text-sm font-black text-gray-900 sm:block">
+        {item.price !== null && item.price !== undefined
+          ? formatCurrency(item.price)
+          : 'On request'}
+      </span>
+
+      <StatusBadge isActive={item.is_active} />
+
+      <div className="flex shrink-0 items-center gap-1.5">
+        <button
+          type="button"
+          onClick={() => onToggleStatus(item)}
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
+          aria-label={item.is_active ? 'Unpublish item' : 'Publish item'}
+          title={item.is_active ? 'Unpublish' : 'Publish'}
+        >
+          {item.is_active ? <EyeOff size={14} /> : <Eye size={14} />}
+        </button>
+        <button
+          type="button"
+          onClick={() => onEdit(item)}
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
+          aria-label="Edit item"
+          title="Edit"
+        >
+          <Pencil size={14} />
+        </button>
+        <button
+          type="button"
+          onClick={() => onDelete(item)}
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition hover:bg-red-50 hover:text-red-600"
+          aria-label="Delete item"
+          title="Delete"
+        >
+          <Trash2 size={14} />
+        </button>
+      </div>
     </div>
-
-    <div className="min-w-0 flex-1">
-      <p className="truncate text-sm font-black text-gray-900">{item.name}</p>
-      <p className="truncate text-xs text-gray-400">{item.category} · {item.type}</p>
-    </div>
-
-    <StatusBadge status={item.status} />
-
-    <span className="w-28 flex-shrink-0 text-right text-sm font-black text-gray-900">
-      {formatCurrency(item.price)}
-    </span>
-
-    <div className="flex flex-shrink-0 items-center gap-1">
-      <button
-        onClick={() => onEdit(item)}
-        className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition hover:bg-[#FDFAF3] hover:text-[#C9A84C]"
-        aria-label="Edit"
-      >
-        <Pencil size={14} />
-      </button>
-      <button
-        onClick={() => onToggleStatus(item)}
-        className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
-        aria-label="Toggle status"
-      >
-        {item.status === 'draft' ? <Eye size={14} /> : <EyeOff size={14} />}
-      </button>
-      <button
-        onClick={() => onDelete(item)}
-        className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition hover:bg-red-50 hover:text-red-500"
-        aria-label="Delete"
-      >
-        <Trash2 size={14} />
-      </button>
-    </div>
-  </div>
-);
+  );
+};
 
 // ── Empty state ──────────────────────────────────────────────────────────────
-const EmptyState: React.FC<{ onAdd: () => void; hasFilters: boolean; onClearFilters: () => void }> = ({
-  onAdd,
-  hasFilters,
-  onClearFilters,
-}) => (
+const EmptyState: React.FC<{
+  onAdd: () => void;
+  hasFilters: boolean;
+  onClearFilters: () => void;
+  hasProfile: boolean;
+}> = ({ onAdd, hasFilters, onClearFilters, hasProfile }) => (
   <div className="flex flex-col items-center justify-center rounded-2xl border border-gray-200/80 bg-white px-6 py-20 text-center shadow-sm">
     <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border border-[#C9A84C]/20 bg-[#FDFAF3]">
       <Store size={26} className="text-[#C9A84C]" />
     </div>
     <h3 className="text-lg font-black text-gray-900">
-      {hasFilters ? 'No items match your filters' : 'Your catalogue is empty'}
+      {!hasProfile
+        ? 'Set up your business first'
+        : hasFilters
+          ? 'No items match your filters'
+          : 'Your catalogue is empty'}
     </h3>
     <p className="mt-1.5 max-w-sm text-sm text-gray-400">
-      {hasFilters
-        ? 'Try adjusting your search or filters to find what you\'re looking for.'
-        : 'Start building your storefront by adding your first product or service.'}
+      {!hasProfile
+        ? 'Add your business details, then start listing the products and services you offer.'
+        : hasFilters
+          ? 'Try adjusting your search or filters to find what you\'re looking for.'
+          : 'Start building your storefront by adding your first product or service.'}
     </p>
-    <button
-      onClick={hasFilters ? onClearFilters : onAdd}
-      className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#C9A84C] px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-[#C9A84C]/20 transition hover:bg-[#B8962E]"
-    >
-      {hasFilters ? <X size={14} /> : <Plus size={14} />}
-      {hasFilters ? 'Clear filters' : 'Add your first item'}
-    </button>
+    {hasProfile && (
+      <button
+        type="button"
+        onClick={hasFilters ? onClearFilters : onAdd}
+        className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#C9A84C] px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-[#C9A84C]/20 transition hover:bg-[#B8962E]"
+      >
+        {hasFilters ? <X size={14} /> : <Plus size={14} />}
+        {hasFilters ? 'Clear filters' : 'Add your first item'}
+      </button>
+    )}
   </div>
 );
 
-// ── Add/Edit modal ───────────────────────────────────────────────────────────
+// ── Add / edit modal ─────────────────────────────────────────────────────────
 interface ItemModalProps {
   isOpen: boolean;
-  item: CatalogueItem | null;
+  item: PortfolioItem | null;
   onClose: () => void;
-  onSave: (item: CatalogueItem) => void;
+  onSave: (payload: AddPortfolioItemRequest | UpdatePortfolioItemRequest) => Promise<boolean>;
+  onUploadImage: (file: File) => Promise<string>;
+  isSaving: boolean;
 }
 
-const ItemModal: React.FC<ItemModalProps> = ({ isOpen, item, onClose, onSave }) => {
-  const [form, setForm] = useState<{
-    name: string;
-    description: string;
-    category: string;
-    type: ItemType;
-    price: string;
-    status: ItemStatus;
-  }>({
-    name: item?.name ?? '',
-    description: item?.description ?? '',
-    category: item?.category ?? '',
-    type: item?.type ?? 'product',
-    price: item ? String(item.price) : '',
-    status: item?.status ?? 'draft',
-  });
-  const [saving, setSaving] = useState(false);
+const ItemModal: React.FC<ItemModalProps> = ({
+  isOpen,
+  item,
+  onClose,
+  onSave,
+  onUploadImage,
+  isSaving,
+}) => {
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [itemType, setItemType] = useState<'product' | 'service'>('product');
+  const [price, setPrice] = useState('');
+  const [dmLink, setDmLink] = useState('');
+  const [images, setImages] = useState<string[]>([]);
+  const [isActive, setIsActive] = useState(true);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  React.useEffect(() => {
-    setForm({
-      name: item?.name ?? '',
-      description: item?.description ?? '',
-      category: item?.category ?? '',
-      type: item?.type ?? 'product',
-      price: item ? String(item.price) : '',
-      status: item?.status ?? 'draft',
-    });
-  }, [item, isOpen]);
-
-  if (!isOpen) return null;
+  useEffect(() => {
+    if (!isOpen) return;
+    setErrors({});
+    setTitle(item?.title ?? '');
+    setDescription(item?.description ?? '');
+    setItemType(item?.item_type ?? 'product');
+    setPrice(item?.price !== null && item?.price !== undefined ? String(item.price) : '');
+    setDmLink(item?.whatsapp_dm_link ?? '');
+    setImages(item?.image_urls ?? []);
+    setIsActive(item?.is_active ?? true);
+  }, [isOpen, item]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaving(true);
-    await new Promise((r) => setTimeout(r, 800));
 
-    const payload: CatalogueItem = {
-      id: item?.id ?? String(Date.now()),
-      name: form.name,
-      description: form.description,
-      category: form.category,
-      type: form.type,
-      price: Number(form.price) || 0,
-      status: form.status,
-      imageUrl: item?.imageUrl ?? null,
-      createdAt: item?.createdAt ?? new Date().toISOString(),
-    };
+    const next: Record<string, string> = {};
+    if (title.trim().length < 2) next.title = 'Enter a name of at least 2 characters.';
+    if (price.trim() !== '' && (Number.isNaN(Number(price)) || Number(price) < 0)) {
+      next.price = 'Enter a valid price, or leave blank.';
+    }
+    if (dmLink.trim() !== '' && !/^https?:\/\/.+/i.test(dmLink.trim())) {
+      next.dmLink = 'Enter a full link starting with http:// or https://';
+    }
+    setErrors(next);
+    if (Object.keys(next).length > 0) return;
 
-    setSaving(false);
-    onSave(payload);
+    const ok = await onSave({
+      title: title.trim(),
+      description: description.trim() || null,
+      item_type: itemType,
+      price: price.trim() === '' ? null : Number(price),
+      image_urls: images,
+      whatsapp_dm_link: dmLink.trim() || null,
+      is_active: isActive,
+    });
+
+    if (ok) onClose();
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4">
-      <div className="fixed inset-0 bg-black/20 backdrop-blur-sm" onClick={onClose} />
-
-      <div className="relative flex max-h-[90vh] w-full flex-col overflow-hidden rounded-t-2xl border border-gray-200/80 bg-white shadow-xl sm:max-w-lg sm:rounded-2xl">
-        <div className="h-[3px] flex-shrink-0 bg-gradient-to-r from-[#C9A84C]/30 via-[#C9A84C] to-[#C9A84C]/30" />
-
-        <div className="flex flex-shrink-0 items-center justify-between border-b border-gray-100 px-6 py-4">
-          <h2 className="text-base font-black text-gray-900">
-            {item ? 'Edit item' : 'Add new item'}
-          </h2>
-          <button
-            onClick={onClose}
-            className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
-            aria-label="Close"
-          >
-            <X size={16} />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-5">
-          {/* Image upload placeholder */}
-          <div className="mb-5 flex items-center justify-center rounded-xl border-2 border-dashed border-gray-200 bg-gray-50/70 py-8 transition hover:border-[#C9A84C]/40">
-            <div className="text-center">
-              <Upload size={20} className="mx-auto mb-2 text-gray-300" />
-              <p className="text-xs font-semibold text-gray-500">Click to upload image</p>
-              <p className="mt-0.5 text-[11px] text-gray-300">PNG, JPG up to 5MB</p>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div>
-              <label className="mb-1.5 block text-xs font-semibold text-gray-600">
-                Item name <span className="text-[#C9A84C]">*</span>
-              </label>
-              <input
-                required
-                value={form.name}
-                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                className={inputClass}
-                placeholder="e.g. Premium Leather Bag"
-              />
-            </div>
-
-            <div>
-              <label className="mb-1.5 block text-xs font-semibold text-gray-600">Description</label>
-              <textarea
-                rows={3}
-                value={form.description}
-                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                className={`${inputClass} resize-none`}
-                placeholder="Briefly describe this item…"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold text-gray-600">Category</label>
-                <input
-                  value={form.category}
-                  onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-                  className={inputClass}
-                  placeholder="e.g. Fashion"
-                />
-              </div>
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold text-gray-600">Type</label>
-                <select
-                  value={form.type}
-                  onChange={(e) => setForm((f) => ({ ...f, type: e.target.value as ItemType }))}
-                  className={`${inputClass} cursor-pointer`}
-                >
-                  <option value="product">Product</option>
-                  <option value="service">Service</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold text-gray-600">
-                  Price (₦) <span className="text-[#C9A84C]">*</span>
-                </label>
-                <input
-                  required
-                  type="number"
-                  min="0"
-                  value={form.price}
-                  onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
-                  className={inputClass}
-                  placeholder="0"
-                />
-              </div>
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold text-gray-600">Status</label>
-                <select
-                  value={form.status}
-                  onChange={(e) => setForm((f) => ({ ...f, status: e.target.value as ItemStatus }))}
-                  className={`${inputClass} cursor-pointer`}
-                >
-                  <option value="draft">Draft</option>
-                  <option value="active">Active</option>
-                  <option value="out_of_stock">Out of stock</option>
-                </select>
-              </div>
-            </div>
-          </div>
-        </form>
-
-        <div className="flex flex-shrink-0 items-center justify-end gap-3 border-t border-gray-100 px-6 py-4">
+    <Modal
+      isOpen={isOpen}
+      onClose={isSaving ? () => undefined : onClose}
+      title={item ? 'Edit item' : 'Add item'}
+      icon={item ? Pencil : Plus}
+      size="lg"
+      footer={
+        <>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-semibold text-gray-500 transition hover:bg-gray-50"
+            disabled={isSaving}
+            className="w-full rounded-xl border border-gray-200 bg-white py-2.5 text-sm font-semibold text-gray-500 transition hover:bg-gray-50 disabled:opacity-50 sm:w-auto"
           >
             Cancel
           </button>
           <button
-            onClick={handleSubmit}
-            disabled={saving}
-            className="inline-flex items-center gap-2 rounded-xl bg-[#C9A84C] px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-[#C9A84C]/20 transition hover:bg-[#B8962E] disabled:opacity-70"
+            type="submit"
+            form="catalogue-item-form"
+            disabled={isSaving}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#C9A84C] py-2.5 text-sm font-semibold text-white shadow-sm shadow-[#C9A84C]/20 transition hover:bg-[#B8962E] disabled:opacity-60 sm:w-auto"
           >
-            {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
-            {saving ? 'Saving…' : item ? 'Save changes' : 'Add item'}
+            {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
+            {item ? 'Save changes' : 'Add item'}
           </button>
+        </>
+      }
+    >
+      <form id="catalogue-item-form" onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="mb-1.5 block text-[13px] font-medium text-gray-700" htmlFor="m-title">
+            Item name <span className="text-red-400">*</span>
+          </label>
+          <input
+            id="m-title"
+            value={title}
+            onChange={(e) => {
+              setTitle(e.target.value);
+              setErrors((p) => ({ ...p, title: '' }));
+            }}
+            placeholder="e.g. Premium Leather Bag"
+            className={`${inputClass} ${errors.title ? 'border-red-300' : ''}`}
+          />
+          {errors.title && <p className="mt-1 text-xs text-red-500">{errors.title}</p>}
         </div>
+
+        <div>
+          <label className="mb-1.5 block text-[13px] font-medium text-gray-700" htmlFor="m-desc">
+            Description
+          </label>
+          <textarea
+            id="m-desc"
+            rows={3}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Briefly describe this item…"
+            className={`${inputClass} resize-y`}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label className="mb-1.5 block text-[13px] font-medium text-gray-700" htmlFor="m-type">
+              Type
+            </label>
+            <select
+              id="m-type"
+              value={itemType}
+              onChange={(e) => setItemType(e.target.value as 'product' | 'service')}
+              className={inputClass}
+            >
+              <option value="product">Product</option>
+              <option value="service">Service</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-[13px] font-medium text-gray-700" htmlFor="m-price">
+              Price (NGN)
+            </label>
+            <input
+              id="m-price"
+              type="number"
+              min="0"
+              step="0.01"
+              value={price}
+              onChange={(e) => {
+                setPrice(e.target.value);
+                setErrors((p) => ({ ...p, price: '' }));
+              }}
+              placeholder="Blank if on request"
+              className={`${inputClass} ${errors.price ? 'border-red-300' : ''}`}
+            />
+            {errors.price && <p className="mt-1 text-xs text-red-500">{errors.price}</p>}
+          </div>
+        </div>
+
+        <div>
+          <label className="mb-1.5 block text-[13px] font-medium text-gray-700" htmlFor="m-dm">
+            WhatsApp enquiry link
+          </label>
+          <input
+            id="m-dm"
+            value={dmLink}
+            onChange={(e) => {
+              setDmLink(e.target.value);
+              setErrors((p) => ({ ...p, dmLink: '' }));
+            }}
+            placeholder="https://wa.me/2348012345678"
+            className={`${inputClass} ${errors.dmLink ? 'border-red-300' : ''}`}
+          />
+          {errors.dmLink && <p className="mt-1 text-xs text-red-500">{errors.dmLink}</p>}
+        </div>
+
+        <div>
+          <span className="mb-1.5 block text-[13px] font-medium text-gray-700">Photos</span>
+          <ItemImagesEditor value={images} onChange={setImages} onUpload={onUploadImage} disabled={isSaving} />
+        </div>
+
+        <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-gray-200 bg-gray-50/60 px-3.5 py-3">
+          <input
+            type="checkbox"
+            checked={isActive}
+            onChange={(e) => setIsActive(e.target.checked)}
+            className="h-4 w-4 cursor-pointer rounded border-gray-300 accent-[#C9A84C]"
+          />
+          <span className="text-sm text-gray-700">Visible in my public catalogue</span>
+        </label>
+      </form>
+    </Modal>
+  );
+};
+
+/** Multi-image editor kept local to preserve the original modal layout. */
+const ItemImagesEditor: React.FC<{
+  value: string[];
+  onChange: (urls: string[]) => void;
+  onUpload: (file: File) => Promise<string>;
+  disabled: boolean;
+}> = ({ value, onChange, onUpload, disabled }) => {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleFiles = async (files: FileList | null) => {
+    if (!files?.length) return;
+    setError('');
+    setBusy(true);
+    try {
+      const next = [...value];
+      for (const file of Array.from(files)) {
+        if (next.length >= 5) break;
+        if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+          setError('Only JPG, PNG or WebP images are supported.');
+          continue;
+        }
+        if (file.size > 4 * 1024 * 1024) {
+          setError('Images must be 4MB or smaller.');
+          continue;
+        }
+        try {
+          next.push(await onUpload(file));
+        } catch (err) {
+          setError(err instanceof Error ? err.message : 'Upload failed.');
+        }
+      }
+      onChange(next);
+    } finally {
+      setBusy(false);
+      if (inputRef.current) inputRef.current.value = '';
+    }
+  };
+
+  return (
+    <div>
+      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+        {value.map((url, i) => (
+          <div
+            key={`${url}-${i}`}
+            className="group relative aspect-square overflow-hidden rounded-xl border border-gray-200 bg-gray-50"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={url} alt="" className="h-full w-full object-cover" />
+            {!disabled && (
+              <button
+                type="button"
+                onClick={() => onChange(value.filter((_, idx) => idx !== i))}
+                className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-lg bg-white/95 text-gray-600 shadow-sm transition hover:bg-red-600 hover:text-white"
+                aria-label={`Remove image ${i + 1}`}
+              >
+                <X size={12} />
+              </button>
+            )}
+          </div>
+        ))}
+
+        {value.length < 5 && !disabled && (
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            disabled={busy}
+            className="flex aspect-square flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50/60 text-gray-400 transition hover:border-[#C9A84C]/40 hover:text-[#C9A84C] disabled:opacity-60"
+          >
+            {busy ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <>
+                <Plus size={16} />
+                <span className="text-[10px] font-semibold">Add</span>
+              </>
+            )}
+          </button>
+        )}
       </div>
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        multiple
+        className="sr-only"
+        onChange={(e) => void handleFiles(e.target.files)}
+      />
+
+      {error ? (
+        <p className="mt-1.5 text-xs text-red-500">{error}</p>
+      ) : (
+        <p className="mt-1.5 text-[11px] text-gray-400">
+          JPG, PNG or WebP up to 4MB. Up to 5 images.
+        </p>
+      )}
     </div>
   );
 };
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 export default function CataloguePage() {
-  const [items, setItems] = useState<CatalogueItem[]>(MOCK_ITEMS);
+  const {
+    portfolio,
+    items,
+    canManage,
+    isLoading,
+    isSavingProfile,
+    savingItemId,
+    error,
+    refresh,
+    saveProfile,
+    addItem,
+    updateItem,
+    deleteItem,
+    toggleItemActive,
+    uploadImage,
+  } = useMyCatalogue();
+
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<ItemStatus | ''>('');
-  const [typeFilter, setTypeFilter] = useState<ItemType | ''>('');
+  const [statusFilter, setStatusFilter] = useState<'active' | 'hidden' | ''>('');
+  const [typeFilter, setTypeFilter] = useState<'product' | 'service' | ''>('');
   const [sortKey, setSortKey] = useState<SortKey>('newest');
   const [sortOpen, setSortOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   const [modalOpen, setModalOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<CatalogueItem | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<CatalogueItem | null>(null);
+  const [editingItem, setEditingItem] = useState<PortfolioItem | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<PortfolioItem | null>(null);
 
+  const hasProfile = Boolean(portfolio);
   const hasFilters = Boolean(search || statusFilter || typeFilter);
+
+  // A brand-new member has no business profile, and the API requires one
+  // before items can be added — so open the form for them automatically.
+  useEffect(() => {
+    if (!isLoading && !hasProfile) setProfileOpen(true);
+  }, [isLoading, hasProfile]);
 
   const filteredItems = useMemo(() => {
     let result = [...items];
@@ -551,27 +681,33 @@ export default function CataloguePage() {
     if (search) {
       const q = search.toLowerCase();
       result = result.filter(
-        (i) => i.name.toLowerCase().includes(q) || i.category.toLowerCase().includes(q)
+        (i) =>
+          i.title.toLowerCase().includes(q) ||
+          (i.description ?? '').toLowerCase().includes(q),
       );
     }
-    if (statusFilter) result = result.filter((i) => i.status === statusFilter);
-    if (typeFilter) result = result.filter((i) => i.type === typeFilter);
+    if (statusFilter === 'active') result = result.filter((i) => i.is_active);
+    if (statusFilter === 'hidden') result = result.filter((i) => !i.is_active);
+    if (typeFilter) result = result.filter((i) => i.item_type === typeFilter);
+
+    const byDate = (a: PortfolioItem, b: PortfolioItem) =>
+      new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime();
 
     switch (sortKey) {
       case 'newest':
-        result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        result.sort(byDate);
         break;
       case 'oldest':
-        result.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+        result.sort((a, b) => -byDate(a, b));
         break;
       case 'name_asc':
-        result.sort((a, b) => a.name.localeCompare(b.name));
+        result.sort((a, b) => a.title.localeCompare(b.title));
         break;
       case 'price_high':
-        result.sort((a, b) => b.price - a.price);
+        result.sort((a, b) => (b.price ?? -1) - (a.price ?? -1));
         break;
       case 'price_low':
-        result.sort((a, b) => a.price - b.price);
+        result.sort((a, b) => (a.price ?? Number.MAX_SAFE_INTEGER) - (b.price ?? Number.MAX_SAFE_INTEGER));
         break;
     }
 
@@ -581,11 +717,11 @@ export default function CataloguePage() {
   const stats = useMemo(
     () => ({
       total: items.length,
-      active: items.filter((i) => i.status === 'active').length,
-      draft: items.filter((i) => i.status === 'draft').length,
-      value: items.reduce((sum, i) => sum + i.price, 0),
+      active: items.filter((i) => i.is_active).length,
+      hidden: items.filter((i) => !i.is_active).length,
+      value: items.reduce((sum, i) => sum + (i.price ?? 0), 0),
     }),
-    [items]
+    [items],
   );
 
   const clearFilters = () => {
@@ -599,58 +735,98 @@ export default function CataloguePage() {
     setModalOpen(true);
   };
 
-  const handleEdit = (item: CatalogueItem) => {
+  const handleEdit = (item: PortfolioItem) => {
     setEditingItem(item);
     setModalOpen(true);
   };
 
-  const handleSave = (item: CatalogueItem) => {
-    setItems((prev) => {
-      const exists = prev.some((i) => i.id === item.id);
-      return exists ? prev.map((i) => (i.id === item.id ? item : i)) : [item, ...prev];
-    });
-    setModalOpen(false);
-    setEditingItem(null);
+  const handleSave = async (
+    payload: AddPortfolioItemRequest | UpdatePortfolioItemRequest,
+  ): Promise<boolean> => {
+    if (editingItem) return updateItem(editingItem.id, payload as UpdatePortfolioItemRequest);
+    return addItem(payload as AddPortfolioItemRequest);
   };
 
-  const handleToggleStatus = (item: CatalogueItem) => {
-    setItems((prev) =>
-      prev.map((i) =>
-        i.id === item.id
-          ? { ...i, status: i.status === 'draft' ? 'active' : 'draft' as ItemStatus }
-          : i
-      )
+  if (isLoading) {
+    return (
+      <ProtectedPageWrapper>
+        <PageSkeleton />
+      </ProtectedPageWrapper>
     );
-  };
-
-  const confirmDelete = () => {
-    if (!deleteTarget) return;
-    setItems((prev) => prev.filter((i) => i.id !== deleteTarget.id));
-    setDeleteTarget(null);
-  };
+  }
 
   return (
     <ProtectedPageWrapper>
       <div className="space-y-6">
-
         {/* ── Header ── */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-xl font-black tracking-tight text-gray-900">
+            <h1 className="flex items-center gap-2.5 text-xl font-black tracking-tight text-gray-900">
+              <ShoppingBag className="h-5 w-5 text-[#C9A84C]" />
               Business Catalogue
             </h1>
-            <p className="mt-1 text-sm text-gray-400">
-              Showcase and manage your products and services.
-            </p>
+            <p className="mt-1 text-sm text-gray-400">Showcase and manage your products and services.</p>
           </div>
-          <button
-            onClick={handleAdd}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#C9A84C] px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-[#C9A84C]/20 transition hover:bg-[#B8962E]"
-          >
-            <Plus size={16} />
-            Add item
-          </button>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Jump to the member's public catalogue page */}
+            {portfolio && (
+              <Link
+                href={`/catalogue/${portfolio.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="View my public catalogue page"
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-600 transition hover:border-[#C9A84C]/40 hover:text-[#C9A84C]"
+              >
+                <ExternalLink size={15} />
+                <span className="hidden sm:inline">View public page</span>
+              </Link>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setProfileOpen(true)}
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-600 transition hover:bg-gray-50"
+            >
+              <Store size={15} />
+              Business profile
+              {portfolio && (
+                <span
+                  className={`h-1.5 w-1.5 rounded-full ${
+                    portfolio.is_approved ? 'bg-green-500' : 'bg-amber-500'
+                  }`}
+                  title={portfolio.is_approved ? 'Live' : 'Hidden by an admin'}
+                />
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleAdd}
+              disabled={!canManage || !hasProfile}
+              title={!hasProfile ? 'Set up your business profile first' : undefined}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#C9A84C] px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-[#C9A84C]/20 transition hover:bg-[#B8962E] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Plus size={16} />
+              Add item
+            </button>
+          </div>
         </div>
+
+        {/* ── Error ── */}
+        {error && (
+          <div className="flex items-center gap-2.5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
+            <AlertCircle className="h-4 w-4 flex-shrink-0 text-red-500" />
+            <p className="flex-1 text-sm text-red-700">{error}</p>
+            <button
+              type="button"
+              onClick={() => void refresh()}
+              className="rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-red-600 transition hover:bg-red-100"
+            >
+              Try again
+            </button>
+          </div>
+        )}
 
         {/* ── Stats ── */}
         <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
@@ -671,10 +847,10 @@ export default function CataloguePage() {
             iconColor="text-green-600"
           />
           <StatCard
-            label="Drafts"
-            value={stats.draft}
-            sub="Not yet published"
-            icon={Pencil}
+            label="Hidden"
+            value={stats.hidden}
+            sub="Not published"
+            icon={EyeOff}
             iconBg="bg-gray-50"
             iconColor="text-gray-400"
           />
@@ -696,7 +872,8 @@ export default function CataloguePage() {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search items…"
+              placeholder="Search items"
+              aria-label="Search items"
               className={`${inputClass} pl-9`}
             />
           </div>
@@ -705,19 +882,20 @@ export default function CataloguePage() {
             {/* Status filter */}
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as ItemStatus | '')}
+              onChange={(e) => setStatusFilter(e.target.value as 'active' | 'hidden' | '')}
+              aria-label="Filter by status"
               className="h-9 rounded-xl border border-gray-200 bg-white px-3 text-xs font-semibold text-gray-600 outline-none transition hover:border-[#C9A84C]/30 focus:border-[#C9A84C] focus:ring-2 focus:ring-[#C9A84C]/10"
             >
               <option value="">All statuses</option>
               <option value="active">Active</option>
-              <option value="draft">Draft</option>
-              <option value="out_of_stock">Out of stock</option>
+              <option value="hidden">Hidden</option>
             </select>
 
             {/* Type filter */}
             <select
               value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value as ItemType | '')}
+              onChange={(e) => setTypeFilter(e.target.value as 'product' | 'service' | '')}
+              aria-label="Filter by type"
               className="h-9 rounded-xl border border-gray-200 bg-white px-3 text-xs font-semibold text-gray-600 outline-none transition hover:border-[#C9A84C]/30 focus:border-[#C9A84C] focus:ring-2 focus:ring-[#C9A84C]/10"
             >
               <option value="">All types</option>
@@ -728,6 +906,7 @@ export default function CataloguePage() {
             {/* Sort */}
             <div className="relative">
               <button
+                type="button"
                 onClick={() => setSortOpen((v) => !v)}
                 className="flex h-9 items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 text-xs font-semibold text-gray-600 transition hover:border-[#C9A84C]/30"
               >
@@ -743,7 +922,11 @@ export default function CataloguePage() {
                     {(Object.keys(SORT_LABELS) as SortKey[]).map((key) => (
                       <button
                         key={key}
-                        onClick={() => { setSortKey(key); setSortOpen(false); }}
+                        type="button"
+                        onClick={() => {
+                          setSortKey(key);
+                          setSortOpen(false);
+                        }}
                         className={`flex w-full items-center justify-between px-3.5 py-2 text-left text-xs font-semibold transition ${
                           sortKey === key ? 'text-[#C9A84C]' : 'text-gray-600 hover:bg-gray-50'
                         }`}
@@ -760,6 +943,7 @@ export default function CataloguePage() {
             {/* View toggle */}
             <div className="flex items-center gap-0.5 rounded-xl border border-gray-200 bg-gray-50 p-0.5">
               <button
+                type="button"
                 onClick={() => setViewMode('grid')}
                 className={`flex h-8 w-8 items-center justify-center rounded-lg transition ${
                   viewMode === 'grid' ? 'bg-white text-[#C9A84C] shadow-sm' : 'text-gray-400'
@@ -769,6 +953,7 @@ export default function CataloguePage() {
                 <Grid3x3 size={14} />
               </button>
               <button
+                type="button"
                 onClick={() => setViewMode('list')}
                 className={`flex h-8 w-8 items-center justify-center rounded-lg transition ${
                   viewMode === 'list' ? 'bg-white text-[#C9A84C] shadow-sm' : 'text-gray-400'
@@ -783,7 +968,12 @@ export default function CataloguePage() {
 
         {/* ── Content ── */}
         {filteredItems.length === 0 ? (
-          <EmptyState onAdd={handleAdd} hasFilters={hasFilters} onClearFilters={clearFilters} />
+          <EmptyState
+            onAdd={handleAdd}
+            hasFilters={hasFilters}
+            onClearFilters={clearFilters}
+            hasProfile={hasProfile}
+          />
         ) : viewMode === 'grid' ? (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {filteredItems.map((item) => (
@@ -792,7 +982,7 @@ export default function CataloguePage() {
                 item={item}
                 onEdit={handleEdit}
                 onDelete={setDeleteTarget}
-                onToggleStatus={handleToggleStatus}
+                onToggleStatus={toggleItemActive}
               />
             ))}
           </div>
@@ -804,52 +994,83 @@ export default function CataloguePage() {
                 item={item}
                 onEdit={handleEdit}
                 onDelete={setDeleteTarget}
-                onToggleStatus={handleToggleStatus}
+                onToggleStatus={toggleItemActive}
               />
             ))}
           </div>
         )}
 
+        {/* ── Business profile modal ── */}
+        <Modal
+          isOpen={profileOpen}
+          onClose={isSavingProfile ? () => undefined : () => setProfileOpen(false)}
+          title="Business profile"
+          subtitle="How your business appears in the public catalogue."
+          icon={Store}
+          size="lg"
+          footer={
+            <>
+              {portfolio && (
+                <Link
+                  href={`/catalogue/${portfolio.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-600 transition hover:border-[#C9A84C]/40 hover:text-[#C9A84C] sm:w-auto sm:mr-auto"
+                >
+                  <ExternalLink size={14} />
+                  View public page
+                </Link>
+              )}
+              <button
+                type="button"
+                onClick={() => setProfileOpen(false)}
+                disabled={isSavingProfile}
+                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-500 transition hover:bg-gray-50 disabled:opacity-50 sm:w-auto"
+              >
+                {isSavingProfile ? 'Saving…' : 'Close'}
+              </button>
+            </>
+          }
+        >
+          <BusinessProfileForm
+            portfolio={portfolio}
+            isSaving={isSavingProfile}
+            disabled={!canManage}
+            onSave={saveProfile}
+            onUploadImage={(file) => uploadImage(file, 'business')}
+          />
+        </Modal>
+
         {/* ── Add/Edit modal ── */}
         <ItemModal
           isOpen={modalOpen}
           item={editingItem}
-          onClose={() => { setModalOpen(false); setEditingItem(null); }}
+          onClose={() => {
+            setModalOpen(false);
+            setEditingItem(null);
+          }}
           onSave={handleSave}
+          onUploadImage={(file) => uploadImage(file, 'items')}
+          isSaving={savingItemId !== null}
         />
 
         {/* ── Delete confirmation ── */}
-        {deleteTarget && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="fixed inset-0 bg-black/20 backdrop-blur-sm" onClick={() => setDeleteTarget(null)} />
-            <div className="relative w-full max-w-sm overflow-hidden rounded-2xl border border-gray-200/80 bg-white shadow-xl">
-              <div className="p-6 text-center">
-                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl border border-red-100 bg-red-50">
-                  <AlertCircle size={20} className="text-red-500" />
-                </div> 
-                <h3 className="text-base font-black text-gray-900">Delete this item?</h3>
-                <p className="mt-1.5 text-sm text-gray-400">
-                  "{deleteTarget.name}" will be permanently removed from your catalogue. This can't be undone.
-                </p>
-              </div>
-              <div className="flex gap-3 border-t border-gray-100 p-4">
-                <button
-                  onClick={() => setDeleteTarget(null)}
-                  className="flex-1 rounded-xl border border-gray-200 bg-white py-2.5 text-sm font-semibold text-gray-500 transition hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={confirmDelete}
-                  className="flex-1 rounded-xl bg-red-500 py-2.5 text-sm font-semibold text-white transition hover:bg-red-600"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
+        <ConfirmDialog
+          isOpen={deleteTarget !== null}
+          onClose={() => setDeleteTarget(null)}
+          onConfirm={async () => {
+            if (!deleteTarget) return;
+            const ok = await deleteItem(deleteTarget.id);
+            if (ok) setDeleteTarget(null);
+          }}
+          title="Delete this item?"
+          message={
+            deleteTarget
+              ? `"${deleteTarget.title}" will be permanently removed from your catalogue. This can't be undone.`
+              : ''
+          }
+          confirmLabel="Delete"
+        />
       </div>
     </ProtectedPageWrapper>
   );

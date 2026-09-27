@@ -63,7 +63,7 @@ export const AdCarousel: React.FC<AdCarouselProps> = ({
   // Early returns after all hooks
   if (loading) {
     return (
-      <div className="w-full h-40 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg animate-pulse flex items-center justify-center">
+      <div className="w-full h-40 bg-gradient-to-r from-[#FDFAF3] to-[#C9A84C]/10 rounded-lg animate-pulse flex items-center justify-center">
         <p className="text-gray-500">Loading advertisements...</p>
       </div>
     );
@@ -144,7 +144,7 @@ export const AdCarousel: React.FC<AdCarouselProps> = ({
                   e.stopPropagation();
                   handleAdClick();
                 }}
-                className="inline-flex items-center gap-2 px-3 md:px-4 py-1.5 md:py-2 bg-white text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition-colors text-sm md:text-base"
+                className="inline-flex items-center gap-2 px-3 md:px-4 py-1.5 md:py-2 bg-white text-[#B8962E] font-semibold rounded-lg hover:bg-[#FDFAF3] transition-colors text-sm md:text-base"
               >
                 {currentAd.buttonText}
                 {currentAd.actionType === 'externalUrl' && <ExternalLink size={16} />}
@@ -183,7 +183,7 @@ export const AdCarousel: React.FC<AdCarouselProps> = ({
               onClick={() => goToSlide(index)}
               className={`h-2 rounded-full transition-all ${
                 index === safeCurrentIndex
-                  ? 'w-8 bg-blue-600'
+                  ? 'w-8 bg-[#C9A84C]'
                   : 'w-2 bg-gray-300 hover:bg-gray-400'
               }`}
               aria-label={`Go to ad ${index + 1}`}

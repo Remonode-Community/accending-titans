@@ -278,7 +278,6 @@ export default function ReferralPage() {
     }
   };
 
-  // ─── Derived ────────────────────────────────────────────
 
   const primaryLink = links[0] ?? null;
   const referralUrl = primaryLink ? getReferralLink(primaryLink.code) : '';
@@ -287,21 +286,16 @@ export default function ReferralPage() {
   const totalEarnings = stats?.total_earnings ?? 0;
   const availableBalance = stats?.available_balance ?? 0;
 
-  // ─── Render ─────────────────────────────────────────────
-
+  
   return (
     <div className="space-y-6">
 
-      {/* ─── Hero: Referral Link ───────────────────────── */}
-      <section className="relative overflow-hidden rounded-3xl border border-[#C9A84C]/15 bg-gradient-to-br from-[#C9A84C]/5 via-white to-[#C9A84C]/5 px-6 py-8 sm:px-8 sm:py-10">
+     <section className="relative overflow-hidden rounded-3xl border border-[#C9A84C]/15 bg-gradient-to-br from-[#C9A84C]/5 via-white to-[#C9A84C]/5 px-6 py-8 sm:px-8 sm:py-10">
         <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-[#C9A84C]/10 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-8 left-1/3 h-40 w-40 rounded-full bg-amber-200/30 blur-3xl" />
 
         <div className="relative z-10">
-          <div className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-[#C9A84C]/20 bg-[#C9A84C]/8 px-3 py-1 text-xs font-semibold text-[#C9A84C]">
-            <Sparkles size={12} />
-            Refer & Earn Program
-          </div>
+      
 
           <h1 className="text-2xl font-black tracking-tight text-gray-900 sm:text-3xl">
             Invite friends, earn rewards together

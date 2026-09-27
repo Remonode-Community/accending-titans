@@ -12,7 +12,6 @@ import {
   Lock,
   Mail,
   Chrome,
-  Facebook,
 } from 'lucide-react';
 
 import { useAuth } from '@/hooks/useAuth';
@@ -199,20 +198,13 @@ export default function LoginPage() {
               </div>
 
               {/* ── Social Buttons ── */}
-              <div className="grid grid-cols-2 gap-2.5">
+              <div className="grid grid-cols-1 gap-2.5">
                 <button
                   type="button"
                   className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white py-3 sm:py-2.5 text-sm font-medium text-gray-600 transition-colors hover:border-gray-300 hover:bg-gray-50"
                 >
                   <Chrome size={15} className="text-gray-500" />
                   Google
-                </button>
-                <button
-                  type="button"
-                  className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white py-3 sm:py-2.5 text-sm font-medium text-gray-600 transition-colors hover:border-gray-300 hover:bg-gray-50"
-                >
-                  <Facebook size={15} className="text-[#1877F2]" />
-                  Facebook
                 </button>
               </div>
 

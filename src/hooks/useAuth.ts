@@ -7,6 +7,33 @@ import { RegisterRequest } from '@/types/api.types';
 import { useRouter } from 'next/navigation';
 import { FEATURES } from '@/config/features';
 
+/**
+ * Resolve a post-auth redirect target.
+ *
+ * Guards against open redirects: only root-relative, same-origin paths are
+ * honoured. Protocol-relative (`//evil.com`) and absolute URLs fall back to
+ * the dashboard.
+ */
+export function safeRedirectPath(candidate?: string | null, fallback = '/dashboard'): string {
+  if (!candidate) return fallback;
+
+  const path = candidate.trim();
+
+  if (!path.startsWith('/')) return fallback;
+  if (path.startsWith('//')) return fallback;
+  if (/[\r\n\t]/.test(path)) return fallback;
+
+  try {
+    // Reject anything that resolves off-origin, e.g. "/\evil.com".
+    const resolved = new URL(path, 'https://internal.invalid');
+    if (resolved.origin !== 'https://internal.invalid') return fallback;
+  } catch {
+    return fallback;
+  }
+
+  return path;
+}
+
 export const useAuth = () => {
   const router = useRouter();
   const { user, isAuthenticated, isLoading, error, setUser, setAuthToken, setIsLoading, setError, getPrimaryRole, logout: logoutStore, setEmailVerificationCooldown, emailVerificationCooldown, setPinStatus } = useAuthStore();
@@ -159,7 +186,7 @@ export const useAuth = () => {
   );
 
   const verifyEmail = useCallback(
-    async (data: VerifyEmailSchema) => {
+    async (data: VerifyEmailSchema, redirectTo?: string | null) => {
       setIsLoading(true);
       setError(null);
       try {
@@ -169,9 +196,10 @@ export const useAuth = () => {
           // Update user in store with verified email status
           setUser(response.data.user);
           addToast({ type: 'success', message: 'Email verified successfully!' });
-          
-          // Redirect immediately to dashboard (user is already authenticated and verified)
-          router.replace('/dashboard');
+
+          // Return the member to wherever the guard interrupted them
+          // (e.g. /dashboard/catalogue) instead of always the dashboard.
+          router.replace(safeRedirectPath(redirectTo));
           return { success: true };
         } else {
           const errorMsg = response.message || 'Verification failed';

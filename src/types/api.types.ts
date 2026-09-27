@@ -11,6 +11,13 @@ export interface ApiResponse<T = any> {
   success: boolean;
   message: string;
   data?: T;
+  /**
+   * Application-level status code returned in the body by this backend
+   * (e.g. 404, 422, 503). The API answers with HTTP 200 and signals failure
+   * through `success` + this field, so check it to distinguish a missing
+   * record from a genuine server error.
+   */
+  code?: number;
   error_code?: string;
   errors?: Record<string, string[]>;
   pagination?: PaginationMeta;
