@@ -10,7 +10,6 @@ import {
   Package,
   RefreshCw,
   Search,
-  ShoppingBag,
   Star,
   X,
 } from 'lucide-react';

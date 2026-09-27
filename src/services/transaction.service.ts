@@ -67,11 +67,13 @@ class TransactionService {
     }
 
     const query = params.toString() ? `?${params.toString()}` : '';
-    return apiClient.get(`/v1/transactions/me${query}`) as Promise<TransactionsApiResponse>;
+    // Path is relative to NEXT_PUBLIC_API_BASE_URL, which already ends in
+    // /api/v1 — do not prefix another /v1 or the URL doubles up and 404s.
+    return apiClient.get(`/transactions/me${query}`) as Promise<TransactionsApiResponse>;
   }
 
   async getTransaction(transactionId: string): Promise<ApiResponse<{ transaction: Transaction }>> {
-    return apiClient.get(`/v1/transactions/me/${transactionId}`);
+    return apiClient.get(`/transactions/me/${transactionId}`);
   }
 
   async purchaseAirtime(data: PurchaseAirtimeRequest): Promise<ApiResponse<{ transaction: Transaction }>> {

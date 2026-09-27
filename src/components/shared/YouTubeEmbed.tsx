@@ -78,6 +78,15 @@ export function YouTubeEmbed({
 
   const id = parseYouTubeId(videoId);
 
+  // Step down to a lower thumbnail size, then to the branded placeholder.
+  const stepDownThumb = () => {
+    if (quality === 'maxresdefault') {
+      setQuality('hqdefault');
+    } else {
+      setThumbFailed(true);
+    }
+  };
+
   if (!id) return null;
 
   return (
@@ -116,9 +125,14 @@ export function YouTubeEmbed({
                   fill
                   sizes="(max-width: 1024px) 100vw, 560px"
                   className="object-cover transition duration-500 group-hover:scale-[1.04]"
-                  onError={() => {
-                    if (quality === 'maxresdefault') setQuality('hqdefault');
-                    else setThumbFailed(true);
+                  onError={stepDownThumb}
+                  onLoad={(e) => {
+                    // For an unknown or private video YouTube serves a 120x90
+                    // grey "video unavailable" placeholder instead of a 404, so
+                    // onError never fires. A real thumbnail is at least 480px
+                    // wide, so treat anything tiny as a failure.
+                    const el = e.currentTarget;
+                    if (el.naturalWidth > 0 && el.naturalWidth < 240) stepDownThumb();
                   }}
                   unoptimized
                 />

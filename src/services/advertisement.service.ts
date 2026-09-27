@@ -29,8 +29,9 @@ class AdvertisementService {
     if (params?.active !== undefined) queryParams.append('active', params.active.toString());
     if (params?.platform) queryParams.append('platform', params.platform);
 
+    // Relative to NEXT_PUBLIC_API_BASE_URL, which already ends in /api/v1.
     return apiClient.get(
-      `/v1/advertisements${queryParams.toString() ? '?' + queryParams.toString() : ''}`
+      `/advertisements${queryParams.toString() ? '?' + queryParams.toString() : ''}`
     );
   }
 
@@ -38,7 +39,7 @@ class AdvertisementService {
    * Get a single advertisement by ID
    */
   async getAdvertisement(adId: string): Promise<ApiResponse<Advertisement>> {
-    return apiClient.get(`/v1/advertisements/${adId}`);
+    return apiClient.get(`/advertisements/${adId}`);
   }
 
   /**
