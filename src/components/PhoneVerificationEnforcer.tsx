@@ -42,6 +42,7 @@ export function PhoneVerificationEnforcer({ children }: { children: React.ReactN
     '/terms',
     '/support',
     '/offline',
+    '/catalogue',
     '/vtu',
     '/vtu/airtime',
     '/vtu/data',

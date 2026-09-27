@@ -17,10 +17,22 @@ import {
 import { LandingTopbar } from '@/components/LandingTopbar';
 import { Footer } from '@/components/shared/Footer';
 import { EmptyState } from '@/components/shared/EmptyState';
+import { YouTubeEmbed, parseYouTubeId } from '@/components/shared/YouTubeEmbed';
 import { portfolioService } from '@/services/portfolio.service';
 import type { PortfolioCategory, PublicPortfolio } from '@/types/portfolio.types';
 
 const PER_PAGE = 12;
+
+/**
+ * Hero video, configured in .env.local so it can be swapped without a code
+ * change. Accepts a bare YouTube id or any YouTube URL — see parseYouTubeId().
+ * Leave it blank and the video is hidden, letting the hero span full width.
+ */
+const HERO_VIDEO = {
+  id: process.env.NEXT_PUBLIC_CATALOGUE_VIDEO_ID ?? '',
+  title: 'How the Acceding Titans member directory works',
+  caption: 'See how members showcase what they sell and reach customers.',
+};
 
 export default function PublicCataloguePage() {
   const [portfolios, setPortfolios] = useState<PublicPortfolio[]>([]);
@@ -100,6 +112,10 @@ export default function PublicCataloguePage() {
 
   const hasFilters = category !== '' || debouncedSearch !== '';
 
+  // Null when unset or malformed, so the hero degrades to a single column
+  // rather than rendering a broken player.
+  const heroVideoId = parseYouTubeId(HERO_VIDEO.id);
+
   const clearFilters = () => {
     setCategory('');
     setSearch('');
@@ -110,49 +126,70 @@ export default function PublicCataloguePage() {
       <LandingTopbar />
 
       {/* ── Hero ── */}
-      <section className="bg-gradient-to-b from-[#0f1115] to-[#0f1115] px-5 pb-14 pt-32 lg:px-8">
-        <div className="mx-auto max-w-7xl">
-          <span className="inline-flex items-center gap-2 rounded-full border border-[#C9A84C]/30 bg-[#C9A84C]/10 px-3.5 py-1.5 text-xs font-bold uppercase tracking-widest text-[#C9A84C]">
-            <ShoppingBag size={13} />
-            Member Directory
-          </span>
+      <section className="relative overflow-hidden bg-[#0f1115] px-5 pb-14 pt-32 lg:px-8 lg:pb-20">
+        {/* Soft brand glow behind the video column. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -right-32 top-0 hidden h-[460px] w-[680px] rounded-full bg-[#C9A84C]/[0.08] blur-3xl lg:block"
+        />
 
-          <h1 className="mt-5 max-w-3xl text-4xl font-black tracking-tight text-white sm:text-5xl">
-            Discover businesses in the community
-          </h1>
+        <div
+          className={`relative mx-auto grid max-w-7xl items-center gap-10 lg:gap-16 ${
+            heroVideoId
+              ? 'lg:grid-cols-[minmax(0,1fr)_minmax(0,540px)]'
+              : 'lg:grid-cols-1'
+          }`}
+        >
+          {/* Copy + search */}
+          <div className="min-w-0 text-center lg:text-left">
+            <h1 className="text-4xl font-black tracking-tight text-white sm:text-5xl">
+              Discover businesses in the community
+            </h1>
 
-          <p className="mt-4 max-w-2xl text-base leading-relaxed text-white/70">
-            Browse products and services offered by fellow entrepreneurs. Find what you need, or
-            reach out directly over WhatsApp.
-          </p>
+            <p className="mt-4 text-base leading-relaxed text-white/70">
+              Browse products and services offered by fellow entrepreneurs. Find what you need, or
+              reach out directly over WhatsApp.
+            </p>
 
-          {/* Search */}
-          <div className="mt-8 max-w-xl">
-            <div className="relative">
-              <Search
-                size={18}
-                className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
-              />
-              <input
-                type="search"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search businesses, products or services…"
-                aria-label="Search the business directory"
-                className="w-full rounded-2xl border border-white/10 bg-white/10 py-3.5 pl-12 pr-11 text-sm text-white placeholder:text-white/40 outline-none backdrop-blur transition focus:border-[#C9A84C]/50 focus:bg-white/15"
-              />
-              {search && (
-                <button
-                  type="button"
-                  onClick={() => setSearch('')}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/40 transition hover:text-white"
-                  aria-label="Clear search"
-                >
-                  <X size={16} />
-                </button>
-              )}
+            {/* Search */}
+            <div className="mt-8">
+              <div className="relative mx-auto max-w-xl lg:mx-0">
+                <Search
+                  size={18}
+                  className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+                />
+                <input
+                  type="search"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search businesses, products or services…"
+                  aria-label="Search the business directory"
+                  className="w-full rounded-2xl border border-white/10 bg-white/10 py-3.5 pl-12 pr-11 text-sm text-white placeholder:text-white/40 outline-none backdrop-blur transition focus:border-[#C9A84C]/50 focus:bg-white/15"
+                />
+                {search && (
+                  <button
+                    type="button"
+                    onClick={() => setSearch('')}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/40 transition hover:text-white"
+                    aria-label="Clear search"
+                  >
+                    <X size={16} />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
+
+          {/* Video — right column on desktop, full-width below the copy on mobile */}
+          {heroVideoId && (
+            <div className="w-full">
+              <YouTubeEmbed
+                videoId={heroVideoId}
+                title={HERO_VIDEO.title}
+                caption={HERO_VIDEO.caption}
+              />
+            </div>
+          )}
         </div>
       </section>
 

@@ -160,6 +160,13 @@ export const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ child
       '/multi-currency',
       '/offline',
       '/error',
+      // Public business directory + member showcase pages. These are
+      // deliberately outside /dashboard, so without listing them here the
+      // role-based redirect below (correctDestination = '/dashboard') would
+      // bounce every member off their own public page and the public directory.
+      // Note '/dashboard/catalogue' (the editor) is NOT matched here — it does
+      // not start with '/catalogue'.
+      '/catalogue',
       '/vtu',
       '/vtu/airtime',
       '/vtu/data',
