@@ -110,6 +110,7 @@ export default async function PublicCataloguePage({
     getPortfolioCategories(),
   ]);
 
+  
   /**
    * Only the default listing gets ItemList schema. A filtered or searched
    * result set is not a curated collection, and marking arbitrary query
