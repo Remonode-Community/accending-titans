@@ -1,10 +1,8 @@
-import { Metadata } from 'next';
 import CampaignAnalytics from '@/components/admin/promotional-emails/CampaignAnalytics';
 
-export const metadata: Metadata = {
-  title: 'Campaign Analytics - Acceding Titans Admin',
-  description: 'View campaign analytics and delivery statistics',
-};
+import { noIndexMetadata } from '@/lib/seo/metadata';
+
+export const metadata = noIndexMetadata("Campaign analytics", "/admin/promotional-emails/campaign/analytics");
 
 export default function AnalyticsPage() {
   return (

@@ -4,6 +4,20 @@ import Link from 'next/link';
 import { AlertCircle, Home, RotateCw } from 'lucide-react';
 import { ErrorPageProvider } from '@/contexts/ErrorPageContext';
 
+/**
+ * Recovery links on a 404.
+ *
+ * Every one is a real, indexable public route. This matters beyond UX: a 404
+ * that links nowhere wastes whatever authority the dead URL still held and
+ * leaves a crawler with no reason to keep exploring the site.
+ */
+const RECOVERY_LINKS = [
+  { href: '/catalogue', label: 'Business directory' },
+  { href: '/vtu', label: 'VTU services' },
+  { href: '/about', label: 'About us' },
+  { href: '/support', label: 'Support' },
+] as const;
+
 function NotFoundContent() {
   return (
     <div className="relative min-h-screen bg-white flex items-center justify-center px-4 py-12 overflow-hidden">
@@ -81,15 +95,29 @@ function NotFoundContent() {
           </div>
         </div>
 
-        <p className="mt-5 text-center text-xs text-gray-400">
-          Need help?{' '}
-          <a
-            href="mailto:support@yourapp.com"
-            className="font-semibold text-[#C9A84C] hover:text-[#B8962E] transition-colors"
-          >
-            Contact Support
-          </a>
-        </p>
+        {/*
+          Internal links here are how a crawler that landed on a dead URL
+          recovers — a 404 with no outbound links is a dead end for both a
+          visitor and link equity. The previous version pointed at
+          mailto:support@yourapp.com, an unconfigured placeholder address that
+          bounced, and offered no route back into the site.
+        */}
+        <div className="mt-6 border-t border-gray-100 pt-5">
+          <p className="text-center text-xs font-medium uppercase tracking-widest text-gray-300">
+            or explore
+          </p>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            {RECOVERY_LINKS.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-xs font-semibold text-gray-600 transition-colors hover:border-[#C9A84C]/40 hover:text-[#B8962E]"
+              >
+                {link.label}
+              </Link>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );

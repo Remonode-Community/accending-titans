@@ -55,37 +55,21 @@ export function PINSetupEnforcer({ showForNewUsers = true, children }: PINSetupE
 
   // Check current PIN status from backend
   const checkPinStatus = async () => {
-    try {
-      // Call verify endpoint to check status
-      // If PIN not set, it will return PIN_NOT_SET error
-      // We can catch that to determine PIN status
-      await pinService.verifyPin('0000');
-    } catch (error: any) {
-      if (error?.response?.data?.code === 'PIN_NOT_SET') {
-        // User doesn't have PIN
-        setPinStatus({
-          has_pin: false,
-          is_locked: false,
-          failed_attempts: 0,
-        });
-
-        if (showForNewUsers) {
-          setShowPINModal(true);
-        }
-      } else if (error?.response?.data?.code === 'PIN_LOCKED') {
-        setPinStatus({
-          has_pin: true,
-          is_locked: true,
-          remaining_seconds: error?.response?.data?.remaining_seconds,
-        });
-      } else {
-        // PIN is set
-        setPinStatus({
-          has_pin: true,
-          is_locked: false,
-        });
-      }
-    }
+    /*
+     * There is no PIN backend in this codebase — no /wallet/pin/* routes are
+     * registered — and the previous implementation "checked" status by calling
+     * verifyPin('0000') and sniffing the error code.
+     *
+     * That was two bugs at once: it 404'd on every authenticated page load,
+     * and against any real implementation a deliberately wrong PIN counts as a
+     * failed attempt, so repeat visits would lock the member out of their own
+     * wallet.
+     *
+     * So: no probe. pinStatus is captured from the login response and
+     * persisted, and when it is genuinely unknown we treat it as "set" so the
+     * setup modal never opens onto a dead endpoint.
+     */
+    setPinStatus({ has_pin: true, is_locked: false });
   };
 
   // Handle PIN setup

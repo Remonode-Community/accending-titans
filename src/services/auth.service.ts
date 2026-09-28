@@ -20,6 +20,13 @@ import {
   UserPreferences,
   ApiResponse,
 } from '@/types/api.types';
+import type {
+  AuthSession,
+  ChangePasswordPayload,
+  MemberProfile,
+  NotificationPreferences,
+  SaveProfilePayload,
+} from '@/types/profile.types';
 
 class AuthService {
   async register(data: RegisterRequest): Promise<ApiResponse<{ user: User }>> {
@@ -94,6 +101,32 @@ class AuthService {
 }
 
 class UserService {
+  /**
+   * Current member profile. GET /auth/profile returns it under `data.profile`
+   * (the envelope already supplies the outer `data`, so the controller must not
+   * use a `data` key of its own or this reads data.data.profile).
+   */
+  async getProfile(): Promise<ApiResponse<{ profile: MemberProfile }>> {
+    return apiClient.get('/auth/profile');
+  }
+
+  /** Persist profile edits. Sends the same nested shape the endpoint accepts. */
+  async saveProfile(
+    payload: SaveProfilePayload
+  ): Promise<ApiResponse<{ profile: MemberProfile }>> {
+    return apiClient.put('/auth/profile', payload);
+  }
+
+  /**
+   * POST /auth/change-password revokes every existing token and returns a fresh
+   * one, so the caller MUST store the returned token or the member is logged out.
+   */
+  async changePassword(
+    payload: ChangePasswordPayload
+  ): Promise<ApiResponse<{ token: string }>> {
+    return apiClient.post('/auth/change-password', payload);
+  }
+
   async updateProfile(data: UpdateProfileRequest): Promise<ApiResponse<{ user: User }>> {
     const formData = new FormData();
 
@@ -115,14 +148,26 @@ class UserService {
     });
   }
 
-  async getPreferences(): Promise<ApiResponse<{ preferences: UserPreferences }>> {
-    return apiClient.get('/users/preferences');
+  /**
+   * The member's own API tokens — the closest thing this app has to "active
+   * sessions". Revoking one signs that client out on its next request.
+   */
+  async getSessions(): Promise<ApiResponse<{ sessions: AuthSession[] }>> {
+    return apiClient.get('/auth/sessions');
+  }
+
+  async revokeSession(id: number): Promise<ApiResponse<Record<string, never>>> {
+    return apiClient.delete(`/auth/sessions/${id}`);
+  }
+
+  async getPreferences(): Promise<ApiResponse<NotificationPreferences>> {
+    return apiClient.get('/notifications/preferences');
   }
 
   async updatePreferences(
-    data: UpdatePreferencesRequest
-  ): Promise<ApiResponse<{ preferences: UserPreferences }>> {
-    return apiClient.put('/users/preferences', data);
+    data: Partial<NotificationPreferences>
+  ): Promise<ApiResponse<NotificationPreferences>> {
+    return apiClient.put('/notifications/preferences', data);
   }
 
   async deleteAccount(

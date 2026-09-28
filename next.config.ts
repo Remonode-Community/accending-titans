@@ -38,6 +38,54 @@ const nextConfig: NextConfig = {
       // YouTube video thumbnails for the catalogue hero embed.
       { protocol: "https", hostname: "i.ytimg.com", pathname: "/vi/**" },
     ],
+    // Member-uploaded images are served straight from Cloudinary already, and
+    // they are rendered with `unoptimized`, so no format negotiation applies.
+    formats: ["image/avif", "image/webp"],
+  },
+
+  /**
+   * Security headers.
+   *
+   * These also serve an SEO purpose: a strict Content-Security-Policy limits
+   * the blast radius of any injected markup, and Referrer-Policy keeps
+   * internal member URLs out of the Referer header sent to third parties.
+   */
+  async headers() {
+    const NOINDEX = "noindex, nofollow, noarchive, nosnippet";
+
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          {
+            key: "Permissions-Policy",
+            // The payment flow needs the clipboard for the share button; camera
+            // and geolocation are not used anywhere in the app.
+            value: "camera=(), geolocation=(), microphone=(), interest-cohort=()",
+          },
+        ],
+      },
+      // The dashboard, admin and agent layouts are all `'use client'` — they
+      // gate on a Zustand auth store — so they cannot export a `metadata`
+      // object (Next.js forbids metadata exports from client components). That
+      // is why the app had no noindex anywhere and relied solely on
+      // robots.txt, which is a crawler *preference* and protects nothing.
+      //
+      // A response header works regardless of component type, so this is the
+      // reliable mechanism for those routes. It is an indexing hint, not an
+      // access control: the API still enforces authentication server-side.
+      { source: "/dashboard/:path*", headers: [{ key: "X-Robots-Tag", value: NOINDEX }] },
+      { source: "/admin/:path*", headers: [{ key: "X-Robots-Tag", value: NOINDEX }] },
+      { source: "/agent/:path*", headers: [{ key: "X-Robots-Tag", value: NOINDEX }] },
+      {
+        source: "/auth/:path*",
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }],
+      },
+      { source: "/offline", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] },
+    ];
   },
 };
 

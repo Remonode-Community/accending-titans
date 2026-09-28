@@ -1,14 +1,14 @@
-import { Metadata } from 'next';
 import { Receipt, CheckCircle, Zap, Shield } from 'lucide-react';
 import { HeroSection } from '@/components/vtu-public/HeroSection';
 import { Footer } from '@/components/shared/Footer';
 import Link from 'next/link';
+import { buildMetadata } from '@/lib/seo/metadata';
 
-export const metadata: Metadata = {
-  title: 'Pay Bills Online | Electricity, Water & More - Acceding Titans',
-  description: 'Pay your electricity, water, and other utility bills online instantly through Acceding Titans. Secure payment and instant confirmation.',
-  keywords: 'pay bills online, electricity bills, water bills, utility bills, online bill payment Nigeria',
-};
+export const metadata = buildMetadata({
+  title: 'Pay bills online',
+  description: 'Pay electricity, water and other utility bills through Acceding Titans, with immediate confirmation.',
+  path: '/vtu/bills',
+});
 
 export default function BillsPage() {
   const billTypes = [

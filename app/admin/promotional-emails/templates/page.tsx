@@ -1,10 +1,8 @@
-import { Metadata } from 'next';
 import EmailTemplatesPage from '@/components/admin/promotional-emails/EmailTemplatesPage';
 
-export const metadata: Metadata = {
-  title: 'Email Templates - Acceding Titans Admin',
-  description: 'Manage email templates for promotional campaigns',
-};
+import { noIndexMetadata } from '@/lib/seo/metadata';
+
+export const metadata = noIndexMetadata("Email templates", "/admin/promotional-emails/templates");
 
 export default function TemplatesPage() {
   return (

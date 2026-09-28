@@ -1,10 +1,8 @@
-import { Metadata } from 'next';
 import PromotionalEmailCampaigns from '@/components/admin/promotional-emails/PromotionalEmailCampaigns';
 
-export const metadata: Metadata = {
-  title: 'Email Campaigns - Acceding Titans Admin',
-  description: 'Manage promotional email campaigns',
-};
+import { noIndexMetadata } from '@/lib/seo/metadata';
+
+export const metadata = noIndexMetadata("Email campaigns", "/admin/promotional-emails");
 
 export default function EmailCampaignsPage() {
   return (

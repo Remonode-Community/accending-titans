@@ -1,80 +1,94 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { BRAND, DEFAULT_OG_IMAGE, SITE_URL, SOCIAL } from "@/lib/seo/config";
+import { graph, organizationSchema, webSiteSchema } from "@/lib/seo/schema";
 
 const PAYSTACK_SCRIPT_URL = "https://js.paystack.co/v1/inline.js";
 
-// Using system fonts instead of Google Fonts to avoid network dependency during build
+/**
+ * The brand typeface.
+ *
+ * globals.css already declared 'Plus Jakarta Sans' as the first family in
+ * --font-sans, but nothing ever loaded it — there was no next/font import and
+ * no Google Fonts stylesheet, so every page silently rendered in system-ui
+ * while still paying for a preconnect to fonts.googleapis.com.
+ *
+ * next/font self-hosts the woff2 files at build time, subsets them, and
+ * preloads only the weights actually used. That fixes the brand mismatch and
+ * removes a render-blocking third-party request in one move.
+ *
+ * Build-time network note: next/font/google downloads the font during
+ * `next build`. On a machine with no outbound access, switch to
+ * `next/font/local` with a self-hosted woff2 to keep builds hermetic.
+ */
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  display: "swap",
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-jakarta",
+  fallback: ["system-ui", "Segoe UI", "Helvetica Neue", "Arial", "sans-serif"],
+});
 
+/**
+ * Site-wide defaults.
+ *
+ * Deliberately NOT set here:
+ *  - `alternates.canonical` — a canonical on the root layout is inherited by
+ *    every route that does not override it, which would point all of them at
+ *    the homepage. Each page builds its own via buildMetadata().
+ *  - `keywords` — Google has ignored this tag since 2009, and a keyword list is
+ *    a thin-content signal rather than a ranking aid.
+ *  - openGraph/twitter images pointing at og-image.png and banner.png —
+ *    neither file exists, so both were 404s on every social share. The default
+ *    share image resolves to /icon.png, which does exist. Point
+ *    DEFAULT_OG_IMAGE in src/lib/seo/config.ts at a 1200x630 card once one
+ *    exists.
+ */
 export const metadata: Metadata = {
-  title: "Acceding Titans - Community Hub for Entrepreneurs | Business Networking Platform",
-  description: "Connect, showcase, and grow with Acceding Titans - the ultimate community platform for entrepreneurs. Build your business catalogue, network with like-minded professionals, advertise your services, and unlock unlimited opportunities.",
-  keywords: "entrepreneur community, business networking, business catalogue, professional network, startup community, entrepreneurship, small business, networking platform, business opportunities, job listings, entrepreneur platform, business growth, professional community, direct messaging, business advertising, referral program",
-  authors: [{ name: "Acceding Titans" }],
-  creator: "Acceding Titans",
-  publisher: "Acceding Titans",
-  robots: "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
-  metadataBase: new URL("https://ascendingtitans.com"),
-  alternates: {
-    canonical: "https://ascendingtitans.com",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: `${BRAND.name} — ${BRAND.tagline}`,
+    // Any page passing a bare title renders as "… | Acceding Titans".
+    template: `%s | ${BRAND.name}`,
   },
-  manifest: "/manifest.json",
+  description: BRAND.description,
+  // Safe because every other route sets its own canonical via buildMetadata().
+  // A new page that forgets to will inherit this and point at the homepage,
+  // which silently drops it from the index — so if a route is ever added here,
+  // give it metadata.
+  alternates: { canonical: "/" },
+  applicationName: BRAND.name,
+  authors: [{ name: BRAND.name }],
+  creator: BRAND.name,
+  publisher: BRAND.name,
+  manifest: "/manifest.webmanifest",
   icons: {
-    icon: [
-      {
-        url: "/icon.png?v=2",
-        sizes: "any",
-        type: "image/png",
-      },
-      {
-        url: "/icon.png?v=2",
-        sizes: "192x192",
-        type: "image/png",
-      },
-      {
-        url: "/icon.png?v=2",
-        sizes: "180x180",
-        type: "image/png",
-      },
-    ],
-    apple: {
-      url: "/icon.png?v=2",
-      sizes: "180x180",
-      type: "image/png",
-    },
-    shortcut: "/icon.png?v=2",
+    icon: [{ url: "/icon.png", sizes: "any", type: "image/png" }],
+    apple: [{ url: "/icon.png", sizes: "180x180", type: "image/png" }],
+    shortcut: ["/icon.png"],
   },
   openGraph: {
     type: "website",
-    url: "https://ascendingtitans.com",
-    title: "Acceding Titans - Connect, Showcase, and Grow Together",
-    description: "Join 10,000+ entrepreneurs on Africa's premier business networking platform. Showcase your products, find collaborators, advertise your services, and grow your business.",
-    siteName: "Acceding Titans",
+    url: SITE_URL,
+    siteName: BRAND.name,
+    title: `${BRAND.name} — ${BRAND.tagline}`,
+    description: BRAND.description,
+    locale: BRAND.locale,
     images: [
-      {
-        url: "https://ascendingtitans.com/og-image.png",
-        width: 1200,
-        height: 630,
-        alt: "Acceding Titans - Community Platform for Entrepreneurs",
-      },
-      {
-        url: "https://ascendingtitans.com/banner.png",
-        width: 800,
-        height: 420,
-        alt: "Acceding Titans - Your business community hub",
-        type: "image/png",
-      },
+      { url: DEFAULT_OG_IMAGE, alt: `${BRAND.name} — ${BRAND.tagline}` },
     ],
-    locale: "en_NG",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Acceding Titans - Connect with 10,000+ Entrepreneurs",
-    description: "Showcase your business, network with professionals, and unlock opportunities on Africa's leading entrepreneur community platform.",
-    images: ["https://ascendingtitans.com/banner.png"],
-    creator: "@AscendingTitans",
-    site: "@AscendingTitans",
+    title: `${BRAND.name} — ${BRAND.tagline}`,
+    description: BRAND.description,
+    creator: SOCIAL.twitter,
+    site: SOCIAL.twitter,
+    images: [DEFAULT_OG_IMAGE],
   },
   category: "Business & Entrepreneurship",
   formatDetection: {
@@ -95,148 +109,25 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const organizationSchema = {
-    "@context": "https://schema.org",
-    "@type": "Organization",
-    name: "Acceding Titans",
-    url: "https://ascendingtitans.com",
-    logo: "https://ascendingtitans.com/icon.png",
-    description: "Acceding Titans is Africa's premier community platform where entrepreneurs, business owners, and professionals connect, showcase their businesses, collaborate, and unlock unlimited growth opportunities.",
-    sameAs: [
-      "https://www.facebook.com/AscendingTitans",
-      "https://www.twitter.com/AscendingTitans",
-      "https://www.instagram.com/AscendingTitans",
-      "https://www.linkedin.com/company/ascending-titans",
-    ],
-    contactPoint: {
-      "@type": "ContactPoint",
-      contactType: "Customer Support",
-      email: "support@ascendingtitans.com",
-      telephone: "+234 (0) 700 000 0000",
-      availableLanguage: ["en"],
-    },
-    address: {
-      "@type": "PostalAddress",
-      streetAddress: "Lagos",
-      addressCountry: "NG",
-      addressRegion: "Lagos State",
-    },
-    foundingDate: "2024",
-    areaServed: "NG",
-    knowsAbout: [
-      "Entrepreneurship",
-      "Business Networking",
-      "Community Building",
-      "Business Growth",
-      "Professional Networking",
-      "Business Catalogues",
-      "Job Opportunities",
-      "Startup Community",
-      "Small Business",
-      "Business Opportunities",
-    ],
-    offers: [
-      {
-        "@type": "Service",
-        name: "Business Catalogue",
-        description: "Showcase your products and services to thousands of engaged entrepreneurs and grow your sales.",
-      },
-      {
-        "@type": "Service",
-        name: "Community Networking",
-        description: "Connect, collaborate, and grow your network with fellow entrepreneurs and business owners.",
-      },
-      {
-        "@type": "Service",
-        name: "Direct Messaging",
-        description: "Communicate directly with community members via WhatsApp and in-app messaging.",
-      },
-      {
-        "@type": "Service",
-        name: "Advertising Platform",
-        description: "Promote your business with text, images, and short video content to reach thousands.",
-      },
-      {
-        "@type": "Service",
-        name: "Job Opportunities",
-        description: "Find and post gigs and job opportunities within the entrepreneur community.",
-      },
-      {
-        "@type": "Service",
-        name: "Birthday Rewards Program",
-        description: "Celebrate members with personalized rewards and recognition from the community.",
-      },
-    ],
-  };
-
-  const websiteSchema = {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    name: "Acceding Titans",
-    url: "https://ascendingtitans.com",
-    potentialAction: {
-      "@type": "SearchAction",
-      target: {
-        "@type": "EntryPoint",
-        urlTemplate: "https://ascendingtitans.com/search?q={search_term_string}",
-      },
-      query: "required name=search_term_string",
-    },
-    description: "Community platform for entrepreneurs to connect, showcase businesses, network, and unlock growth opportunities.",
-  };
-
-  const serviceSchema = {
-    "@context": "https://schema.org",
-    "@type": "LocalBusiness",
-    name: "Acceding Titans",
-    image: "https://ascendingtitans.com/banner.png",
-    description: "Africa's premier community platform connecting entrepreneurs, business owners, and professionals for networking, business growth, and collaboration.",
-    url: "https://ascendingtitans.com",
-    telephone: "+234 (0) 700 000 0000",
-    priceRange: "₦₦",
-    address: {
-      "@type": "PostalAddress",
-      streetAddress: "Lagos, Nigeria",
-      addressCountry: "NG",
-      addressRegion: "Lagos State",
-    },
-    areaServed: {
-      "@type": "Country",
-      name: "Nigeria",
-    },
-    sameAs: [
-      "https://www.facebook.com/AscendingTitans",
-      "https://www.twitter.com/AscendingTitans",
-      "https://www.instagram.com/AscendingTitans",
-    ],
-    serviceType: ["Community Platform", "Business Networking", "Professional Services"],
-  };
 
   return (
     <html
       lang="en"
-      className="h-full antialiased"
+      className={`${jakarta.variable} h-full antialiased`}
     >
       <head>
-        {/* JSON-LD Structured Data */}
-        <Script
-          id="organization-schema"
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
-          strategy="afterInteractive"
-        />
-        <Script
-          id="website-schema"
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
-          strategy="afterInteractive"
-        />
-        <Script
-          id="service-schema"
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceSchema) }}
-          strategy="afterInteractive"
-        />
+        {/*
+          Entity definitions for the whole site. Rendered inline in the server
+          HTML rather than via next/script, because a `strategy="afterInteractive"`
+          script is injected only after hydration and is invisible to crawlers
+          and AI agents that read the raw response.
+
+          The previous version also published a phone number, support address
+          and founding date that were placeholders, a banner.png that does not
+          exist, and a WebSite/SearchAction pointing at a /search route that
+          does not exist. All of that is gone; see src/lib/seo/config.ts.
+        */}
+        <JsonLd data={graph([organizationSchema(), webSiteSchema()])} />
 
         {/* Additional Meta Tags */}
         <meta charSet="utf-8" />
@@ -246,17 +137,16 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="Acceding Titans" />
-        <meta name="msapplication-config" content="/browserconfig.xml" />
         <meta name="msapplication-TileColor" content="#C9A84C" />
         <meta name="msapplication-TileImage" content="/icon.png" />
 
-        {/* Preconnect to External Sources */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-
-        {/* DNS Prefetch */}
-        <link rel="dns-prefetch" href="https://analytics.google.com" />
-        <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
+        {/*
+          No preconnect to fonts.googleapis.com / fonts.gstatic.com any more:
+          the brand font is now self-hosted by next/font, so those origins are
+          never contacted. The preconnect was pure dead weight.
+        */}
+        <link rel="preconnect" href="https://www.googletagmanager.com" />
+        <link rel="dns-prefetch" href="https://res.cloudinary.com" />
 
         {/* Google Analytics 4 with Enhanced Tracking */}
         <Script
@@ -301,12 +191,15 @@ export default function RootLayout({
           }}
         />
 
-        {/* Google Ads Conversion Tracking (placeholder - update with your conversion ID) */}
-        <Script
-          async
-          src="https://www.googletagmanager.com/gtag/js?id=AW-YOUR_CONVERSION_ID"
-          strategy="afterInteractive"
-        />
+        {/*
+          The previous Google Ads tag was hard-coded to the literal string
+          "AW-YOUR_CONVERSION_ID", so it could never attribute a conversion —
+          it was a third-party request on every page load that returned an
+          error and did nothing. Removed rather than left in place. Re-add it
+          once a real conversion ID exists:
+
+          <Script async src="https://www.googletagmanager.com/gtag/js?id=AW-XXXXXXX" strategy="afterInteractive" />
+        */}
 
         {/* Paystack Inline Payment Script */}
         <Script

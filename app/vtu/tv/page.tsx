@@ -1,14 +1,14 @@
-import { Metadata } from 'next';
 import { Tv, CheckCircle, Zap, Shield } from 'lucide-react';
 import { HeroSection } from '@/components/vtu-public/HeroSection';
 import { Footer } from '@/components/shared/Footer';
 import Link from 'next/link';
+import { buildMetadata } from '@/lib/seo/metadata';
 
-export const metadata: Metadata = {
-  title: 'TV Subscription Online | DStv, GOtv, Startimes - Acceding Titans',
-  description: 'Renew or subscribe to DStv, GOtv, and Startimes through Acceding Titans. Instant activation and flexible payment options.',
-  keywords: 'TV subscription, DStv, GOtv, Startimes, cable TV, instant activation',
-};
+export const metadata = buildMetadata({
+  title: 'TV subscriptions: DStv, GOtv and Startimes',
+  description: 'Renew or subscribe to DStv, GOtv and Startimes through Acceding Titans, with immediate activation.',
+  path: '/vtu/tv',
+});
 
 export default function TvPage() {
   const providers = [

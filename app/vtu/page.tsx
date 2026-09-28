@@ -1,14 +1,14 @@
-import { Metadata } from 'next';
 import { Smartphone, Wifi, Tv, Receipt, TrendingUp, Shield, Sparkles, ArrowRight } from 'lucide-react';
 import { Footer } from '@/components/shared/Footer';
 import Link from 'next/link';
+import { buildMetadata } from '@/lib/seo/metadata';
 import { LandingTopbar } from '@/components/LandingTopbar';
 
-export const metadata: Metadata = {
-  title: 'VTU Services | Airtime, Data, TV & Bills - Acceding Titans',
-  description: 'Fast and reliable VTU services on Acceding Titans. Buy airtime, data bundles, TV subscriptions, and pay bills with ease. Instant delivery and best rates.',
-  keywords: 'VTU, airtime, data bundles, TV subscription, bills payment, MTN, Airtel, Glo, 9mobile, DStv, GOtv',
-};
+export const metadata = buildMetadata({
+  title: 'VTU services: airtime, data, TV and bills',
+  description: 'Buy airtime, data bundles and TV subscriptions, and pay electricity, water and other bills through Acceding Titans.',
+  path: '/vtu',
+});
 
 export default function VtuPage() {
   const services = [

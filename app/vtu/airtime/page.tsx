@@ -1,14 +1,14 @@
-import { Metadata } from 'next';
 import { Smartphone, CheckCircle, Zap, Shield } from 'lucide-react';
 import { HeroSection } from '@/components/vtu-public/HeroSection';
 import { Footer } from '@/components/shared/Footer';
 import Link from 'next/link';
+import { buildMetadata } from '@/lib/seo/metadata';
 
-export const metadata: Metadata = {
-  title: 'Buy Airtime Online | Fast & Cheap Airtime - Acceding Titans',
-  description: 'Buy airtime instantly for MTN, Airtel, Glo, and 9mobile at the best rates. Instant delivery and 24/7 availability on Acceding Titans.',
-  keywords: 'buy airtime, airtime top-up, MTN airtime, Airtel airtime, Glo airtime, 9mobile airtime, cheap airtime online',
-};
+export const metadata = buildMetadata({
+  title: 'Buy airtime online',
+  description: 'Buy airtime for MTN, Airtel, Glo and 9mobile through Acceding Titans, with immediate delivery at competitive rates.',
+  path: '/vtu/airtime',
+});
 
 export default function AirtimePage() {
   const networks = [

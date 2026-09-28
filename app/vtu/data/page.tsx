@@ -1,14 +1,14 @@
-import { Metadata } from 'next';
 import { Wifi, CheckCircle, Zap, Shield } from 'lucide-react';
 import { HeroSection } from '@/components/vtu-public/HeroSection';
 import { Footer } from '@/components/shared/Footer';
 import Link from 'next/link';
+import { buildMetadata } from '@/lib/seo/metadata';
 
-export const metadata: Metadata = {
-  title: 'Buy Data Bundles Online | Cheap Data Plans - Acceding Titans',
-  description: 'Get cheap data bundles for MTN, Airtel, Glo, and 9mobile. Instant activation, various plan sizes, and the best rates in Nigeria.',
-  keywords: 'buy data, data bundles, MTN data, Airtel data, Glo data, 9mobile data, cheapest data plans Nigeria',
-};
+export const metadata = buildMetadata({
+  title: 'Buy data bundles online',
+  description: 'Buy data bundles for MTN, Airtel, Glo and 9mobile through Acceding Titans, with a range of plan sizes and validity periods.',
+  path: '/vtu/data',
+});
 
 export default function DataPage() {
   const providers = [
