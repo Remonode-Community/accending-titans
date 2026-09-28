@@ -154,7 +154,75 @@ when one exists.
 
 ---
 
-## 5. Sitemaps
+## 5. Social share cards (Open Graph / Twitter)
+
+### The problem this solved
+
+The only brand asset is `public/icon.png` at **192x192, square**. Social
+platforms render previews at roughly 1.91:1. A 1:1 image is letterboxed into a
+small thumbnail with empty gutters either side — which is why shared links
+looked unimpressive. The metadata compounded it by declaring that same square
+file as `width=1200, height=630`, which is a false claim to the crawler and can
+get the image cropped or rejected.
+
+### The cards
+
+| Route | Card | Built at |
+| --- | --- | --- |
+| `/opengraph-image` | crest + brand name + tagline | build time |
+| `/twitter-image` | same card | build time |
+| `/catalogue/<id>/opengraph-image` | member's cover photo, category, name, description, item count | per request, cached |
+| `/catalogue/category/<slug>/opengraph-image` | crest, category name, business count | per request, cached |
+
+All four emit exactly **1200x630** `image/png`, within WhatsApp's 300 KB limit.
+Unknown ids and slugs fall back to the generic card rather than returning 500 —
+social crawlers cache whatever they fetch, so an error would leave a permanently
+blank preview.
+
+### Why the image is set explicitly instead of left to the file convention
+
+Next.js injects `og:image` from `app/opengraph-image.tsx`, but **a page that
+exports its own `openGraph` replaces the field rather than merging with it.**
+Relying on the convention therefore produced a card on the homepage and *nothing*
+on `/about`, `/catalogue` and every other page — this was verified in the
+rendered HTML, not assumed.
+
+`buildMetadata()` now derives the card from the route in one place
+(`generatedCardFor()`), so a newly added page cannot forget it. The root layout
+sets the same explicit value for consistency.
+
+### The brand font on the cards
+
+Satori (which renders `next/og`) cannot read woff2, which is what every modern
+user-agent gets from Google Fonts. The font is therefore requested with a
+legacy user-agent that returns a raw TTF. Which legacy UA yields which format
+was verified against the live endpoint:
+
+| UA | Format returned |
+| --- | --- |
+| Android 4.0.3 | **TTF** (used) |
+| Firefox 27 / IE 11 / Chrome 40 | WOFF |
+| IE 6 / MSIE 4 | EOT — breaks the build with "Unsupported OpenType signature" |
+
+`brandFonts()` swallows failures and returns `undefined`, so an offline build
+falls back to satori's built-in face rather than failing. Note it must return
+`undefined` and **not** `[]`: satori treats an empty `fonts` array as "fonts
+supplied but none usable" and throws.
+
+### Verified
+
+All four URLs return `200 image/png` unauthenticated, and all 15 public routes
+emit `og:image`, `og:image:width`, `og:image:height`, `og:image:type` and
+`twitter:image`. Social crawlers do not execute JavaScript, which is why all of
+this is in the server-rendered HTML rather than injected on the client.
+
+Preview caching is on the platform side: Facebook, WhatsApp, LinkedIn and X all
+cache fetched images for days to months, so a new card only appears after their
+scraper re-crawls. Use a URL-debugger tool (LinkedIn Post Inspector, WhatsApp's
+link preview, or `curl` + the Open Graph debugger) rather than expecting an
+instant change.
+
+---
 
 `robots.txt` advertises one entry point, `sitemap.xml`, which is a real
 `<sitemapindex>`:

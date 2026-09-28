@@ -1,4 +1,4 @@
-import { BRAND, CONTACT, DEFAULT_OG_IMAGE, SOCIAL_PROFILES, absoluteUrl } from './config';
+import { BRAND, CONTACT, SITE_ICON, SOCIAL_PROFILES, absoluteUrl } from './config';
 import type { PortfolioItem, PublicPortfolio } from '@/types/portfolio.types';
 
 /**
@@ -70,7 +70,7 @@ export function organizationSchema(): Json {
     description: BRAND.description,
     logo: {
       '@type': 'ImageObject',
-      url: absoluteUrl(DEFAULT_OG_IMAGE),
+      url: absoluteUrl(SITE_ICON),
     },
     ...(SOCIAL_PROFILES.length ? { sameAs: [...SOCIAL_PROFILES] } : {}),
     ...(contactPoints.length ? { contactPoint: contactPoints } : {}),

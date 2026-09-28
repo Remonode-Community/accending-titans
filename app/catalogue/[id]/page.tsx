@@ -88,15 +88,15 @@ export async function generateMetadata({ params }: RouteParams): Promise<Metadat
 
   const path = `/catalogue/${business.id}`;
 
-  // The member's own cover image makes a far better social card than the
-  // generic brand icon, and it is already a hosted image.
-  const ogImage = business.cover_image_url ?? business.profile_image_url ?? undefined;
-
+  // No `image` passed: app/catalogue/[id]/opengraph-image.tsx generates a
+  // 1200x630 card from the member's own cover photo, business name, category
+  // and description. Handing a bare member image URL to the metadata instead
+  // would override that card and lose the branding — and the member's photo
+  // has no known dimensions, so any width/height declared would be a guess.
   return buildMetadata({
     title: `${business.business_name}${business.business_category ? ` — ${business.business_category}` : ''}`,
     description: describe(business),
     path,
-    image: ogImage,
     type: 'profile',
     // PublicPortfolio omits updated_at, so created_at is the honest signal.
     publishedTime: business.created_at,

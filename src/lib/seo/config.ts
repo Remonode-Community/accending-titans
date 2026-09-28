@@ -74,8 +74,15 @@ export const SOCIAL = {
   twitter: '@accedingtitans', // TODO(owner): confirm the real handle
 } as const;
 
-/** Absolute URL of the default social share image. */
-export const DEFAULT_OG_IMAGE = '/icon.png';
+/**
+ * The favicon / PWA icon. NOT a social share image.
+ *
+ * This is 192x192 and square, so platforms letterbox it into a small
+ * thumbnail. Social previews come from the generated 1200x630 cards in
+ * app/opengraph-image.tsx, app/twitter-image.tsx and
+ * app/catalogue/[id]/opengraph-image.tsx.
+ */
+export const SITE_ICON = '/icon.png';
 
 /**
  * Indexability policy.
