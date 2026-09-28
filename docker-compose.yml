@@ -1,5 +1,9 @@
 services:
   acceding-titans-web:
+    # Registry image: built on the dev PC, pushed to GHCR, VPS only pulls it.
+    # `docker compose pull acceding-titans-web` downloads this; `build:` below
+    # stays as a local fallback (never run `--build` on the VPS — 1.6GB RAM).
+    image: ghcr.io/adetonamichael/accending-titans-web:latest
     build:
       context: .
       dockerfile: Dockerfile

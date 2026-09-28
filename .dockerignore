@@ -6,3 +6,7 @@ node_modules
 npm-debug.log
 Dockerfile
 docker-compose.yml
+
+# secrets — TLS keys / certbot state must never enter the build context
+certs
+letsencrypt
