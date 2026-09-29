@@ -123,25 +123,25 @@ const heroSlides = [
     image: 'https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&w=1920&q=90',
     headline: 'Showcase Your Business',
     subtext: 'Display your products and services to thousands of engaged entrepreneurs and grow your sales',
-    service: '📦 Business Catalogue',
+    service: 'Business Catalogue',
   },
   {
     image: 'https://images.unsplash.com/photo-1515187029135-18ee286d815b?auto=format&fit=crop&w=1920&q=90',
     headline: 'Network & Collaborate',
     subtext: 'Connect with like-minded business owners, find partners, and unlock unlimited opportunities',
-    service: '🤝 Community Networking',
+    service: 'Community Networking',
   },
   {
     image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1920&q=90',
     headline: 'Promote Your Services',
     subtext: 'Reach thousands of members with targeted advertising through text, images, and video content',
-    service: '📢 Advertising Platform',
+    service: 'Advertising Platform',
   },
   {
     image: 'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=1920&q=90',
     headline: 'Find Jobs & Opportunities',
     subtext: 'Post gigs, find skilled professionals, and discover new business opportunities in your network',
-    service: '💼 Job Opportunities',
+    service: 'Job Opportunities',
   },
 ];
 
@@ -369,9 +369,7 @@ export default function LandingPage() {
         <div className="relative mx-auto grid max-w-7xl grid-cols-1 items-center gap-8 sm:gap-10 lg:grid-cols-2">
           {/* Left Content */}
           <div>
-            <span className="inline-block px-3 py-1.5 rounded-full bg-[#C9A84C]/15 border border-[#C9A84C]/30 text-xs sm:text-sm font-semibold text-[#C9A84C] mb-5">
-              Download Now
-            </span>
+           
 
             <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4 sm:mb-5 leading-tight">
               Everything you need,
@@ -520,27 +518,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ═══════════════════ STATS ═══════════════════ */}
-      <section id="stats" className="bg-gradient-to-r from-[#C9A84C]/5 to-transparent py-12 sm:py-16 md:py-24 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
-            {stats.map((stat) => {
-              const Icon = stat.icon;
-              return (
-                <div key={stat.label} className="text-center">
-                  <div className="flex justify-center mb-3">
-                    <div className="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#C9A84C]/10 border border-[#C9A84C]/20">
-                      <Icon className="text-[#C9A84C]" size={22} />
-                    </div>
-                  </div>
-                  <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">{stat.value}</h3>
-                  <p className="text-xs sm:text-sm text-gray-600">{stat.label}</p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
 
       {/* ═══════════════════ CTA SECTION ═══════════════════ */}
       <section className="bg-white py-12 sm:py-16 md:py-24 px-4 sm:px-6 lg:px-8">

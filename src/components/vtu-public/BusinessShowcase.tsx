@@ -190,11 +190,6 @@ export default function BusinessShowcase() {
       <div className="relative mx-auto max-w-7xl">
         {/* Section header */}
         <div className="mb-10 sm:mb-14 text-center">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#C9A84C]/10 border border-[#C9A84C]/20 text-xs sm:text-sm font-semibold text-[#C9A84C] mb-4">
-            <Briefcase size={14} />
-            Trusted by Businesses
-          </span>
-
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-3">
             Businesses That Use{' '}
             <span className="text-[#C9A84C]">Acceding Titans</span>

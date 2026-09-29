@@ -66,36 +66,22 @@ export async function brandLogoDataUri(): Promise<string> {
 /**
  * The brand typeface, for satori.
  *
- * Without this, ImageResponse falls back to its built-in font, so the cards
+ * Without this, ImageResponse falls back to its built-in face, so the cards
  * would be set in Helvetica while the site is set in Plus Jakarta Sans — the
  * share preview would not match the page it links to.
  *
- * Satori cannot read woff2 (which is what `next/font` emits and what Google
- * Fonts serves to a modern UA), so the TTF is requested by presenting an old
- * user-agent. The same build already downloads the font for `next/font/google`,
- * so this adds no new environmental requirement.
+ * Read from the SAME committed files the site uses (src/fonts/), not fetched
+ * from Google. Two reasons:
+ *   - satori cannot read woff2, so the TTFs are kept alongside the woff2 rather
+ *     than derived from them;
+ *   - fetching at build time was a second, separate network dependency that
+ *     could fail on its own, and the format dance (a legacy user-agent to coax
+ *     a TTF out of Google) silently breaks when Google changes its behaviour.
  *
- * Failures are swallowed: if the network is unavailable the card still renders
- * in satori's default face rather than the build failing. A slightly-off font in
- * a share image is a far better outcome than a deployment that will not build.
+ * Only 400/700/800 are shipped: those are the weights the cards actually use
+ * (body copy, eyebrow, display name).
  */
 let fontCache: BrandFont[] | null = null;
-
-/**
- * A UA that makes Google Fonts serve a raw TTF.
- *
- * Satori can read TTF/OTF/WOFF but NOT woff2, which is what every modern UA
- * gets. Which legacy UA produces which format has changed over time — verified
- * against the live endpoint:
- *   Android 4.0.3  -> TTF    (what we want)
- *   Firefox 27     -> WOFF   (satori can read this too)
- *   Chrome 40      -> WOFF
- *   IE 11          -> WOFF
- *   IE 6 / MSIE 4  -> EOT    (breaks the build with "Unsupported OpenType
- *                            signature" — the header is just a file-size int)
- */
-const TTF_UA =
-  'Mozilla/5.0 (Linux; U; Android 4.0.3; en-us) AppleWebKit/534.30 (KHTML, like Gecko) Version/4.0 Mobile Safari/534.30';
 
 export interface BrandFont {
   name: string;
@@ -103,45 +89,39 @@ export interface BrandFont {
   weight: 400 | 700 | 800;
 }
 
-/**
- * Weights used across the cards: 400 for body copy, 700 for eyebrows, 800 for
- * the big name. The `wght@` axis value must be the numeric weight — Google
- * Fonts rejects `wght@regular` with a 400.
- */
-const WEIGHTS: ReadonlyArray<400 | 700 | 800> = [400, 700, 800];
+const FONT_DIR = join(process.cwd(), 'src', 'fonts');
+const FONT_NAME = 'Plus Jakarta Sans';
+
+const FONT_FILES: ReadonlyArray<{ weight: 400 | 700 | 800; file: string }> = [
+  { weight: 400, file: 'PlusJakartaSans-400.ttf' },
+  { weight: 700, file: 'PlusJakartaSans-700.ttf' },
+  { weight: 800, file: 'PlusJakartaSans-800.ttf' },
+];
 
 export async function brandFonts(): Promise<BrandFont[] | undefined> {
   if (fontCache) return fontCache;
 
   try {
-    const families = await Promise.all(
-      WEIGHTS.map(async (weight) => {
-        const url = `https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@${weight}`;
-        const cssRes = await fetch(url, { headers: { 'User-Agent': TTF_UA } });
-        if (!cssRes.ok) throw new Error(`font css ${cssRes.status}`);
-
-        const stylesheet = await cssRes.text();
-        // First @font-face src URL in the returned stylesheet.
-        const match = stylesheet.match(/src:\s*url\((https:[^)]+)\)/);
-        if (!match) throw new Error(`no src url for weight ${weight}`);
-
-        const fontRes = await fetch(match[1]);
-        if (!fontRes.ok) throw new Error(`font file ${fontRes.status}`);
-
+    const files = await Promise.all(
+      FONT_FILES.map(async ({ weight, file }) => {
+        const buf = await readFile(join(FONT_DIR, file));
         return {
-          name: 'Plus Jakarta Sans',
-          data: await fontRes.arrayBuffer(),
+          name: FONT_NAME,
+          data: buf.buffer.slice(
+            buf.byteOffset,
+            buf.byteOffset + buf.byteLength,
+          ) as ArrayBuffer,
           weight,
         };
       }),
     );
 
-    fontCache = families;
+    fontCache = files;
   } catch {
-    // Reset so a later render can retry, and fall back to satori's built-in
-    // face. Returning an empty array here would be worse than useless: satori
-    // treats `fonts: []` as "fonts were supplied but none are usable" and
-    // fails the render, whereas omitting the key uses its default.
+    // Fall back to satori's built-in face rather than failing the render.
+    // NOTE: must return undefined, never []. Satori reads an empty `fonts`
+    // array as "fonts were supplied but none are usable" and throws
+    // "No fonts are loaded", which fails the whole build.
     fontCache = null;
     return undefined;
   }

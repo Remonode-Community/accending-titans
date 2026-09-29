@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
 import { JsonLd } from "@/components/seo/JsonLd";
@@ -10,27 +10,44 @@ import { graph, organizationSchema, webSiteSchema } from "@/lib/seo/schema";
 const PAYSTACK_SCRIPT_URL = "https://js.paystack.co/v1/inline.js";
 
 /**
- * The brand typeface.
+ * The brand typeface, self-hosted.
  *
- * globals.css already declared 'Plus Jakarta Sans' as the first family in
- * --font-sans, but nothing ever loaded it — there was no next/font import and
- * no Google Fonts stylesheet, so every page silently rendered in system-ui
- * while still paying for a preconnect to fonts.googleapis.com.
+ * Two problems this replaces:
  *
- * next/font self-hosts the woff2 files at build time, subsets them, and
- * preloads only the weights actually used. That fixes the brand mismatch and
- * removes a render-blocking third-party request in one move.
+ * 1. Before any next/font import existed, globals.css asked for
+ *    'Plus Jakarta Sans' but nothing loaded it, so every page silently
+ *    rendered in system-ui while still paying a preconnect to
+ *    fonts.googleapis.com.
  *
- * Build-time network note: next/font/google downloads the font during
- * `next build`. On a machine with no outbound access, switch to
- * `next/font/local` with a self-hosted woff2 to keep builds hermetic.
+ * 2. `next/font/google` fixed the rendering but made the build depend on
+ *    reaching Google, and its Turbopack loader proved fragile: a corrupted
+ *    `.next` produced
+ *      "Can't resolve '@vercel/turbopack-next/internal/font/google/font'
+ *       / next/font/google queries have exactly one entry"
+ *    and a 500 on every route.
+ *
+ * The woff2 files are committed under src/fonts/, so the build is hermetic —
+ * no network, no Google loader, and nothing that can 500. next/font/local still
+ * preloads only the weights actually used and emits the same `--font-jakarta`
+ * variable the stylesheet reads.
+ *
+ * Weights 500 and 600 are kept: the design system uses them (buttons, labels).
  */
-const jakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
+const jakarta = localFont({
+  src: [
+    { path: "../src/fonts/PlusJakartaSans-latin-400.woff2", weight: "400", style: "normal" },
+    { path: "../src/fonts/PlusJakartaSans-latin-500.woff2", weight: "500", style: "normal" },
+    { path: "../src/fonts/PlusJakartaSans-latin-600.woff2", weight: "600", style: "normal" },
+    { path: "../src/fonts/PlusJakartaSans-latin-700.woff2", weight: "700", style: "normal" },
+    { path: "../src/fonts/PlusJakartaSans-latin-800.woff2", weight: "800", style: "normal" },
+  ],
   display: "swap",
-  weight: ["400", "500", "600", "700", "800"],
   variable: "--font-jakarta",
+  // Declared so the browser can size fallback text before the woff2 arrives,
+  // which is what `size-adjust` is for; a plain list would be a metric
+  // mismatch and cause a visible reflow on swap.
   fallback: ["system-ui", "Segoe UI", "Helvetica Neue", "Arial", "sans-serif"],
+  preload: true,
 });
 
 /**
