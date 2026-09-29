@@ -25,8 +25,28 @@ import type {
  * only applied to the mutating routes, not to index/show/categories.
  */
 
-const API_BASE_URL =
+const RAW_API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.bb.remonode.com/api/v1';
+
+/**
+ * The client bundle must keep using the relative `/api/v1` base (nginx proxies
+ * it same-origin), but a server-side `fetch('/api/v1/...')` during
+ * `next build` targets the build container itself — the server is not up yet,
+ * so the request hangs until the 60s static-generation timeout and kills the
+ * build. Server-side, resolve relative bases against the public app URL so
+ * build-time fetches go to the live site (or fail fast if it is down, in which
+ * case ISR repopulates the data on the first revalidation).
+ */
+function apiBaseUrl(): string {
+  if (RAW_API_BASE_URL.startsWith('/')) {
+    const app = process.env.NEXT_PUBLIC_APP_URL || 'https://accedingtitans.com';
+    return app.replace(/\/+$/, '') + RAW_API_BASE_URL;
+  }
+  return RAW_API_BASE_URL;
+}
+
+/** Bound every API call: an unreachable backend must fail in seconds, not 60. */
+const FETCH_TIMEOUT_MS = 8000;
 
 /** Listing pages are cheap to rebuild and change often. */
 const REVALIDATE_LIST = 300; // 5 minutes
@@ -47,9 +67,10 @@ interface Envelope<T> {
  */
 async function apiGet<T>(path: string, revalidate: number): Promise<T | null> {
   try {
-    const res = await fetch(`${API_BASE_URL}${path}`, {
+    const res = await fetch(`${apiBaseUrl()}${path}`, {
       headers: { Accept: 'application/json' },
       next: { revalidate },
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     });
 
     if (!res.ok) return null;
