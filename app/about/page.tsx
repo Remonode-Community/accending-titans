@@ -122,22 +122,7 @@ export default function AboutPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              {[
-                { value: '10K+', label: 'Active Members' },
-                { value: '50K+', label: 'Business Listings' },
-                { value: '25K+', label: 'Successful Referrals' },
-                { value: '98%', label: 'Satisfaction Rate' },
-              ].map((stat, idx) => (
-                <div
-                  key={idx}
-                  className="rounded-2xl border border-[#C9A84C]/30 bg-gradient-to-br from-[#C9A84C]/5 to-white p-6 text-center hover:border-[#C9A84C]/60 hover:shadow-lg transition-all"
-                >
-                  <p className="text-3xl font-bold text-[#C9A84C] mb-2">{stat.value}</p>
-                  <p className="text-sm text-gray-600">{stat.label}</p>
-                </div>
-              ))}
-            </div>
+     
           </div>
         </div>
       </section>
