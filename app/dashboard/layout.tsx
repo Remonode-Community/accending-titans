@@ -6,9 +6,10 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   Award,
+  Cake,
   FileText,
-  Gift,
   Home,
+  Layers,
   LogOut,
   Menu,
   Send,
@@ -89,7 +90,19 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
     { href: '/dashboard/catalogue', label: 'Business Catalogue', icon: ShoppingBag },
     { href: '/dashboard/subscriptions', label: 'Subscription', icon: Star },
     { href: '/dashboard/wallet', label: 'Wallet', icon: Wallet },
-    { href: '/dashboard/rewards', label: 'Birthday Rewards', icon: Gift },
+  // Network celebrations: where a member's network comes together to
+  // celebrate them, and quietly plan a surprise.
+  //
+  // The older `/dashboard/rewards` page (the platform's own loyalty gift) has
+  // been dropped from this menu. It duplicated the "upcoming birthdays" list
+  // that this section now owns, and having two adjacent birthday entries was
+  // confusing. The page and its endpoints are deliberately left in place so
+  // existing links and bookmarks keep working.
+  { href: '/dashboard/birthdays', label: 'Birthdays', icon: Cake },
+    // The member network: circles, the ask board, and the impact ledger. Reading
+    // it is never paywalled — only posting an ask requires an active
+    // subscription, which is enforced server-side.
+    { href: '/dashboard/network', label: 'Member Network', icon: Layers },
     { href: '/dashboard/content', label: 'Submit Content', icon: Upload },
     { href: '/dashboard/rankings', label: 'Rankings', icon: TrendingUp },
     { href: '/dashboard/referral', label: 'Referral Program', icon: Users },

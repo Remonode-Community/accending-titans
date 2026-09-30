@@ -72,6 +72,22 @@ html {
   scroll-behavior: smooth;
 }
 
+/*
+ * Map Tailwind's `font-black` (700 → 900 scale, resolves to 900) onto 800.
+ *
+ * Plus Jakarta Sans tops out at ExtraBold 800, so a 900 request has no real
+ * face and the browser synthesises one by smearing the 800 outlines. On large
+ * currency figures that reads as a crowded, over-heavy glyph run — the naira
+ * sign visibly collides with the digit after it.
+ *
+ * Remapping the class rather than editing every `font-black` call site keeps
+ * the fix global without touching dozens of components. This rule sits outside
+ * @layer, so it takes priority over the generated utility.
+ */
+.font-black {
+  font-weight: 800;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);

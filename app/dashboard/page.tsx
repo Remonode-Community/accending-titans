@@ -5,7 +5,6 @@ import Link from 'next/link';
 import {
   AlertCircle,
   ArrowRight,
-  ArrowUpRight,
   Award,
   Building2,
   Check,
@@ -21,25 +20,21 @@ import {
   ReceiptText,
   Send,
   TrendingUp,
-  Wallet,
 } from 'lucide-react';
 
 import { Badge } from '@/components/shared/Badge';
 import { DashboardSkeleton } from '@/components/shared/SkeletonLoader';
 import { AdCarousel } from '@/components/dashboard/AdCarousel';
-import { walletService } from '@/services/wallet.service';
+import {
+  DashboardProfileHeader,
+  type DashboardProfile,
+} from '@/components/dashboard/DashboardProfileHeader';
 import { transactionService } from '@/services/transaction.service';
 import { customerService, DedicatedAccount } from '@/services/customer.service';
 import { portfolioService } from '@/services/portfolio.service';
 import { useAuth } from '@/hooks/useAuth';
 import { formatCurrency, formatDate } from '@/utils/format.utils';
 import { TRANSACTION_STATUSES } from '@/utils/constants';
-
-type WalletData = {
-  balance: number;
-  currency?: string;
-  total_spent?: number;
-};
 
 type TransactionData = {
   id: string | number;
@@ -54,14 +49,6 @@ type TransactionData = {
   metadata?: Record<string, any>;
   service_logo?: string | null;
 };
-
-/** Summary of the member's own catalogue, used for the rail + shortcuts. */
-type CatalogueSummary = {
-  id: number;
-  items_count: number;
-  views_count: number;
-  is_featured: boolean;
-} | null;
 
 /** One card surface, so every panel on the page matches. */
 const CARD =
@@ -105,7 +92,6 @@ const getTransactionStatusIcon = (status: string) => {
 export default function DashboardPage() {
   const { user, isAuthenticated } = useAuth();
 
-  const [wallet, setWallet] = useState<WalletData | null>(null);
   const [transactions, setTransactions] = useState<TransactionData[]>([]);
   const [dedicatedAccount, setDedicatedAccount] = useState<DedicatedAccount | null>(null);
   const [loading, setLoading] = useState(true);
@@ -119,8 +105,11 @@ export default function DashboardPage() {
     perPage: 10,
   });
 
-  // The member's own catalogue, so the rail and shortcuts reflect real state.
-  const [catalogue, setCatalogue] = useState<CatalogueSummary>(null);
+  // The member's own catalogue. Holds the full projection, not a summary:
+  // the profile header renders the business name, category, description,
+  // cover and logo straight from this, so a member sees their real listing
+  // rather than a placeholder.
+  const [catalogue, setCatalogue] = useState<DashboardProfile>(null);
 
   // Rendered only after mount — a Date on the server can differ from the
   // client and trip React's hydration check.
@@ -138,13 +127,19 @@ export default function DashboardPage() {
         const p = res.data.portfolio;
         setCatalogue({
           id: p.id,
+          business_name: p.business_name,
+          business_category: p.business_category,
+          business_description: p.business_description,
+          cover_image_url: p.cover_image_url,
+          profile_image_url: p.profile_image_url,
           items_count: p.items_count ?? p.items?.length ?? 0,
           views_count: p.views_count ?? 0,
           is_featured: !!p.is_featured,
+          created_at: p.created_at,
         });
       })
       .catch(() => {
-        // Members without a catalogue simply don't get the shortcut.
+        // Members without a catalogue simply don't get the profile block.
       });
 
     return () => {
@@ -185,13 +180,13 @@ export default function DashboardPage() {
       try {
         setLoading(true);
         setError(null);
-        const [walletRes, transactionsRes] = await Promise.all([
-          walletService.getBalance(),
-          user?.id
-            ? transactionService.getTransactions({ page: currentPage, per_page: 10 })
-            : Promise.resolve(null),
-        ]);
-        if (walletRes?.data) setWallet(walletRes.data as WalletData);
+        // Only transactions are fetched here. The wallet balance request that
+        // used to run alongside it existed solely to feed the balance panel,
+        // which has been removed, so keeping it would mean a wasted request on
+        // every dashboard load.
+        const transactionsRes = user?.id
+          ? await transactionService.getTransactions({ page: currentPage, per_page: 10 })
+          : null;
         if (transactionsRes?.data?.transactions) {
           setTransactions(transactionsRes.data.transactions);
           if (transactionsRes.data.pagination) {
@@ -248,86 +243,21 @@ export default function DashboardPage() {
 
   if (loading) return <DashboardSkeleton />;
 
-  const balance = wallet ? formatCurrency(wallet.balance, wallet.currency) : '₦0.00';
-
   return (
     <div className="space-y-6">
-      {/* ── Page header ── */}
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="min-w-0">
-          <h1 className="text-2xl font-black tracking-tight text-gray-900 sm:text-[26px]">
-            Overview
-          </h1>
-          <p className="mt-1 text-sm text-gray-500">
-            {today ? `${today} · ` : ''}Track your wallet, catalogue and community activity.
-          </p>
-        </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
-          {catalogue && (
-            <Link
-              href={`/catalogue/${catalogue.id}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              title="Open my public catalogue page"
-              className="inline-flex items-center gap-1.5 rounded-xl border border-[#e5e7eb] bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:border-[#C9A84C]/50 hover:text-[#C9A84C]"
-            >
-              My public page
-              <ArrowUpRight size={14} />
-            </Link>
-          )}
-          {/* Opportunities lives in Quick actions below — not repeated here. */}
-          <Link
-            href="/dashboard/catalogue"
-            className="inline-flex items-center gap-2 rounded-xl bg-[#C9A84C] px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-[#C9A84C]/25 transition hover:bg-[#B8962E]"
-          >
-            My Catalogue
-            <ArrowRight size={14} />
-          </Link>
-        </div>
-      </header>
+      {/*
+        Profile header.
 
-      {/* ── Wallet: the primary number, so it gets the focal card ── */}
-      <section className={`${CARD} overflow-hidden`}>
-        <div className="h-1 w-full bg-gradient-to-r from-[#C9A84C]/20 via-[#C9A84C] to-[#C9A84C]/20" />
+        Owns the page's <h1> and the same visual language as the public business
+        page, so a member recognises their own listing. Replaces the old
+        "Overview" heading, which said nothing about who the page belonged to.
 
-        <div className="p-5 sm:p-6">
-          <div className="rounded-2xl border border-[#C9A84C]/25 bg-gradient-to-br from-[#FDFAF3] to-[#C9A84C]/[0.08] p-5 sm:p-6">
-            {/* Stacks until lg: below that the main column is too narrow for
-                the figure and the buttons to share a row without colliding. */}
-            <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-              <div className="min-w-0">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#B8962E]">
-                  Available balance
-                </p>
-                <p className="mt-2.5 break-words text-[2rem] font-black leading-tight tracking-tight text-gray-900 sm:text-[2.5rem] xl:text-[2.75rem]">
-                  {balance}
-                </p>
-                <p className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-gray-500">
-                  <Wallet size={13} className="text-[#C9A84C]" />
-                  Acceding Titans wallet
-                </p>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2.5 lg:shrink-0">
-                <Link
-                  href="/dashboard/wallet"
-                  className="inline-flex items-center gap-2 rounded-xl bg-[#C9A84C] px-5 py-2.5 text-sm font-bold text-white shadow-sm shadow-[#C9A84C]/25 transition hover:bg-[#B8962E]"
-                >
-                  View wallet
-                  <ArrowRight size={14} />
-                </Link>
-                <Link
-                  href="/dashboard/referral"
-                  className="inline-flex items-center gap-2 rounded-xl border border-[#C9A84C]/30 bg-white px-5 py-2.5 text-sm font-semibold text-[#B8962E] transition hover:border-[#C9A84C] hover:bg-[#FDFAF3]"
-                >
-                  Top up via referral
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+        The wallet balance that used to sit above this was removed on request.
+        The balance is still reachable via the Wallet nav item and
+        /dashboard/wallet.
+      */}
+      <DashboardProfileHeader user={user} profile={catalogue} dateLabel={today} />
 
       {/* ── Body: main column + rail ── */}
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_336px]">

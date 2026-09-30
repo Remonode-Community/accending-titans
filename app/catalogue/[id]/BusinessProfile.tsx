@@ -21,6 +21,7 @@ import {
 import { LandingTopbar } from '@/components/LandingTopbar';
 import { Footer } from '@/components/shared/Footer';
 import { EmptyState } from '@/components/shared/EmptyState';
+import { BrandCover, memberSince } from '@/components/shared/BrandCover';
 import { formatCurrency } from '@/utils/format.utils';
 import type { PortfolioItem, PublicPortfolio } from '@/types/portfolio.types';
 
@@ -50,13 +51,6 @@ function whatsappLink(
   return `https://wa.me/${digits}${text}`;
 }
 
-/** "Member since 2026" — LinkedIn-style founded/joined meta. */
-function memberSince(iso: string | null | undefined): string | null {
-  if (!iso) return null;
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return null;
-  return `Member since ${d.getFullYear()}`;
-}
 
 const TABS = [
   { id: 'about', label: 'About' },
@@ -208,7 +202,7 @@ export function BusinessProfile({
                 unoptimized
               />
             ) : (
-              <BrandBanner />
+              <BrandCover />
             )}
             <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-black/10 to-transparent" />
           </div>
@@ -562,23 +556,6 @@ function Dot() {
   );
 }
 
-/** On-brand fallback banner: cream → brand gold with a soft diagonal texture. */
-function BrandBanner() {
-  return (
-    <div className="relative h-full w-full bg-gradient-to-br from-[#FDFAF3] via-[#F0E2B8] to-[#C9A84C]">
-      <div
-        className="absolute inset-0 opacity-[0.18]"
-        style={{
-          backgroundImage:
-            'repeating-linear-gradient(135deg, #B8962E 0 1px, transparent 1px 14px)',
-        }}
-      />
-      <div className="absolute inset-0 flex items-center justify-center">
-        <Building2 className="h-12 w-12 text-[#B8962E]/30" />
-      </div>
-    </div>
-  );
-}
 
 function DetailRow({
   icon: Icon,

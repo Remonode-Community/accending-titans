@@ -29,6 +29,7 @@ import {
   Sparkles,
   Megaphone,
   Shield,
+  ShieldCheck,
   KeyRound,
   Store,
   Star,
@@ -80,6 +81,11 @@ const navGroups: NavGroup[] = [
     items: [
       { label: 'Content Review', href: '/admin/content', icon: FileText },
       { label: 'Birthdays', href: '/admin/birthdays', icon: Gift },
+      // Member-network moderation: the ask board and the abuse report queue.
+      // Distinct from Birthday Celebration Moderation below, and gated on its
+      // own permission so the two can be granted independently.
+      { label: 'Network', href: '/admin/network', icon: ShieldCheck },
+      { label: 'Celebration Moderation', href: '/admin/birthdays/celebrations', icon: Sparkles },
     ],
   },
   {

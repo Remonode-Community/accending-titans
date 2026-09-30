@@ -168,7 +168,11 @@ export default function BirthdayRewardsPage() {
                     <p className="text-sm font-semibold text-gray-900">{bday.name}</p>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="text-xs text-gray-500">
-                        {new Date(bday.birth_date).toLocaleDateString('en-NG', { day: 'numeric', month: 'short' })}
+                        {/* The API now returns month and day only
+                            ("October 10") instead of a full ISO date, because
+                            a full date publishes the member's birth year.
+                            Rendered as given rather than parsed. */}
+                        {bday.birthday_month_day}
                       </span>
                       {bday.business && (
                         <span className="text-xs text-gray-400">• {bday.business.name}</span>

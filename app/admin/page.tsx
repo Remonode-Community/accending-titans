@@ -212,13 +212,36 @@ export default function AdminDashboardPage() {
       </section>
 
       {/* ── KPI Cards ────────────────────────────────────────────────────── */}
-      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/*
+        KPI strip.
+
+        On phones the eight cards run in one horizontally scrollable row instead
+        of stacking into a screenful of vertical scrolling. This is the same
+        pattern /admin/notifications already uses, so both admin screens behave
+        identically.
+
+        -mx-4 / px-4 cancels this page's own gutter so the scroll area spans
+        the full width of the content column, then re-insets the cards so the
+        first card still lines up with the headings and panels below and the
+        last one has room to scroll clear. (The admin shell insets the content
+        column itself, so this is a column-wide bleed, not a screen-edge one.)
+
+        tabIndex + role + aria-label make the strip keyboard-reachable: a scroll
+        container that cannot take focus is unreachable by keyboard
+        (WCAG 2.1.1).
+      */}
+      <section
+        role="region"
+        aria-label="Key performance indicators, scroll horizontally"
+        tabIndex={0}
+        className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-x-visible sm:px-0 sm:pb-0 lg:grid-cols-4"
+      >
         {kpiCards.map((kpi) => {
           const Icon = kpi.icon;
           return (
             <Card
               key={kpi.label}
-              className="rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-[0_10px_35px_rgba(0,0,0,0.04)] transition-shadow hover:shadow-[0_15px_45px_rgba(0,0,0,0.08)]"
+              className="w-[78vw] max-w-[320px] shrink-0 snap-center rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-[0_10px_35px_rgba(0,0,0,0.04)] transition-shadow hover:shadow-[0_15px_45px_rgba(0,0,0,0.08)] sm:w-auto sm:max-w-none sm:snap-align-none"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">

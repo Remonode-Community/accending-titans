@@ -65,7 +65,13 @@ export interface User {
   wallet_balance: number;
   profile_complete_status: boolean;
   profile_photo_url: string | null;
+  /**
+   * Humanised for display, e.g. "2 years ago". Use `joined_at` when a real
+   * date is needed — this string cannot be parsed by a date library.
+   */
   created_at: string;
+  /** ISO-8601 join date, or null when the account has no created_at. */
+  joined_at: string | null;
   roles: string[];
   permissions: string[];
   balance: number;

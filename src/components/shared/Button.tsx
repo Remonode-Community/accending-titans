@@ -9,7 +9,10 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        primary: 'bg-[#c9a84c] text-[#0a0a0a] hover:bg-[#9da9ff] focus:ring-[#c9a84c]',
+        // Hover is the brand gold. This used to be #9da9ff (periwinkle), so a
+        // gold button turned indigo-violet on hover — breaking the palette on
+        // every primary action in the app.
+        primary: 'bg-[#c9a84c] text-[#0a0a0a] hover:bg-[#b8962e] focus:ring-[#c9a84c]',
         secondary: 'bg-gray-200 text-gray-900 hover:bg-gray-300 focus:ring-gray-500',
         danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
         ghost: 'text-gray-700 hover:bg-gray-100 focus:ring-gray-500',
