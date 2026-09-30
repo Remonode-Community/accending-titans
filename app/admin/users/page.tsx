@@ -9,6 +9,8 @@ import {
   UserCheck,
   UserMinus,
   ShieldCheck,
+  ShieldOff,
+  Lock,
   Search,
   Filter,
   ChevronLeft,
@@ -129,6 +131,7 @@ const USERS_FILTER_FIELDS: FilterField[] = [
 export default function AdminUsersPage() {
   const router = useRouter();
   const { user } = useAuthStore();
+  const currentUserId = user?.id ?? null;
   const { showAlert } = useAlert();
 
   // ── State - Data ────────────────────────────────────────────────────────────
@@ -148,6 +151,13 @@ export default function AdminUsersPage() {
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const [selectedUsers, setSelectedUsers] = useState<Set<string | number>>(new Set());
   const [selectedRole, setSelectedRole] = useState('');
+  /** Refusal from the server, shown inside the role modal rather than as a toast. */
+  const [roleError, setRoleError] = useState<string | null>(null);
+  /**
+   * How many administrators exist, so the modal can mark the last one as
+   * protected before the round trip. The server enforces this regardless.
+   */
+  const [adminCount, setAdminCount] = useState(0);
   const [selectedBulkAction, setSelectedBulkAction] = useState<BulkAction>('verify');
   const summaryRef = useRef<HTMLDivElement | null>(null);
   const [canScrollSummaryPrev, setCanScrollSummaryPrev] = useState(false);
@@ -327,6 +337,21 @@ export default function AdminUsersPage() {
             : (apiData as any).users ?? [];
           setUsers(userData);
 
+          /**
+           * Count administrators across the CURRENT page.
+           *
+           * Used only to mark the last administrator as protected in the role
+           * modal, so an operator is not offered a revoke button that is
+           * guaranteed to be refused. The server re-checks the real
+           * platform-wide count regardless — a page-local number is a hint, never
+           * the authority, and is not treated as one here.
+           */
+          setAdminCount(
+            userData.filter((u: AdminUser) =>
+              (u.roles || []).some((r: string) => r === 'admin')
+            ).length
+          );
+
           // Extract pagination from nested data
           const pagination = apiData.pagination;
           if (pagination) {
@@ -440,6 +465,7 @@ export default function AdminUsersPage() {
   const handleOpenRoleModal = async (user: AdminUser) => {
     setSelectedUser(user);
     setSelectedRole('');
+    setRoleError(null);
 
     if (roles.length === 0) {
       await fetchRoles();
@@ -453,18 +479,86 @@ export default function AdminUsersPage() {
 
     try {
       setLoadingAction(true);
-      // Use the new assignRoleToUser endpoint
-      await adminService.assignRoleToUser({
+      setRoleError(null);
+
+      const res = await adminService.assignRoleToUser({
         user_id: Number(selectedUser.id),
         role: selectedRole,
       });
-      showAlert('Role assigned successfully', 'success');
-      setShowRoleModal(false);
+
+      /**
+       * The server returns `success: false` with a readable reason rather than
+       * throwing, because this API always answers 200. Treating a resolved
+       * promise as success would swallow every refusal — including the privilege
+       * ceiling and the lock-out guards, which an operator most needs to read.
+       */
+      if (!res.success) {
+        setRoleError(res.message ?? 'Could not assign that role.');
+        return;
+      }
+
+      showAlert(res.message || 'Role assigned', 'success');
       setSelectedRole('');
-      fetchUsers(currentPage);
+      await fetchUsers(currentPage);
+      await fetchUserDetails(selectedUser.id);
+
+      // Keep the modal's "current roles" list truthful without a full remount.
+      setSelectedUser((prev) =>
+        prev
+          ? {
+              ...prev,
+              roles: Array.from(new Set([...(prev.roles || []), selectedRole])),
+            }
+          : prev
+      );
     } catch (error) {
       console.error('Error assigning role:', error);
-      showAlert('Failed to assign role', 'error');
+      setRoleError('Could not assign that role.');
+    } finally {
+      setLoadingAction(false);
+    }
+  };
+
+  /**
+   * Revoke one role.
+   *
+   * Confirmation is required because revocation takes effect immediately —
+   * including for an administrator, who loses access on their very next request.
+   */
+  const handleRevokeRole = async (user: AdminUser, role: string) => {
+    const confirmed = window.confirm(
+      `Revoke "${role}" from ${user.first_name} ${user.last_name}?\n\n` +
+        'This takes effect immediately. They will lose every permission that role grants.'
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setLoadingAction(true);
+      setRoleError(null);
+
+      const res = await adminService.revokeRoleFromUser({
+        user_id: Number(user.id),
+        role,
+      });
+
+      if (!res.success) {
+        setRoleError(res.message ?? 'Could not revoke that role.');
+        return;
+      }
+
+      showAlert(res.message || 'Role revoked', 'success');
+      await fetchUsers(currentPage);
+      await fetchUserDetails(user.id);
+
+      setSelectedUser((prev) =>
+        prev
+          ? { ...prev, roles: (prev.roles || []).filter((r) => r !== role) }
+          : prev
+      );
+    } catch (error) {
+      console.error('Error revoking role:', error);
+      setRoleError('Could not revoke that role.');
     } finally {
       setLoadingAction(false);
     }
@@ -2254,12 +2348,15 @@ export default function AdminUsersPage() {
         </AdminModal>
       )}
 
-      {/* ── Assign Role Modal ────────────────────────────────────────────── */}
+      {/* ── Manage Roles Modal ─────────────────────────────────────────────
+          Grant AND revoke. Previously assign-only, which meant the platform
+          could hand out roles but an administrator had no way to take one back
+          from this screen at all. */}
       {showRoleModal && selectedUser && (
         <AdminModal
           isOpen={showRoleModal}
           onClose={() => setShowRoleModal(false)}
-          title="Assign Role"
+          title="Manage Roles"
           subtitle={`${selectedUser.first_name} ${selectedUser.last_name}`}
           icon={ShieldIcon}
           size="md"
@@ -2276,10 +2373,82 @@ export default function AdminUsersPage() {
               <p className="text-xs text-[#6b7280]">{selectedUser.email}</p>
             </div>
 
+            {/* Current roles, each individually revocable */}
+            <div>
+              <p className="mb-2 text-sm font-semibold text-[#111827]">
+                Current roles
+              </p>
+
+              {(selectedUser.roles || []).length === 0 ? (
+                <div className="rounded-lg border border-[#fcd34d] bg-[#fef3c7] p-3 text-sm text-[#92400e]">
+                  This member has no roles. They will be unable to do anything
+                  until one is assigned.
+                </div>
+              ) : (
+                <ul className="space-y-2">
+                  {(selectedUser.roles || []).map((role) => {
+                    // The server enforces these rules too; this only saves the
+                    // operator a pointless round trip for the obvious cases.
+                    const isSelf = currentUserId === selectedUser.id;
+                    const isAdmin = role === 'admin';
+                    const wouldBeLastAdmin = isAdmin && adminCount <= 1;
+
+                    const blocked = isSelf && isAdmin
+                      ? 'You cannot revoke your own administrator access.'
+                      : wouldBeLastAdmin
+                        ? 'This is the last administrator on the platform. Promote somebody else first.'
+                        : null;
+
+                    return (
+                      <li
+                        key={role}
+                        className="flex items-center justify-between gap-3 rounded-lg border border-[#e5e7eb] bg-white px-3 py-2"
+                      >
+                        <span
+                          className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-bold ${getRoleBadgeColor(role)}`}
+                        >
+                          {role}
+                        </span>
+
+                        {blocked ? (
+                          <span
+                            title={blocked}
+                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-gray-400"
+                          >
+                            <Lock className="h-3 w-3" />
+                            Protected
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleRevokeRole(selectedUser, role)}
+                            disabled={loadingAction}
+                            className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-2.5 py-1.5 text-xs font-bold text-red-600 transition hover:bg-red-50 disabled:opacity-50"
+                          >
+                            <ShieldOff className="h-3 w-3" />
+                            Revoke
+                          </button>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+
+              {roleError && (
+                <p
+                  role="alert"
+                  className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-xs font-semibold text-red-700"
+                >
+                  {roleError}
+                </p>
+              )}
+            </div>
+
             {/* Role Selection */}
             <div>
               <label className="mb-2 block text-sm font-semibold text-[#111827]">
-                Select Role
+                Assign a role
               </label>
               {loadingRoles ? (
                 <div className="flex items-center justify-center rounded-lg border border-[#e5e7eb] bg-[#f8fafc] py-8">
@@ -2291,18 +2460,28 @@ export default function AdminUsersPage() {
                   No roles available. Please contact an administrator.
                 </div>
               ) : (
-                <select
-                  value={selectedRole}
-                  onChange={(e) => setSelectedRole(e.target.value)}
-                  className="w-full rounded-xl border border-[#d1d5db] bg-white px-4 py-3 text-sm text-[#111827] transition focus:border-[#4a5ff7] focus:ring-4 focus:ring-[#4a5ff7]/10"
-                >
-                  <option value="">Select a role…</option>
-                  {roles.map((role) => (
-                    <option key={role.id} value={role.name}>
-                      {role.name.charAt(0).toUpperCase() + role.name.slice(1)}
-                    </option>
-                  ))}
-                </select>
+                <>
+                  <select
+                    value={selectedRole}
+                    onChange={(e) => setSelectedRole(e.target.value)}
+                    className="w-full rounded-xl border border-[#d1d5db] bg-white px-4 py-3 text-sm text-[#111827] transition focus:border-[#C9A84C] focus:ring-4 focus:ring-[#C9A84C]/20"
+                  >
+                    <option value="">Select a role…</option>
+                    {roles
+                      .filter((r) => !(selectedUser.roles || []).includes(r.name))
+                      .map((role) => (
+                        <option key={role.id} value={role.name}>
+                          {role.name.charAt(0).toUpperCase() + role.name.slice(1)}
+                        </option>
+                      ))}
+                  </select>
+
+                  {selectedRole && (selectedUser.roles || []).includes(selectedRole) && (
+                    <p className="mt-2 text-xs text-gray-500">
+                      Already assigned.
+                    </p>
+                  )}
+                </>
               )}
             </div>
 
@@ -2330,7 +2509,7 @@ export default function AdminUsersPage() {
                 onClick={() => setShowRoleModal(false)}
                 className="flex-1"
               >
-                Cancel
+                Done
               </Button>
             </div>
           </div>

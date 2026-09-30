@@ -87,12 +87,26 @@ class AdminService {
     return apiClient.put(`/admin/users/${userId}/verify`, {});
   }
 
-  async assignRolesToUser(userId: string, roleIds: number[]): Promise<any> {
-    return apiClient.put(`/admin/users/${userId}/roles`, { role_ids: roleIds });
+  /**
+   * @deprecated No route exists at `/admin/users/{id}/roles`, so this always 404s.
+   * Use `syncUserRoles`, which replaces the role set through the dedicated,
+   * properly guarded endpoint.
+   */
+  async assignRolesToUser(userId: string, roleNames: string[]): Promise<any> {
+    return apiClient.put(`/role/users/${userId}/roles`, { roles: roleNames });
   }
 
+  /**
+   * @deprecated No route exists at `/admin/users/{id}/permissions`.
+   * Individual permissions are managed per ROLE, not per user, through
+   * assignPermissionToRole / revokePermissionFromRole.
+   */
   async assignPermissionsToUser(userId: string, permissionIds: number[]): Promise<any> {
-    return apiClient.put(`/admin/users/${userId}/permissions`, { permission_ids: permissionIds });
+    void userId;
+    void permissionIds;
+    throw new Error(
+      'Per-user permission assignment is not supported. Permissions belong to roles; use assignPermissionToRole().'
+    );
   }
 
   async getUserTransactions(userId: string, page = 1, per_page = 50): Promise<any> {
@@ -265,11 +279,48 @@ class AdminService {
   }
 
   /**
-   * Assign a role to a user
+   * Assign a role to a user.
+   *
    * POST /api/v1/role/assign/role
+   *
+   * Additive and idempotent — it never removes roles the member already has.
+   * Use revokeRoleFromUser or syncUserRoles to take one away.
+   *
+   * The server enforces the privilege ceiling, the no-self-promotion rule and
+   * the lock-out guards, and returns a readable `message` explaining any
+   * refusal. Do not pre-empt those checks here: the client cannot know the
+   * actor's own permission set, nor whether this is the last administrator.
    */
   async assignRoleToUser(data: AssignRoleRequest): Promise<ApiResponse<AssignRoleResponse>> {
     return apiClient.post('/role/assign/role', data);
+  }
+
+  /**
+   * Revoke a single role from a user.
+   *
+   * POST /api/v1/role/revoke/role
+   *
+   * This endpoint did not previously exist: the platform could grant roles but
+   * had no way to take one away through the API.
+   */
+  async revokeRoleFromUser(data: AssignRoleRequest): Promise<ApiResponse<AssignRoleResponse>> {
+    return apiClient.post('/role/revoke/role', data);
+  }
+
+  /**
+   * Replace a user's entire role set in one operation.
+   *
+   * PUT /api/v1/role/users/{userId}/roles
+   *
+   * Prefer this over a read-modify-write of assign/revoke calls: two sequential
+   * requests can interleave with a concurrent change and leave somebody with a
+   * role nobody intended. An empty array is refused by the server.
+   */
+  async syncUserRoles(
+    userId: number,
+    roles: string[]
+  ): Promise<ApiResponse<{ user: { id: number; roles: string[]; permissions: string[] } }>> {
+    return apiClient.put(`/role/users/${userId}/roles`, { roles });
   }
 
   /**

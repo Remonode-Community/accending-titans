@@ -28,7 +28,19 @@ import type { Role, Permission } from '@/types/role.types';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const PROTECTED_ROLES = ['admin'];
+/**
+ * Roles the platform assigns automatically and must never be deleted.
+ *
+ * Kept in step with `RoleAssignmentPolicy::PROTECTED_ROLES` on the server. The
+ * previous value here was `['admin']` alone, which disagreed with the backend's
+ * old guard list of `['admin', 'super-admin']` — a name that does not exist in
+ * this application. Both lists were therefore wrong in different ways, and
+ * `user`, `customer` and `titan_member` were offered as deletable even though
+ * RolePermissionSeeder grants them on every deploy.
+ *
+ * This is a display hint only. The server refuses regardless.
+ */
+const PROTECTED_ROLES = ['admin', 'user', 'customer', 'titan_member'];
 
 const PERMISSION_LABELS: Record<string, string> = {
   manage_users: 'Manage Users',
