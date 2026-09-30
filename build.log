@@ -1,0 +1,65 @@
+#1 [internal] load local bake definitions
+#1 reading from stdin 825B done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile:
+#2 transferring dockerfile: 1.04kB 0.2s done
+#2 DONE 0.4s
+
+#3 [internal] load metadata for docker.io/library/node:20-alpine
+#3 DONE 3.5s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 243B 0.0s done
+#4 DONE 0.1s
+
+#5 [internal] load build context
+#5 DONE 0.0s
+
+#6 [deps 1/4] FROM docker.io/library/node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293
+#6 resolve docker.io/library/node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293 0.1s done
+#6 DONE 0.1s
+
+#5 [internal] load build context
+#5 transferring context: 25.84kB 0.4s done
+#5 DONE 0.5s
+
+#7 [deps 2/4] WORKDIR /app
+#7 CACHED
+
+#8 [deps 3/4] COPY package*.json ./
+#8 CACHED
+
+#9 [deps 4/4] RUN npm ci --legacy-peer-deps
+#9 CACHED
+
+#10 [builder 3/5] COPY --from=deps /app/node_modules ./node_modules
+#10 CACHED
+
+#11 [builder 4/5] COPY . .
+#11 DONE 1.9s
+
+#12 [builder 5/5] RUN npm run build
+#12 5.386 
+#12 5.386 > ascending-titans@1.0.0 build
+#12 5.386 > next build
+#12 5.386 
+#12 9.256 Attention: Next.js now collects completely anonymous telemetry regarding usage.
+#12 9.256 This information is used to shape Next.js' roadmap and prioritize features.
+#12 9.256 You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+#12 9.256 https://nextjs.org/telemetry
+#12 9.257 
+#12 9.304 ▲ Next.js 16.2.9 (Turbopack)
+#12 9.304 - Environments: .env
+#12 9.305 
+#12 9.649   Creating an optimized production build ...
+#12 58.34 ✓ Compiled successfully in 48s
+#12 58.42   Running TypeScript ...
+#12 139.6   Finished TypeScript in 81s ...
+#12 139.7   Collecting page data using 3 workers ...
+#12 141.7   Generating static pages using 3 workers (0/92) ...
+#12 143.4   Generating static pages using 3 workers (23/92) 
+#12 144.3   Generating static pages using 3 workers (46/92) 
+#12 144.9   Generating static pages using 3 workers (69/92) 
+#12 206.6 Failed to build /sitemap-categories.xml/route: /sitemap-categories.xml (attempt 1 of 3) because it took more than 60 seconds. Retrying again shortly.
