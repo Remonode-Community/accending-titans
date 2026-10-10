@@ -20,7 +20,6 @@ const flagTypeLabels: Record<string, string> = {
   suspicious_funding: 'Suspicious Funding',
   self_referral: 'Self Referral',
   reward_farming: 'Reward Farming',
-  excessive_vtu: 'Excessive VTU',
 };
 
 const severityColors: Record<string, string> = {

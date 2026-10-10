@@ -33,14 +33,6 @@ const PAYMENT_OPERATIONS = [
   '/payments/initialize',
   '/payments/verify',
   
-  // VTU operations (Airtime, Data, Bills)
-  '/vtu/pay',
-  '/vtu/service',
-  '/transactions/data/purchase',
-  '/transactions/bills/pay',
-  '/vtu/pay/confirm',
-  '/transactions/data/purchase/confirm',
-  
   // Additional transaction endpoints
   '/transactions/transfer',
   '/transactions/withdraw',

@@ -19,7 +19,7 @@ export default function AgentPerformancePage() {
       transaction_growth: '+18%',
       avg_daily_sales: 15,
       conversion_rate: '2.5%',
-      top_service: 'Airtime',
+      top_service: 'Bill Payments',
       retention_rate: '78%',
       top_customer_orders: 12,
     });
@@ -137,19 +137,19 @@ export default function AgentPerformancePage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[
             {
-              name: 'Airtime',
+              name: 'Bill Payments',
               transactions: 225,
               commission: 11250,
               percentage: 50,
             },
             {
-              name: 'Data',
+              name: 'Wallet Top-ups',
               transactions: 154,
               commission: 8470,
               percentage: 34,
             },
             {
-              name: 'Bills',
+              name: 'Transfers',
               transactions: 71,
               commission: 2780,
               percentage: 16,

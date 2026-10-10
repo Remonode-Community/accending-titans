@@ -4,7 +4,7 @@
   "name": "Acceding Titans",
   "url": " https://Ascending-titans.vercel.app",
   "logo": " https://Ascending-titans.vercel.app/icon.png",
-  "description": "Acceding Titans is a modern digital finance platform that empowers individuals and businesses with secure USD accounts, virtual dollar cards, seamless money transfers, and everyday payment solutions.",
+  "description": "Acceding Titans is a business directory and community for African entrepreneurs — a verified directory of businesses, and a member network where people in the same trade and area refer work, ask for help and share opportunities.",
   "sameAs": [
     "https://twitter.com/Acceding Titans",
     "https://facebook.com/Acceding Titans",
@@ -43,18 +43,6 @@
     },
     {
       "@type": "Service",
-      "name": "Virtual Top-Up Services",
-      "description": "Buy airtime, mobile data, electricity tokens, TV subscriptions, examination pins, and more at competitive rates.",
-      "url": " https://Ascending-titans.vercel.app/services/virtual-topup"
-    },
-    {
-      "@type": "Service",
-      "name": "Airtime to Cash Conversion",
-      "description": "Instantly convert excess airtime into cash directly within the platform.",
-      "url": " https://Ascending-titans.vercel.app/services/airtime-to-cash"
-    },
-    {
-      "@type": "Service",
       "name": "Wallet Transfers",
       "description": "Fast and secure transfers between Acceding Titans users.",
       "url": " https://Ascending-titans.vercel.app/services/money-transfer"
@@ -64,16 +52,29 @@
       "name": "Bank Transfers",
       "description": "Send funds seamlessly to local and external bank accounts.",
       "url": " https://Ascending-titans.vercel.app/services/money-transfer"
+    },
+    {
+      "@type": "Service",
+      "name": "Business Directory",
+      "description": "A verified directory of African entrepreneurs and businesses, searchable by trade, service and location.",
+      "url": " https://Ascending-titans.vercel.app/directory"
+    },
+    {
+      "@type": "Service",
+      "name": "Member Network",
+      "description": "Members connect with others in their trade and area to trade referrals, ask for help and share opportunities.",
+      "url": " https://Ascending-titans.vercel.app/dashboard/network"
     }
   ],
   "knowsAbout": [
+    "Business Directory",
+    "Entrepreneurship",
+    "Small Business Growth",
     "Digital Finance",
     "Online Payments",
     "International Transfers",
     "Virtual Cards",
     "USD Banking",
-    "Bill Payments",
-    "VTU Services",
-    "Airtime Conversion"
+    "Bill Payments"
   ]
 }

@@ -19,7 +19,6 @@ import {
   Mail,
   Zap,
   Tags,
-  Network,
   Settings,
   Activity,
   ChevronDown,
@@ -67,7 +66,6 @@ const navGroups: NavGroup[] = [
       { label: 'Permissions', href: '/admin/permissions', icon: KeyRound },
       { label: 'Portfolios', href: '/admin/portfolios', icon: Store },
       { label: 'Transactions', href: '/admin/transactions', icon: Receipt },
-      { label: 'Services', href: '/admin/services', icon: Network },
     ],
   },
   {

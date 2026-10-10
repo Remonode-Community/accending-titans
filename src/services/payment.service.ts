@@ -33,24 +33,8 @@ interface InitializePaymentResponse {
   };
 }
 
-interface AirtimePurchaseRequest {
-  provider: string;
-  phone_number: string;
-  amount: number;
-  user_id?: string;
-  payment_method?: 'wallet' | 'card' | 'mobile_money';
-  recipient_name?: string;
-  pin?: string;
-}
-
-interface DataPurchaseRequest {
-  provider: string;
-  phone_number: string;
-  plan_id: string;
-  amount: number;
-  payment_method?: 'wallet' | 'card' | 'mobile_money';
-  pin?: string;
-}
+// `AirtimePurchaseRequest` and `DataPurchaseRequest` were removed with the VTU
+// feature — they described airtime top-ups and data bundle purchases.
 
 interface BillPaymentRequest {
   bill_type: 'electricity' | 'water' | 'internet' | 'insurance';
@@ -124,167 +108,18 @@ class PaymentService {
       throw error;
     }
   }
-
-  /**
-   * Purchase airtime with PIN
-   * NOTE: PIN is sent directly with the payment request
-   * Idempotency-Key is automatically added as REQUEST HEADER by the API interceptor
-   */
-  async purchaseAirtime(
-    payload: AirtimePurchaseRequest,
-    retryCount: number = 0
-  ): Promise<ApiResponse<any>> {
-    try {
-      debug.log('[PaymentService] Purchasing airtime', { retryCount });
-
-      // Map fields to API expected format
-      const apiPayload = {
-        serviceID: payload.provider,
-        phone: payload.phone_number,
-        amount: payload.amount,
-        ...(payload.user_id && { user_id: payload.user_id }),
-        ...(payload.payment_method && { payment_method: payload.payment_method }),
-        ...(payload.pin && { pin: payload.pin }),
-      };
-
-      const response = await apiClient.post('/vtu/pay', apiPayload);
-
-      debug.log('[PaymentService] Airtime purchase successful', { 
-        success: response?.success,
-      });
-      return response;
-    } catch (error: any) {
-      debug.error('[PaymentService] Airtime purchase failed', error);
-
-      // Retry logic for network errors
-      if (
-        retryCount < 3 &&
-        !error.isIdempotencyError &&
-        (error.code === 'ECONNABORTED' || error.code === 'ENOTFOUND' || error.code === 'ETIMEDOUT')
-      ) {
-        debug.log(`[PaymentService] Retrying airtime purchase (attempt ${retryCount + 1}/3)`);
-        await new Promise((resolve) => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
-        return this.purchaseAirtime(payload, retryCount + 1);
-      }
-
-      throw error;
-    }
-  }
-
-  /**
-   * Confirm airtime purchase with PIN verification
-   */
-  async confirmAirtimePurchase(
-    requestId: string,
-    pinData: PINVerificationRequest,
-    retryCount: number = 0
-  ): Promise<ApiResponse<any>> {
-    try {
-      debug.log('[PaymentService] Confirming airtime purchase', { retryCount });
-
-      const response = await apiClient.post('/vtu/pay/confirm', {
-        ...pinData,
-      });
-
-      debug.log('[PaymentService] Airtime purchase confirmation successful');
-      return response;
-    } catch (error: any) {
-      debug.error('[PaymentService] Airtime purchase confirmation failed', error);
-
-      // Retry logic for network errors
-      if (
-        retryCount < 3 &&
-        !error.isIdempotencyError &&
-        (error.code === 'ECONNABORTED' || error.code === 'ENOTFOUND' || error.code === 'ETIMEDOUT')
-      ) {
-        debug.log(`[PaymentService] Retrying airtime confirmation (attempt ${retryCount + 1}/3)`);
-        await new Promise((resolve) => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
-        return this.confirmAirtimePurchase(requestId, pinData, retryCount + 1);
-      }
-
-      throw error;
-    }
-  }
-
-  /**
-   * Purchase data bundle with PIN
-   * NOTE: PIN is sent directly with the payment request
-   * Idempotency-Key is automatically added as REQUEST HEADER by the API interceptor
-   */
-  async purchaseData(
-    payload: any,
-    retryCount: number = 0
-  ): Promise<ApiResponse<any>> {
-    try {
-      debug.log('[PaymentService] Purchasing data', { retryCount });
-
-      // Map fields to API expected format for /vtu/pay endpoint
-      const apiPayload = {
-        serviceID: payload.service_id,
-        phone: payload.phone_number,
-        amount: payload.amount,
-        variation_code: payload.variation_code,
-        ...(payload.user_id && { user_id: payload.user_id }),
-        ...(payload.payment_method && { payment_method: payload.payment_method }),
-        ...(payload.pin && { pin: payload.pin }),
-      };
-
-      const response = await apiClient.post('/vtu/pay', apiPayload);
-
-      debug.log('[PaymentService] Data purchase successful');
-      return response;
-    } catch (error: any) {
-      debug.error('[PaymentService] Data purchase failed', error);
-
-      // Retry logic for network errors
-      if (
-        retryCount < 3 &&
-        !error.isIdempotencyError &&
-        (error.code === 'ECONNABORTED' || error.code === 'ENOTFOUND' || error.code === 'ETIMEDOUT')
-      ) {
-        debug.log(`[PaymentService] Retrying data purchase (attempt ${retryCount + 1}/3)`);
-        await new Promise((resolve) => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
-        return this.purchaseData(payload, retryCount + 1);
-      }
-
-      throw error;
-    }
-  }
-
-  /**
-   * Confirm data purchase with PIN verification
-   */
-  async confirmDataPurchase(
-    requestId: string,
-    pinData: PINVerificationRequest,
-    retryCount: number = 0
-  ): Promise<ApiResponse<any>> {
-    try {
-      debug.log('[PaymentService] Confirming data purchase', { retryCount });
-
-      const response = await apiClient.post('/vtu/pay/confirm', {
-        ...pinData,
-      });
-
-      debug.log('[PaymentService] Data purchase confirmation successful');
-      return response;
-    } catch (error: any) {
-      debug.error('[PaymentService] Data purchase confirmation failed', error);
-
-      // Retry logic for network errors
-      if (
-        retryCount < 3 &&
-        !error.isIdempotencyError &&
-        (error.code === 'ECONNABORTED' || error.code === 'ENOTFOUND' || error.code === 'ETIMEDOUT')
-      ) {
-        debug.log(`[PaymentService] Retrying data confirmation (attempt ${retryCount + 1}/3)`);
-        await new Promise((resolve) => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
-        return this.confirmDataPurchase(requestId, pinData, retryCount + 1);
-      }
-
-      throw error;
-    }
-  }
+  // ──────────────────────────────────────────────
+  // Removed with the VTU feature
+  //
+  // purchaseAirtime, confirmAirtimePurchase, purchaseData, confirmDataPurchase,
+  // purchaseElectricity, confirmPayment and getVTPassBalance. Each one either
+  // posted to /vtu/pay, /vtu/pay/confirm or /vtu/balance, or existed only to
+  // confirm an airtime/data/electricity purchase. None had a caller and none
+  // had a backend route.
+  //
+  // Bill payment (payBill, confirmBillPayment) is a separate product line and is
+  // kept, as are the merchant balance checks below.
+  // ──────────────────────────────────────────────
 
   /**
    * Pay bills with PIN
@@ -359,83 +194,6 @@ class PaymentService {
   }
 
   /**
-   * Purchase electricity bill with idempotency
-   * Maps electricity form data to /vtu/pay endpoint
-   * NOTE: PIN verification happens separately via pinService.verifyPin()
-   */
-  async purchaseElectricity(payload: any, retryCount: number = 0): Promise<ApiResponse<any>> {
-    try {
-      debug.log('[PaymentService] Purchasing electricity', { retryCount });
-
-      // Map fields to API expected format for /vtu/pay endpoint
-      const apiPayload = {
-        serviceID: payload.serviceID,
-        phone: payload.phone,
-        amount: payload.amount,
-        billersCode: payload.billersCode,
-        variation_code: payload.variation_code,
-        ...(payload.user_id && { user_id: payload.user_id }),
-        ...(payload.user_email && { user_email: payload.user_email }),
-        ...(payload.payment_method && { payment_method: payload.payment_method }),
-        ...(payload.request_id && { request_id: payload.request_id }),
-      };
-
-      const response = await apiClient.post('/vtu/pay', apiPayload);
-
-      debug.log('[PaymentService] Electricity purchase successful');
-      return response;
-    } catch (error: any) {
-      debug.error('[PaymentService] Electricity purchase failed', error);
-
-      // Retry logic for network errors
-      if (
-        retryCount < 3 &&
-        !error.isIdempotencyError &&
-        (error.code === 'ECONNABORTED' || error.code === 'ENOTFOUND' || error.code === 'ETIMEDOUT')
-      ) {
-        debug.log(`[PaymentService] Retrying electricity purchase (attempt ${retryCount + 1}/3)`);
-        await new Promise((resolve) => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
-        return this.purchaseElectricity(payload, retryCount + 1);
-      }
-
-      throw error;
-    }
-  }
-
-  /**
-   * Generic confirm payment with PIN verification
-   * Works for airtime, data, and electricity
-   */
-  async confirmPayment(
-    pinData: any,
-    retryCount: number = 0
-  ): Promise<ApiResponse<any>> {
-    try {
-      debug.log('[PaymentService] Confirming payment', { retryCount });
-
-      const response = await apiClient.post('/vtu/pay/confirm', pinData);
-
-      debug.log('[PaymentService] Payment confirmation successful');
-      return response;
-    } catch (error: any) {
-      debug.error('[PaymentService] Payment confirmation failed', error);
-
-      // Retry logic for network errors
-      if (
-        retryCount < 3 &&
-        !error.isIdempotencyError &&
-        (error.code === 'ECONNABORTED' || error.code === 'ENOTFOUND' || error.code === 'ETIMEDOUT')
-      ) {
-        debug.log(`[PaymentService] Retrying payment confirmation (attempt ${retryCount + 1}/3)`);
-        await new Promise((resolve) => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
-        return this.confirmPayment(pinData, retryCount + 1);
-      }
-
-      throw error;
-    }
-  }
-
-  /**
    * Get Paystack merchant balance
    * Returns balance in kobo (divide by 100 to get naira)
    */
@@ -449,24 +207,6 @@ class PaymentService {
       return response;
     } catch (error: any) {
       debug.error('[PaymentService] Failed to fetch Paystack balance', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get VTPass balance
-   * Returns response with code and contents (not wrapped in ApiResponse success wrapper)
-   */
-  async getVTPassBalance(): Promise<any> {
-    try {
-      debug.log('[PaymentService] Fetching VTPass balance');
-
-      const response = await apiClient.get('/vtu/balance');
-
-      debug.log('[PaymentService] VTPass balance fetched successfully');
-      return response;
-    } catch (error: any) {
-      debug.error('[PaymentService] Failed to fetch VTPass balance', error);
       throw error;
     }
   }

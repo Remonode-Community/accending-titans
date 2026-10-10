@@ -26,21 +26,42 @@ export default function ContentSubmissionPage() {
   const [duration, setDuration] = useState('');
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchSubmissions();
   }, []);
 
+  /**
+   * Load the member's submissions.
+   *
+   * The list lives at `res.data.submissions`. The previous code read
+   * `res.data.data` — a key this endpoint does not produce — so the `?? []`
+   * fallback silently swallowed every response and the page rendered "No
+   * submissions yet" no matter what had been submitted.
+   *
+   * `setError` is set on failure so a broken fetch is visible rather than
+   * indistinguishable from an empty list; they look identical otherwise, which
+   * is exactly how this went unnoticed.
+   */
   const fetchSubmissions = async () => {
     try {
       setLoading(true);
+      setError(null);
+
       const res = await contentService.getMySubmissions();
-      if (res.success && res.data) {
-        const data = Array.isArray(res.data) ? res.data : (res.data as any).data ?? [];
-        setSubmissions(data);
+
+      if (!res.success) {
+        setError(res.message || 'Could not load your submissions.');
+        setSubmissions([]);
+        return;
       }
+
+      setSubmissions(res.data?.submissions ?? []);
     } catch (err) {
       console.error('Error fetching submissions:', err);
+      setError('Could not load your submissions. Please try again.');
+      setSubmissions([]);
     } finally {
       setLoading(false);
     }
@@ -66,7 +87,11 @@ export default function ContentSubmissionPage() {
         showAlert('Content submitted for review', 'success');
         setShowForm(false);
         resetForm();
-        fetchSubmissions();
+
+        // Awaited so the refreshed list is on screen before `submitting`
+        // clears. Firing it without awaiting left a window where the "success"
+        // toast was showing next to a stale, empty list.
+        await fetchSubmissions();
       } else {
         showAlert(res.message || 'Failed to submit', 'error');
       }
@@ -188,10 +213,30 @@ export default function ContentSubmissionPage() {
           <h2 className="text-lg font-bold text-gray-900">My Submissions ({submissions.length})</h2>
         </div>
 
-        {submissions.length === 0 ? (
+        {/*
+          A failed fetch and a genuinely empty list both used to render
+          "No submissions yet", so a broken request was indistinguishable from
+          having submitted nothing. They are now separate states.
+        */}
+        {error ? (
+          <div className="px-6 py-12 text-center">
+            <XCircle className="mx-auto h-10 w-10 text-red-300" />
+            <p className="mt-3 font-semibold text-red-700">{error}</p>
+            <button
+              type="button"
+              onClick={fetchSubmissions}
+              className="mt-3 text-sm font-semibold text-[#B8962E] underline underline-offset-2"
+            >
+              Try again
+            </button>
+          </div>
+        ) : submissions.length === 0 ? (
           <div className="px-6 py-12 text-center">
             <Upload className="mx-auto h-10 w-10 text-gray-300" />
             <p className="mt-3 text-gray-500">No submissions yet</p>
+            <p className="mt-1 text-sm text-gray-400">
+              Anything you submit will appear here with its review status.
+            </p>
           </div>
         ) : (
           <div className="divide-y divide-gray-100">

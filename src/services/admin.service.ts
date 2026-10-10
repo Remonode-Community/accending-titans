@@ -12,11 +12,10 @@ import {
 } from '@/types/api.types';
 import {
   AdminStatisticsData,
-  UserVtuStatistics,
   UserWalletStatistics,
   UserStatistics,
   CombinedUserStatistics,
-} from '@/types/vtu.types';
+} from '@/types/admin-analytics.types';
 import type {
   Role,
   Permission,
@@ -182,13 +181,9 @@ class AdminService {
     return apiClient.get(`/transactions/${transactionId}`);
   }
 
-  async verifyAirtimeConversion(conversionId: number, approved: boolean, notes?: string): Promise<any> {
-    return apiClient.post('/transactions/airtime-conversion/verify', {
-      conversion_id: conversionId,
-      approved,
-      notes,
-    });
-  }
+  // `verifyAirtimeConversion` was removed with the airtime/VTU feature. It posted
+  // to /transactions/airtime-conversion/verify, which has no backend route, and
+  // had no callers.
 
   async getTransactions(page = 1, per_page = 20, filters?: any): Promise<any> {
     const params = new URLSearchParams();
@@ -393,75 +388,19 @@ class AdminService {
     return apiClient.get(`/wallet/transactions?${params.toString()}`);
   }
 
-  // VTU
-  async getVTUTransactionStats(): Promise<any> {
-    return apiClient.get('/stats/vtu');
-  }
-
-  async getVTUTransactions(page = 1, per_page = 20, filters?: any): Promise<any> {
-    const params = new URLSearchParams();
-    params.append('page', String(page));
-    params.append('per_page', String(per_page));
-
-    if (filters) {
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value) params.append(key, String(value));
-      });
-    }
-
-    return apiClient.get(`/vtu/transactions?${params.toString()}`);
-  }
-
-  async getVTUBalance(): Promise<any> {
-    return apiClient.get('/vtu/balance');
-  }
-
-  // VTU RECIPIENTS
-  async getVTURecipients(page = 1, per_page = 20, filters?: any): Promise<any> {
-    const params = new URLSearchParams();
-    params.append('page', String(page));
-    params.append('per_page', String(per_page));
-
-    if (filters) {
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value) params.append(key, String(value));
-      });
-    }
-
-    return apiClient.get(`/vtu/recipients?${params.toString()}`);
-  }
-
-  async getVTURecipient(recipientId: number): Promise<any> {
-    return apiClient.get(`/vtu/recipients/${recipientId}`);
-  }
-
-  async getRecentlyUsedRecipients(limit = 10): Promise<any> {
-    return apiClient.get(`/vtu/recipients/quick-access/recently-used?limit=${limit}`);
-  }
-
-  async getFrequentlyUsedRecipients(limit = 10): Promise<any> {
-    return apiClient.get(`/vtu/recipients/quick-access/frequently-used?limit=${limit}`);
-  }
-
-  async searchVTURecipients(query: string, transactionType?: string, serviceIdentifier?: string): Promise<any> {
-    return apiClient.post('/vtu/recipients/search/suggest', {
-      query,
-      transaction_type: transactionType,
-      service_identifier: serviceIdentifier,
-    });
-  }
-
-  async updateVTURecipient(recipientId: number, data: any): Promise<any> {
-    return apiClient.put(`/vtu/recipients/${recipientId}`, data);
-  }
-
-  async deleteVTURecipient(recipientId: number): Promise<any> {
-    return apiClient.delete(`/vtu/recipients/${recipientId}`);
-  }
-
-  async recordRecipientUsage(recipientId: number, transactionId: number): Promise<any> {
-    return apiClient.post(`/vtu/recipients/${recipientId}/record-usage`, { transaction_id: transactionId });
-  }
+  // ──────────────────────────────────────────────
+  // Removed with the VTU feature
+  //
+  // getVTUTransactionStats, getVTUTransactions, getVTUBalance,
+  // getVTURecipients, getVTURecipient, getRecentlyUsedRecipients,
+  // getFrequentlyUsedRecipients, searchVTURecipients, updateVTURecipient,
+  // deleteVTURecipient, recordRecipientUsage.
+  //
+  // All twelve called `/vtu/*` or `/stats/vtu`, none had a caller, and none
+  // had a backend route. They were unreachable code pointing at endpoints this
+  // product does not have. Acceding Titans is a business directory and
+  // community, not a virtual top-up app.
+  // ──────────────────────────────────────────────
 
   // REFERRALS
   async getReferrals(): Promise<any> {
@@ -520,9 +459,7 @@ class AdminService {
     return apiClient.get('/stats/wallet');
   }
 
-  async getVTUStats(): Promise<any> {
-    return apiClient.get('/stats/vtu');
-  }
+  // `getVTUStats` was removed with the VTU feature; it called `/stats/vtu`.
 
   async getUserStats(): Promise<any> {
     return apiClient.get('/stats/user');
@@ -548,15 +485,14 @@ class AdminService {
     return apiClient.get(`/admin/analytics?metric=${metric}&period=${period}`);
   }
 
-  // NEW VTU STATISTICS ENDPOINTS (May 2026 Update)
-  async getAdminVtuStatistics(period: 'week' | 'month' | 'year' = 'month'): Promise<ApiResponse<AdminStatisticsData>> {
-    return apiClient.get(`/admin/statistics?period=${period}`);
-  }
-
-  async getUserVtuStatistics(period: 'week' | 'month' | 'year' = 'month'): Promise<ApiResponse<UserVtuStatistics>> {
-    return apiClient.get(`/statistics/vtu?period=${period}`);
-  }
-
+  // ────────────────────────────────────────────
+  // Statistics
+  //
+  // The VTU variants of these (getAdminVtuStatistics, getUserVtuStatistics)
+  // were removed along with the VTU feature. They are not replacements:
+  // `/admin/statistics` and `/statistics/vtu` reported airtime, data and bill
+  // volume, which this platform does not offer.
+  // ────────────────────────────────────────────
   async getUserWalletStatistics(period: 'week' | 'month' | 'year' = 'month'): Promise<ApiResponse<UserWalletStatistics>> {
     return apiClient.get(`/statistics/wallet?period=${period}`);
   }

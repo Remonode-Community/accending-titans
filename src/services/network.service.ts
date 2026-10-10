@@ -69,7 +69,15 @@ class NetworkService {
   }
 
   /** POST /asks */
-  async createAsk(data: CreateAskRequest): Promise<ApiResponse<{ ask: Ask }>> {
+  /**
+   * `notified` is how many members of the poster's network were actually told
+   * about this ask. It is 0 when nobody matched, when everyone matched has
+   * opted out, or when everyone matched is already at their daily cap — so the
+   * UI must never promise a notification without reading it.
+   */
+  async createAsk(
+    data: CreateAskRequest
+  ): Promise<ApiResponse<{ ask: Ask; notified: number }>> {
     return apiClient.post('/asks', data);
   }
 

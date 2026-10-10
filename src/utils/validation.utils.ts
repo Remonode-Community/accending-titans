@@ -81,31 +81,10 @@ export const updateProfileSchema = z.object({
 });
 
 // Transaction Schemas
-export const purchaseAirtimeSchema = z.object({
-  provider: z.string().min(1, 'Provider is required'),
-  phone_number: z
-    .string()
-    .transform(val => val.replace(/\s+/g, '')) // Remove all spaces
-    .refine(val => E164_PHONE_REGEX.test(val), {
-      message: 'Phone number must be in E.164 format or local format (e.g., 08XXXXXXXXXX)',
-    }),
-  amount: z.number().positive('Amount must be positive'),
-  payment_method: z.enum(['wallet', 'card', 'mobile_money']),
-  recipient_name: z.string().optional(),
-});
-
-export const purchaseDataSchema = z.object({
-  provider: z.string().min(1, 'Provider is required'),
-  phone_number: z
-    .string()
-    .transform(val => val.replace(/\s+/g, '')) // Remove all spaces
-    .refine(val => E164_PHONE_REGEX.test(val), {
-      message: 'Phone number must be in E.164 format or local format (e.g., 08XXXXXXXXXX)',
-    }),
-  plan_id: z.string().min(1, 'Plan is required'),
-  amount: z.number().positive('Amount must be positive'),
-  payment_method: z.enum(['wallet', 'card', 'mobile_money']),
-});
+//
+// `purchaseAirtimeSchema` and `purchaseDataSchema` were removed with the VTU
+// feature. They validated airtime top-ups and data bundle purchases, and had no
+// callers once the purchase service methods went.
 
 export const payBillsSchema = z.object({
   bill_type: z.enum(['electricity', 'water', 'internet', 'insurance']),
@@ -123,6 +102,4 @@ export type VerifyEmailSchema = z.infer<typeof verifyEmailSchema>;
 export type ResendOTPSchema = z.infer<typeof resendOTPSchema>;
 export type ChangePasswordSchema = z.infer<typeof changePasswordSchema>;
 export type UpdateProfileSchema = z.infer<typeof updateProfileSchema>;
-export type PurchaseAirtimeSchema = z.infer<typeof purchaseAirtimeSchema>;
-export type PurchaseDataSchema = z.infer<typeof purchaseDataSchema>;
 export type PayBillsSchema = z.infer<typeof payBillsSchema>;

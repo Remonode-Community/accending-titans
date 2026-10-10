@@ -13,7 +13,7 @@ export interface EmailCampaignTemplate {
   required_fields: string[];
   optional_fields: string[];
   field_descriptions: Record<string, string>;
-  category: 'general' | 'vtu' | 'referral' | 'loyalty' | 'reward' | 'event';
+  category: 'general' | 'referral' | 'loyalty' | 'reward' | 'event';
   is_active: boolean;
   usage_count: number;
   created_at: string;
@@ -68,7 +68,7 @@ export interface PromotionalEmailLog {
 
 // Target Criteria
 export interface TargetCriteria {
-  type: 'all_users' | 'tier_level' | 'vtu_users' | 'first_time_users' | 'inactive_users' | 'high_value_users';
+  type: 'all_users' | 'tier_level' | 'first_time_users' | 'inactive_users' | 'high_value_users';
   tier_id?: number;
   days?: number;
   min_transactions?: number;

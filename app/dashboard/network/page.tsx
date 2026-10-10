@@ -129,7 +129,23 @@ export default function NetworkPage() {
       const res = await networkService.createAsk(data);
 
       if (res.success) {
-        flash('ok', 'Your ask is live. Your circle can see it now.');
+        /*
+         * Prefer the server's count over a canned confirmation.
+         *
+         * The server knows how many members were actually told, so this says
+         * something true rather than assuming the network heard about it. A
+         * member who is told "we let 12 members know" and then receives nothing
+         * is worse off than one who was never given the impression.
+         */
+        const notified = res.data?.notified;
+
+        flash(
+          'ok',
+          typeof notified === 'number' && notified > 0
+            ? `Your ask is live. We let ${notified} member${notified === 1 ? '' : 's'} in your network know about it.`
+            : "Your ask is live. Your circle can see it now."
+        );
+
         setComposing(false);
         await load();
         return true;
@@ -197,7 +213,15 @@ export default function NetworkPage() {
   ];
 
   return (
-    <div className="mx-auto max-w-4xl space-y-5">
+    /*
+     * Wide on desktop, single column on mobile.
+     *
+     * The old `max-w-4xl` forced a twelve-member circle and a full ask board
+     * into one narrow column, so the page was many screen-heights long on a
+     * desktop that had all the width to spare. `xl` widens it and every list
+     * below is a responsive grid, so nothing stretches into unreadable lines.
+     */
+    <div className="mx-auto max-w-7xl space-y-5">
       <section>
         <h1 className="flex items-center gap-2 text-2xl font-bold text-gray-900">
           <Layers className="h-6 w-6 text-[#C9A84C]" />
@@ -233,7 +257,8 @@ export default function NetworkPage() {
               key={t.key}
               type="button"
               onClick={() => setTab(t.key)}
-              className={`flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold transition ${
+              aria-current={active ? 'page' : undefined}
+              className={`flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold transition sm:flex-none sm:px-6 ${
                 active
                   ? 'bg-[#C9A84C] text-white'
                   : 'text-gray-600 hover:bg-gray-50'
@@ -257,10 +282,24 @@ export default function NetworkPage() {
 
       {/* ── Circle ── */}
       {tab === 'circle' && (
-        <div className="space-y-5">
-          <NetworkSettings />
+        /*
+         * Settings become a left rail on desktop. They are reference material a
+         * member visits deliberately, not something to read between every
+         * circle card, so giving them a permanent column would waste the space
+         * the member actually wants for people.
+         *
+         * Built from `grid-cols-4` + `col-span` rather than an arbitrary
+         * `grid-cols-[320px_minmax(0,1fr)]` track: Tailwind 4 silently emitted
+         * nothing for that arbitrary value (the comma inside minmax), so the
+         * whole sidebar silently vanished with no error anywhere. Only
+         * utilities that are verifiably present in the generated CSS are used.
+         */
+        <div className="grid gap-5 lg:grid-cols-4 lg:items-start">
+          <div className="space-y-5 lg:sticky lg:top-6 lg:col-span-1">
+            <NetworkSettings />
+          </div>
 
-          <div className={`${CARD} overflow-hidden`}>
+          <div className={`${CARD} overflow-hidden lg:col-span-3`}>
             <div className="border-b border-gray-100 px-5 py-4">
               <h2 className="flex items-center gap-2 text-base font-bold text-gray-900">
                 <Users className="h-5 w-5 text-[#C9A84C]" />
@@ -318,7 +357,13 @@ export default function NetworkPage() {
               </div>
             </div>
           ) : composing ? (
-            <AskComposer onSubmit={postAsk} busy={busy} onDismiss={() => setComposing(false)} />
+            <div className="mx-auto w-full max-w-2xl">
+              <AskComposer
+                onSubmit={postAsk}
+                busy={busy}
+                onDismiss={() => setComposing(false)}
+              />
+            </div>
           ) : (
             <button
               type="button"
@@ -331,7 +376,7 @@ export default function NetworkPage() {
           )}
 
           {board?.prompts && board.prompts.length > 0 && !composing && (
-            <div className="space-y-2">
+            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
               {board.prompts.map((prompt) => (
                 <div
                   key={prompt.title}
@@ -354,20 +399,25 @@ export default function NetworkPage() {
               <h3 className="text-sm font-bold uppercase tracking-wide text-gray-500">
                 Your asks
               </h3>
-              {board.my_asks.map((ask) => (
-                <AskCard
-                  key={`mine-${ask.id}`}
-                  ask={ask}
-                  busy={busy}
-                  onClaim={(id) => runAction(() => networkService.claimAsk(id))}
-                  onFulfil={(id) =>
-                    runAction(() => networkService.fulfilAsk(id), 'Recorded. Thank you.')
-                  }
-                  onWithdraw={(id) => runAction(() => networkService.withdrawClaim(id))}
-                  onCancel={(id) => runAction(() => networkService.cancelAsk(id))}
-                  onReport={reportAsk}
-                />
-              ))}
+              {/* Two columns on desktop. An AskCard is tall — description,
+                  contact block, action bar — so a single column made the board
+                  a very long scroll past work that was there to be scanned. */}
+              <div className="grid items-start gap-3 lg:grid-cols-2 xl:grid-cols-3">
+                {board.my_asks.map((ask) => (
+                  <AskCard
+                    key={`mine-${ask.id}`}
+                    ask={ask}
+                    busy={busy}
+                    onClaim={(id) => runAction(() => networkService.claimAsk(id))}
+                    onFulfil={(id) =>
+                      runAction(() => networkService.fulfilAsk(id), 'Recorded. Thank you.')
+                    }
+                    onWithdraw={(id) => runAction(() => networkService.withdrawClaim(id))}
+                    onCancel={(id) => runAction(() => networkService.cancelAsk(id))}
+                    onReport={reportAsk}
+                  />
+                ))}
+              </div>
             </section>
           )}
 
@@ -376,18 +426,20 @@ export default function NetworkPage() {
               <h3 className="text-sm font-bold uppercase tracking-wide text-gray-500">
                 You responded
               </h3>
-              {board.my_claims.map((ask) => (
-                <AskCard
-                  key={`claim-${ask.id}`}
-                  ask={ask}
-                  busy={busy}
-                  onClaim={() => {}}
-                  onFulfil={() => {}}
-                  onWithdraw={(id) => runAction(() => networkService.withdrawClaim(id))}
-                  onCancel={() => {}}
-                  onReport={reportAsk}
-                />
-              ))}
+              <div className="grid items-start gap-3 lg:grid-cols-2 xl:grid-cols-3">
+                {board.my_claims.map((ask) => (
+                  <AskCard
+                    key={`claim-${ask.id}`}
+                    ask={ask}
+                    busy={busy}
+                    onClaim={() => {}}
+                    onFulfil={() => {}}
+                    onWithdraw={(id) => runAction(() => networkService.withdrawClaim(id))}
+                    onCancel={() => {}}
+                    onReport={reportAsk}
+                  />
+                ))}
+              </div>
             </section>
           )}
 
@@ -402,18 +454,20 @@ export default function NetworkPage() {
             </h3>
 
             {board && board.board.length > 0 ? (
-              board.board.map((ask) => (
-                <AskCard
-                  key={`board-${ask.id}`}
-                  ask={ask}
-                  busy={busy}
-                  onClaim={(id) => runAction(() => networkService.claimAsk(id))}
-                  onFulfil={(id) => runAction(() => networkService.fulfilAsk(id))}
-                  onWithdraw={(id) => runAction(() => networkService.withdrawClaim(id))}
-                  onCancel={(id) => runAction(() => networkService.cancelAsk(id))}
-                  onReport={reportAsk}
-                />
-              ))
+              <div className="grid items-start gap-3 lg:grid-cols-2 xl:grid-cols-3">
+                {board.board.map((ask) => (
+                  <AskCard
+                    key={`board-${ask.id}`}
+                    ask={ask}
+                    busy={busy}
+                    onClaim={(id) => runAction(() => networkService.claimAsk(id))}
+                    onFulfil={(id) => runAction(() => networkService.fulfilAsk(id))}
+                    onWithdraw={(id) => runAction(() => networkService.withdrawClaim(id))}
+                    onCancel={(id) => runAction(() => networkService.cancelAsk(id))}
+                    onReport={reportAsk}
+                  />
+                ))}
+              </div>
             ) : (
               <EmptyState
                 icon={HandHeart}
@@ -427,7 +481,11 @@ export default function NetworkPage() {
       )}
 
       {/* ── Impact ── */}
-      {tab === 'impact' && <ImpactCard impact={impact} onRefresh={load} />}
+      {tab === 'impact' && (
+        <div className="mx-auto max-w-4xl">
+          <ImpactCard impact={impact} onRefresh={load} />
+        </div>
+      )}
 
       <p className="flex items-start gap-2 px-1 text-xs leading-relaxed text-gray-400">
         <Hand size={13} className="mt-0.5 shrink-0" />

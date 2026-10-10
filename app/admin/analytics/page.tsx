@@ -20,7 +20,7 @@ import { Button } from '@/components/shared/Button';
 import { Badge } from '@/components/shared/Badge';
 import { useAuthStore } from '@/store/auth.store';
 import { adminService } from '@/services/admin.service';
-import { AdminStatisticsData } from '@/types/vtu.types';
+import { AdminStatisticsData } from '@/types/admin-analytics.types';
 import { formatCurrency } from '@/utils/format.utils';
 
 export default function AdminAnalyticsPage() {
@@ -39,15 +39,6 @@ export default function AdminAnalyticsPage() {
   const verifiedRate = useMemo(() => {
     if (!data?.users.total) return '0.0';
     return ((data.users.verified / data.users.total) * 100).toFixed(1);
-  }, [data]);
-
-  const commissionRate = useMemo(() => {
-    if (!data?.vtu.summary.total_amount) return '0.00';
-
-    return (
-      (data.vtu.summary.total_commission / data.vtu.summary.total_amount) *
-      100
-    ).toFixed(2);
   }, [data]);
 
   useEffect(() => {
@@ -113,31 +104,6 @@ export default function AdminAnalyticsPage() {
       ]
     : [];
 
-  const vtuSummaryCards = data
-    ? [
-        {
-          title: 'Total Volume',
-          value: formatCurrency(data.vtu.summary.total_amount),
-          helper: `${data.vtu.summary.total_transactions.toLocaleString()} transactions`,
-        },
-        {
-          title: 'Commission Earned',
-          value: formatCurrency(data.vtu.summary.total_commission),
-          helper: `${commissionRate}% of volume`,
-        },
-        {
-          title: 'Discount Given',
-          value: formatCurrency(data.vtu.summary.total_discount),
-          helper: 'Customer savings',
-        },
-        {
-          title: 'Net Amount',
-          value: formatCurrency(data.vtu.summary.net_amount),
-          helper: 'After fees',
-        },
-      ]
-    : [];
-
   return (
     <div
       style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
@@ -165,8 +131,8 @@ export default function AdminAnalyticsPage() {
               </h1>
 
               <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-600">
-                Review platform performance, wallet movement, user growth, VTU
-                volume, commissions, and transaction distribution.
+                Review platform performance, wallet movement, user growth and
+                transaction distribution.
               </p>
             </div>
 
@@ -385,127 +351,6 @@ export default function AdminAnalyticsPage() {
               </Card>
             )}
 
-            <Card className="rounded-3xl border border-gray-200 bg-white shadow-sm">
-              <CardHeader>
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-gray-500">
-                    VTU Services
-                  </p>
-
-                  <h3 className="mt-1 text-2xl font-black text-black">
-                    VTU Performance Summary
-                  </h3>
-                </div>
-              </CardHeader>
-
-              <CardBody className="space-y-8">
-                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
-                  {vtuSummaryCards.map((item) => (
-                    <div
-                      key={item.title}
-                      className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-gray-300 hover:shadow-md"
-                    >
-                      <p className="text-sm font-semibold text-gray-500">
-                        {item.title}
-                      </p>
-
-                      <p className="mt-3 break-words text-2xl font-black text-black">
-                        {item.value}
-                      </p>
-
-                      <p className="mt-2 text-xs font-medium text-gray-500">
-                        {item.helper}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-
-                {data.vtu.by_status.length > 0 && (
-                  <div>
-                    <div className="mb-4 flex items-center justify-between gap-4">
-                      <div>
-                        <h4 className="text-lg font-black text-black">
-                          Transaction Status
-                        </h4>
-                        <p className="mt-1 text-sm text-gray-500">
-                          Distribution by status for selected period.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                      {data.vtu.by_status.map((status, idx) => (
-                        <div
-                          key={`${status.status}-${idx}`}
-                          className="rounded-3xl border border-gray-200 bg-gray-50 p-5"
-                        >
-                          <p className="text-xs font-bold uppercase tracking-[0.14em] text-gray-500">
-                            {status.status}
-                          </p>
-
-                          <p className="mt-3 text-2xl font-black text-black">
-                            {status.count.toLocaleString()}
-                          </p>
-
-                          <p className="mt-1 text-sm font-semibold text-gray-600">
-                            {formatCurrency(status.total_amount)}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {data.vtu.by_product_type.length > 0 && (
-                  <div>
-                    <div className="mb-4">
-                      <h4 className="text-lg font-black text-black">
-                        Product Type Breakdown
-                      </h4>
-
-                      <p className="mt-1 text-sm text-gray-500">
-                        Revenue, commission, and usage split by VTU product type.
-                      </p>
-                    </div>
-
-                    <div className="overflow-hidden rounded-3xl border border-gray-200 bg-white">
-                      {data.vtu.by_product_type.map((product, idx) => (
-                        <div
-                          key={`${product.type}-${idx}`}
-                          className="flex flex-col gap-4 border-b border-gray-200 p-5 transition hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between last:border-0"
-                        >
-                          <div className="flex items-center gap-4">
-                            <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-gray-200 bg-gray-50">
-                              <TrendingUp className="h-5 w-5 text-black" />
-                            </div>
-
-                            <div>
-                              <p className="font-bold capitalize text-black">
-                                {product.type}
-                              </p>
-
-                              <p className="text-xs text-gray-500">
-                                {product.count.toLocaleString()} transactions
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="sm:text-right">
-                            <p className="text-lg font-black text-black">
-                              {formatCurrency(product.total_amount)}
-                            </p>
-
-                            <p className="text-xs font-medium text-gray-500">
-                              Commission {formatCurrency(product.total_commission)}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </CardBody>
-            </Card>
 
             <div className="flex flex-col gap-4 rounded-3xl border border-gray-200 bg-gray-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="text-sm text-gray-600">

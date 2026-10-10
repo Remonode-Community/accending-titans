@@ -60,7 +60,7 @@ export const CircleList = ({
   return (
     <div className="space-y-4">
       {circles.length > 0 && (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {circles.map((circle) => (
             <div
               key={circle.key}
@@ -81,9 +81,9 @@ export const CircleList = ({
       )}
 
       {matched.length > 0 && (
-        <ul className="divide-y divide-gray-100">
+        <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {matched.map((member) => (
-            <MemberRow
+            <MemberCard
               key={member.user_id}
               member={member}
               onOpen={onOpenMember}
@@ -94,26 +94,14 @@ export const CircleList = ({
       )}
 
       {isWidened && placeholders.length > 0 && (
-        <div className={`${CARD} overflow-hidden`}>
-          <div className="border-b border-gray-100 bg-[#FDFAF3] px-4 py-2.5">
-            <p className="text-xs font-semibold text-gray-600">
-              Recently joined members — not matched to you yet
-            </p>
-          </div>
-          <ul className="divide-y divide-gray-100">
+        <div>
+          <p className="mb-2.5 text-xs font-semibold text-gray-500">
+            Recently joined members — not matched to you yet
+          </p>
+          <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {placeholders.map((member) => (
-              <li key={member.user_id} className="px-4 py-3">
-                <div className="flex items-center gap-3">
-                  <Avatar name={member.name} url={member.profile_photo_url} />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-gray-900">
-                      {member.name}
-                    </p>
-                    <p className="truncate text-xs text-gray-500">
-                      {member.business_name ?? member.business_category ?? 'New member'}
-                    </p>
-                  </div>
-                </div>
+              <li key={member.user_id}>
+                <PlaceholderCard member={member} />
               </li>
             ))}
           </ul>
@@ -151,7 +139,16 @@ export const CircleList = ({
   );
 };
 
-const MemberRow = ({
+/**
+ * A genuine match.
+ *
+ * A CARD rather than a list row, because the desktop grid is the point: twelve
+ * members in a single column is twelve screen-heights of scrolling, and the
+ * reasons a member matched are short enough to read at a glance side by side.
+ * The reasons stay visible on the card because they are the honest part — they
+ * are why this person is here.
+ */
+const MemberCard = ({
   member,
   onOpen,
   onBlock,
@@ -160,67 +157,109 @@ const MemberRow = ({
   onOpen?: (userId: number) => void;
   onBlock?: (userId: number, name: string) => void;
 }) => (
-  <li className="flex items-center gap-3 px-4 py-3.5 transition hover:bg-[#FDFAF3]">
-    <Avatar name={member.name} url={member.profile_photo_url} />
-    <div className="min-w-0 flex-1">
-      <p className="truncate text-sm font-semibold text-gray-900">{member.name}</p>
-      <p className="truncate text-xs text-gray-500">
-        {member.business_name ?? member.business_category ?? 'Member'}
-      </p>
-      <div className="mt-1 flex flex-wrap items-center gap-1.5">
-        {member.reasons.map((reason) => (
-          <span
-            key={reason}
-            className="inline-flex items-center gap-1 rounded-full bg-[#C9A84C]/10 px-2 py-0.5 text-[11px] font-semibold text-[#8A6F1F]"
-          >
-            <Hand size={10} />
-            {reason}
-          </span>
-        ))}
-        {member.city && (
-          <span className="inline-flex items-center gap-1 text-[11px] text-gray-400">
-            <MapPin size={10} />
-            {member.city}
-          </span>
-        )}
+  <li
+    className={`${CARD} flex h-full flex-col p-4 transition hover:border-[#C9A84C]/40`}
+  >
+    <div className="flex items-start gap-3">
+      <Avatar name={member.name} url={member.profile_photo_url} />
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-semibold text-gray-900">{member.name}</p>
+        <p className="truncate text-xs text-gray-500">
+          {member.business_name ?? member.business_category ?? 'Member'}
+        </p>
       </div>
     </div>
 
-    <div className="flex shrink-0 items-center gap-1.5">
-      {onOpen && (
-        <button
-          type="button"
-          onClick={() => onOpen(member.user_id)}
-          className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-50"
+    <div className="mt-3 flex flex-1 flex-wrap items-start gap-1.5 content-start">
+      {member.reasons.map((reason) => (
+        <span
+          key={reason}
+          className="inline-flex items-center gap-1 rounded-full bg-[#C9A84C]/10 px-2 py-0.5 text-[11px] font-semibold text-[#8A6F1F]"
         >
-          View
-        </button>
-      )}
-      {onBlock && (
-        <button
-          type="button"
-          onClick={() => onBlock(member.user_id, member.name)}
-          title={`Block ${member.name}`}
-          className="rounded-lg px-2 py-1.5 text-xs font-semibold text-gray-400 transition hover:bg-red-50 hover:text-red-600"
-        >
-          Block
-        </button>
+          <Hand size={10} />
+          {reason}
+        </span>
+      ))}
+      {member.city && (
+        <span className="inline-flex items-center gap-1 text-[11px] text-gray-400">
+          <MapPin size={10} />
+          {member.city}
+        </span>
       )}
     </div>
+
+    {(onOpen || onBlock) && (
+      <div className="mt-3.5 flex items-center gap-1.5 border-t border-gray-100 pt-3">
+        {onOpen && (
+          <button
+            type="button"
+            onClick={() => onOpen(member.user_id)}
+            className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-50"
+          >
+            View
+          </button>
+        )}
+        {onBlock && (
+          <button
+            type="button"
+            onClick={() => onBlock(member.user_id, member.name)}
+            title={`Block ${member.name}`}
+            className="ml-auto rounded-lg px-2 py-1.5 text-xs font-semibold text-gray-400 transition hover:bg-red-50 hover:text-red-600"
+          >
+            Block
+          </button>
+        )}
+      </div>
+    )}
   </li>
 );
 
-const Avatar = ({ name, url }: { name: string; url: string | null }) =>
+/**
+ * A cold-start placeholder.
+ *
+ * Deliberately plain and deliberately a different shape from `MemberCard`: no
+ * reasons, no actions, muted. Presenting these with the same weight as real
+ * matches would be a lie the member can discover later, and it would train
+ * people to distrust the whole circle.
+ */
+const PlaceholderCard = ({ member }: { member: NetworkMember }) => (
+  <div className="flex h-full items-center gap-3 rounded-2xl border border-dashed border-gray-200 bg-gray-50/60 p-4">
+    <Avatar name={member.name} url={member.profile_photo_url} muted />
+    <div className="min-w-0 flex-1">
+      <p className="truncate text-sm font-medium text-gray-500">{member.name}</p>
+      <p className="truncate text-xs text-gray-400">
+        {member.business_name ?? member.business_category ?? 'New member'}
+      </p>
+    </div>
+  </div>
+);
+
+const Avatar = ({
+  name,
+  url,
+  muted = false,
+}: {
+  name: string;
+  url: string | null;
+  /** Placeholders render grey so they never read as a real match. */
+  muted?: boolean;
+}) =>
   url ? (
     <Image
       src={url}
       alt={name}
       width={40}
       height={40}
-      className="h-10 w-10 shrink-0 rounded-full object-cover"
+      className={`h-10 w-10 shrink-0 rounded-full object-cover ${
+        muted ? 'opacity-70 grayscale' : ''
+      }`}
     />
   ) : (
-    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#C9A84C]/15 text-sm font-bold text-[#B8962E]">
+    <div
+      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
+        muted ? 'bg-gray-200 text-gray-500' : 'bg-[#C9A84C]/15 text-[#B8962E]'
+      }`}
+    >
       {name.charAt(0).toUpperCase()}
     </div>
   );

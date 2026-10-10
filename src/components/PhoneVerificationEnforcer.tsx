@@ -43,11 +43,6 @@ export function PhoneVerificationEnforcer({ children }: { children: React.ReactN
     '/support',
     '/offline',
     '/catalogue',
-    '/vtu',
-    '/vtu/airtime',
-    '/vtu/data',
-    '/vtu/tv',
-    '/vtu/bills',
   ];
 
   useEffect(() => {

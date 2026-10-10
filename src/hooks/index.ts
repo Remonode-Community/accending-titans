@@ -19,8 +19,6 @@ export { useAdvertisements, useAdvertisementsAdmin } from './useAdvertisements';
 export { useTransfer } from './useTransfer';
 export { useBankTransfer } from './useBankTransfer';
 export { useUsdAccount } from './useUsdAccount';
-export { useAirtimeToCash } from './useAirtimeToCash';
 export { useLedger } from './useLedger';
-export { useVtuRecipients } from './useVtuRecipients';
 export { usePermissionGuard, getRoleBadgeVariant, getRoleBadgeColor } from './usePermissionGuard';
 export { useSubscription } from './useSubscription';

@@ -5,7 +5,6 @@ export { AdminStats } from './AdminStats';
 export { AdvertisementList } from './AdvertisementList';
 export { AdvertisementForm } from './AdvertisementForm';
 export { AdvertisementAnalyticsDashboard } from './AdvertisementAnalyticsDashboard';
-export { VtuStatisticsDashboard } from './VtuStatisticsDashboard';
 
 // Promotional email components (default exports)
 export { default as CampaignAnalytics } from './promotional-emails/CampaignAnalytics';

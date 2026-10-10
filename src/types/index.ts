@@ -6,11 +6,12 @@
 // Auth & User types
 export * from './api.types';
 
+// Admin analytics (replaced the removed vtu.types)
+export * from './admin-analytics.types';
+
 // Reward & Loyalty types
 export * from './rewards.types';
 
-// VTU types
-export * from './vtu.types';
 
 // Tier Upgrade types
 export * from './tier-upgrade.types';
@@ -36,8 +37,6 @@ export * from './fx.types';
 // USD Account types
 export * from './usd-account.types';
 
-// Airtime-to-Cash types
-export * from './airtime-to-cash.types';
 
 // Referral types
 export * from './referral.types';

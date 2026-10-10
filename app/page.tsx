@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import { LandingTopbar } from '@/components/LandingTopbar';
 import { SubscriptionPlansSection } from '@/components/subscription/SubscriptionPlansSection';
-import BusinessShowcase from '@/components/vtu-public/BusinessShowcase';
+import BusinessShowcase from '@/components/landing/BusinessShowcase';
 
 const features = [
   {

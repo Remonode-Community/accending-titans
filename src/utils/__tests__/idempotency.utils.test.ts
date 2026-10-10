@@ -181,7 +181,7 @@ describe('Idempotency Key Management', () => {
     });
 
     test('should retry with same key', () => {
-      const operationId = '/api/v1/transactions/airtime/purchase-456';
+      const operationId = '/api/v1/transactions/bills/payment-456';
       
       // First attempt
       let key = generateIdempotencyKey();
@@ -196,8 +196,8 @@ describe('Idempotency Key Management', () => {
       const operations = [
         { id: 'payment-1', key: generateIdempotencyKey() },
         { id: 'payment-2', key: generateIdempotencyKey() },
-        { id: 'airtime-1', key: generateIdempotencyKey() },
-        { id: 'data-1', key: generateIdempotencyKey() },
+        { id: 'bills-1', key: generateIdempotencyKey() },
+        { id: 'wallet-1', key: generateIdempotencyKey() },
       ];
       
       // Store all

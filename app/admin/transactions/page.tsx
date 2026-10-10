@@ -82,9 +82,9 @@ export default function AdminTransactionsPage() {
       label: 'Transaction Type',
       type: 'select',
       options: [
-        { value: 'vtu_purchase', label: 'VTU Purchase' },
-        { value: 'airtime_conversion', label: 'Airtime Conversion' },
         { value: 'bill_payment', label: 'Bill Payment' },
+        { value: 'wallet_topup', label: 'Wallet Top Up' },
+        { value: 'wallet_withdrawal', label: 'Wallet Withdrawal' },
       ],
     },
     {

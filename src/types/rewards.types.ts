@@ -29,8 +29,7 @@ export type AbuseFlagType =
   | 'duplicate_device'
   | 'suspicious_funding'
   | 'self_referral'
-  | 'reward_farming'
-  | 'excessive_vtu';
+  | 'reward_farming';
 
 export type AbuseSeverity = 'low' | 'medium' | 'high';
 export type ReferralStatus = 'pending' | 'eligible' | 'paid';

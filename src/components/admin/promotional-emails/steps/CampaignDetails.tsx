@@ -28,7 +28,7 @@ export default function CampaignDetails({ data, onUpdate }: CampaignDetailsProps
             type="text"
             value={data.campaign_name}
             onChange={(e) => onUpdate({ campaign_name: e.target.value })}
-            placeholder="e.g., May VTU Bonus Promotion"
+            placeholder="e.g., May Loyalty Bonus Promotion"
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#620707]/20 focus:border-[#620707] transition-colors text-gray-900"
           />
           <p className="mt-2 text-xs text-gray-500">

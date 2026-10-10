@@ -22,7 +22,6 @@ export interface ApiResponse<T = any> {
   errors?: Record<string, string[]>;
   pagination?: PaginationMeta;
   stats?: Record<string, any>; // Optional stats object for endpoints that return aggregated data
-  // VTU API specific fields
   content?: T;
   response_description?: string;
   // HTTP client wrapper (e.g., axios response)
@@ -240,7 +239,9 @@ export interface UpdatePreferencesRequest {
 }
 
 // ============= Transaction Types =============
-export type TransactionType = 'airtime' | 'data' | 'bills' | 'wallet_topup' | 'wallet_withdrawal';
+// `airtime` and `data` were removed with the VTU feature. Nothing can produce
+// those transaction types any more, and there are no stored rows using them.
+export type TransactionType = 'bills' | 'wallet_topup' | 'wallet_withdrawal';
 export type TransactionStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
 export type PurchasePaymentMethod = 'wallet' | 'card' | 'mobile_money' | 'bank_transfer';
 
@@ -294,21 +295,8 @@ export interface TransactionFilters {
   sort_order?: 'asc' | 'desc';
 }
 
-export interface PurchaseAirtimeRequest {
-  provider: string;
-  phone_number: string;
-  amount: number;
-  payment_method: PurchasePaymentMethod;
-  recipient_name?: string;
-}
-
-export interface PurchaseDataRequest {
-  provider: string;
-  phone_number: string;
-  plan_id: string;
-  amount: number;
-  payment_method: PurchasePaymentMethod;
-}
+// `PurchaseAirtimeRequest` and `PurchaseDataRequest` were removed with the VTU
+// feature. Bill payment below is a separate product line and is kept.
 
 export interface PayBillsRequest {
   bill_type: 'electricity' | 'water' | 'internet' | 'insurance';
@@ -341,7 +329,10 @@ export interface Provider {
 export interface Plan {
   id: string;
   name: string;
-  type: 'airtime' | 'data';
+  // The airtime/data plan types were removed with the VTU feature. `Plan` is
+  // retained for bill-payment plans; if nothing produces these any more, this
+  // interface is the next thing to delete.
+  type: 'bills';
   amount: number;
   currency: string;
   description: string;
@@ -784,86 +775,6 @@ export interface AdvertisementAdmin extends Advertisement {
   updated_at: string;
   created_by?: string;
   updated_by?: string;
-}
-
-// ============= VTU Recipients Types =============
-export interface VtuRecipient {
-  id: number;
-  credential: string;
-  credential_type: 'phone' | 'meter' | 'card';
-  recipient_name?: string | null;
-  recipient_phone?: string | null;
-  recipient_email?: string | null;
-  transaction_type: string; // Backend returns: "Airtime Recharge", "Data Services", etc.
-  service_identifier: string;
-  usage_count: number;
-  last_used_at?: string | null;
-  is_active: boolean;
-  metadata?: Record<string, any>;
-  created_at?: string;
-  updated_at?: string;
-}
-
-export interface GetAllRecipientsRequest {
-  transaction_type?: string;
-  service_identifier?: string;
-  credential_type?: string;
-  search?: string;
-  page?: number;
-  per_page?: number;
-  sort_by?: 'last_used_at' | 'frequently_used' | 'recently_added';
-}
-
-export type GetAllRecipientsResponse = VtuRecipient[];
-
-export interface RecipientSearchSuggestion {
-  id: number;
-  credential: string;
-  credential_type: 'phone' | 'meter' | 'card';
-  recipient_name?: string | null;
-  service_identifier: string;
-  transaction_type: string;
-  usage_count: number;
-  last_used_at?: string | null;
-}
-
-export interface SearchRecipientsSuggestRequest {
-  credential: string;
-  transaction_type?: string;
-  service_identifier?: string;
-  limit?: number;
-}
-
-export type SearchRecipientsSuggestResponse = RecipientSearchSuggestion[];
-
-export interface UpdateVtuRecipientRequest {
-  recipient_name?: string;
-  recipient_phone?: string;
-  recipient_email?: string;
-  is_active?: boolean;
-  metadata?: Record<string, any>;
-}
-
-export interface UpdateVtuRecipientResponse {
-  success: boolean;
-  message: string;
-  data: VtuRecipient;
-}
-
-export interface RecordUsageResponse {
-  success: boolean;
-  message: string;
-  data: {
-    id: number;
-    credential: string;
-    usage_count: number;
-    last_used_at: string;
-  };
-}
-
-export interface DeleteRecipientResponse {
-  success: boolean;
-  message: string;
 }
 
 export interface AdvertisementResponse {

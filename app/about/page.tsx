@@ -260,7 +260,7 @@ export default function AboutPage() {
               {
                 year: '2023 Q3',
                 title: 'MVP Launch',
-                desc: 'Acceding Titans officially launches with airtime purchase and data bundles.',
+                desc: 'Acceding Titans officially launches as a verified business directory for African entrepreneurs.',
               },
               {
                 year: '2024 Q1',

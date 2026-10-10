@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Eye, EyeOff, MessageCircle, ShieldAlert } from 'lucide-react';
+import { Bell, Eye, EyeOff, MessageCircle, ShieldAlert } from 'lucide-react';
 import { networkService } from '@/services/network.service';
 import type { NetworkPreferences } from '@/types/network.types';
 
@@ -16,6 +16,12 @@ import type { NetworkPreferences } from '@/types/network.types';
  * member may happily be listed in their circle without being handed out as a
  * phone number to anyone who claims an ask. Collapsing them into one "be
  * discoverable" toggle would make the more dangerous of the two the default.
+ *
+ * `notify_on_match` is a third switch, and separate for the same reason: being
+ * findable is about other members seeing you, while this is about email leaving
+ * your device. A member who wants to be discoverable can reasonably still not
+ * want their inbox filled, and the notification is the only one of the three
+ * that cannot be undone once read.
  *
  * The WhatsApp switch carries an explicit warning because the failure mode is
  * not obvious to a member: a number is released to whoever claims one of their
@@ -89,6 +95,15 @@ export const NetworkSettings = () => {
           disabled={saving}
           onChange={setShareWhatsapp}
           icon={MessageCircle}
+        />
+
+        <Toggle
+          label="Email me about new asks"
+          description="When somebody in your circle posts an ask, we send you an email and add it to your notifications. Capped at a few a day so your inbox stays usable."
+          checked={prefs.notify_on_match}
+          disabled={saving}
+          onChange={(on) => update({ notify_on_match: on })}
+          icon={Bell}
         />
       </div>
 

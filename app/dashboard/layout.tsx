@@ -134,7 +134,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
                 Acceding Titans
               </p>
               <p className="text-[11px] font-semibold text-gray-400 leading-tight">
-                Payment Wallet
+                Business Directory
               </p>
             </div>
           )}
@@ -321,7 +321,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
                     Acceding Titans
                   </p>
                   <p className="text-[11px] font-semibold text-gray-400 leading-tight">
-                    Payment Wallet
+                    Business Directory
                   </p>
                 </div>
               </Link>

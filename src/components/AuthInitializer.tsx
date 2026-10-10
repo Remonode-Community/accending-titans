@@ -167,11 +167,6 @@ export const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ child
       // Note '/dashboard/catalogue' (the editor) is NOT matched here — it does
       // not start with '/catalogue'.
       '/catalogue',
-      '/vtu',
-      '/vtu/airtime',
-      '/vtu/data',
-      '/vtu/tv',
-      '/vtu/bills',
     ];
 
     const isPublicRoute = publicAndAuthRoutes.some(route => {

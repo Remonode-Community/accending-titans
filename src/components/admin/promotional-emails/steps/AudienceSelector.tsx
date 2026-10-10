@@ -1,7 +1,7 @@
 'use client';
 
 import { TargetCriteria } from '@/types/promotional-email.types';
-import { Users, Star, Smartphone, Sparkles, Moon, TrendingUp, CheckCircle2 } from 'lucide-react';
+import { Users, Star, Sparkles, Moon, TrendingUp, CheckCircle2 } from 'lucide-react';
 
 interface AudienceSelectorProps {
   criteria: TargetCriteria;
@@ -22,12 +22,6 @@ const AUDIENCE_OPTIONS = [
     description: 'Users in a specific loyalty tier',
     icon: Star,
     subfield: 'tier_id',
-  },
-  {
-    id: 'vtu_users',
-    title: 'VTU Users',
-    description: 'Users who have made VTU purchases',
-    icon: Smartphone,
   },
   {
     id: 'first_time_users',

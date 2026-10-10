@@ -112,7 +112,6 @@ export interface LedgerEntry {
 export interface LedgerEntryDetailed extends LedgerEntry {
   central_transaction_id?: number;
   wallet_transaction_id?: number;
-  vtu_transaction_id?: number;
   settlement_batch_id?: number;
   metadata?: Record<string, any>;
   approved_by?: {

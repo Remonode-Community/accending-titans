@@ -39,7 +39,6 @@ once in `src/lib/seo/config.ts` and every canonical, sitemap URL and JSON-LD
 | Area | Indexable | Mechanism |
 | --- | --- | --- |
 | `/`, `/about`, `/faq`, `/support`, `/privacy`, `/terms` | yes | `buildMetadata` |
-| `/vtu`, `/vtu/{airtime,data,tv,bills}` | yes | `buildMetadata` |
 | `/catalogue` | yes | `generateMetadata` (server) |
 | `/catalogue/<id>` | yes | `generateMetadata` (server) |
 | `/catalogue/category/<slug>` | yes | `generateMetadata` (server) |
@@ -311,11 +310,12 @@ account owner can supply.
 - **The footer still shows the old-domain placeholders**
   `support@ascendingtitans.com` and `+2347000000000` as live `mailto:`/`tel:`
   links. Those were removed from structured data but remain user-facing.
-- **VTU transaction backend is incomplete.** The `/vtu/*` pages have genuine
-  written feature copy and are legitimately indexable, but `payment.service.ts`
-  calls `/vtu/pay`, `/transactions/data/purchase` and `/transactions/bills/pay`,
-  none of which exist. A visitor can land from search and be unable to complete
-  a purchase. Worth resolving before investing in ranking these pages.
+- **The VTU (virtual top-up) product has been removed entirely**, and this
+  document's earlier advice about indexing `/vtu/*` no longer applies. Acceding
+  Titans is a business directory and community, not a virtual top-up app. The
+  pages, the service methods, the types, the admin filters and the structured
+  data entries were all removed. Bill payment, wallet transfers, USD accounts
+  and virtual cards are separate product lines and remain.
 - **No per-business custom SEO fields.** Deliberate. Free-form title/description
   editing by members is an abuse vector (keyword injection, spam). Metadata is
   derived from the business's own published name and description. If admins need

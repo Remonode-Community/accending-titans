@@ -104,7 +104,7 @@ export default function EmailTemplatesPage() {
                 <strong>field_descriptions</strong>: Object describing each field
               </li>
               <li>
-                <strong>category</strong>: One of: general, vtu, referral, loyalty, reward, event
+                <strong>category</strong>: One of: general, referral, loyalty, reward, event
               </li>
             </ul>
           </div>

@@ -13,7 +13,6 @@ import { ErrorPageProvider } from '@/contexts/ErrorPageContext';
  */
 const RECOVERY_LINKS = [
   { href: '/catalogue', label: 'Business directory' },
-  { href: '/vtu', label: 'VTU services' },
   { href: '/about', label: 'About us' },
   { href: '/support', label: 'Support' },
 ] as const;

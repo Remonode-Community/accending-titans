@@ -54,10 +54,9 @@ const HISTORY_FILTER_FIELDS: FilterField[] = [
     placeholder: 'All types',
     options: [
       { value: '', label: 'All Types' },
-      { value: 'airtime', label: 'Airtime' },
-      { value: 'data', label: 'Data' },
       { value: 'bills', label: 'Bills' },
       { value: 'wallet_topup', label: 'Wallet Top-up' },
+      { value: 'wallet_withdrawal', label: 'Withdrawal' },
     ],
   },
   {
@@ -210,7 +209,7 @@ function TransactionRow({ transaction }: any) {
  * 4. Sorting if needed
  *
  * Example endpoint:
- * GET /api/transactions?page=1&search=TX123&status=completed&type=airtime&date_from=2024-01-01&date_to=2024-12-31
+ * GET /api/transactions?page=1&search=TX123&status=completed&type=bills&date_from=2024-01-01&date_to=2024-12-31
  *
  * The backend should:
  * - Parse all query params

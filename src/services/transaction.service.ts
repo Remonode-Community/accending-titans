@@ -2,8 +2,6 @@ import { apiClient } from './api-client';
 import {
   Transaction,
   TransactionFilters,
-  PurchaseAirtimeRequest,
-  PurchaseDataRequest,
   PayBillsRequest,
   ReportTransactionIssueRequest,
   PaginatedResponse,
@@ -76,13 +74,10 @@ class TransactionService {
     return apiClient.get(`/transactions/me/${transactionId}`);
   }
 
-  async purchaseAirtime(data: PurchaseAirtimeRequest): Promise<ApiResponse<{ transaction: Transaction }>> {
-    return apiClient.post('/vtu/pay', data);
-  }
-
-  async purchaseData(data: PurchaseDataRequest): Promise<ApiResponse<{ transaction: Transaction }>> {
-    return apiClient.post('/transactions/data/purchase', data);
-  }
+  // `purchaseAirtime` and `purchaseData` were removed with the VTU feature.
+  // Acceding Titans is a business directory, not a virtual top-up app, so
+  // neither has a page, a route or a backend endpoint behind it. Bill payment
+  // below is a separate product line and is kept.
 
   async payBills(data: PayBillsRequest): Promise<ApiResponse<{ transaction: Transaction }>> {
     return apiClient.post('/transactions/bills/pay', data);

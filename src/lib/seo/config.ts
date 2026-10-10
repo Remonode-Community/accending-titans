@@ -126,13 +126,12 @@ export const STATIC_ROUTES: readonly StaticRoute[] = [
   // NOTE: /multi-currency is intentionally absent. It is a "Coming soon"
   // placeholder with no usable content, so it is noindex and must not be
   // advertised as a real page. Add it here when the feature ships.
-  // VTU pages have real, written feature copy and are legitimate landing
-  // pages for the product offering.
-  { path: '/vtu', priority: 0.8, changeFrequency: 'weekly' },
-  { path: '/vtu/airtime', priority: 0.8, changeFrequency: 'weekly' },
-  { path: '/vtu/data', priority: 0.8, changeFrequency: 'weekly' },
-  { path: '/vtu/tv', priority: 0.8, changeFrequency: 'weekly' },
-  { path: '/vtu/bills', priority: 0.8, changeFrequency: 'weekly' },
+  //
+  // NOTE: the five /vtu routes were removed with the VTU feature. They were
+  // previously listed here on the grounds that they had real written copy and
+  // so were legitimate landing pages — but they advertised airtime, data and
+  // bill top-ups, which this platform does not offer. Leaving them would have
+  // pointed search engines at pages that 404.
   // Legal pages are indexed but deliberately low priority.
   { path: '/privacy', priority: 0.2, changeFrequency: 'yearly' },
   { path: '/terms', priority: 0.2, changeFrequency: 'yearly' },

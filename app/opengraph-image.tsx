@@ -98,7 +98,7 @@ export async function renderBrandCard(): Promise<ImageResponse> {
  * Default social share card — /opengraph-image
  *
  * Applies to every route that does not define its own `opengraph-image`, so
- * plain pages (About, VTU, legal) and the 404 all share this card. The card has
+ * plain pages (About, legal) and the 404 all share this card. The card has
  * no request-time data, so it is generated once at build time and served as a
  * static PNG.
  *

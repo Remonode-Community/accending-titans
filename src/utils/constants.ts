@@ -19,9 +19,10 @@ export const TRANSACTION_STATUSES = {
 } as const;
 
 // Transaction types
+//
+// `airtime` and `data` were removed with the VTU feature. `wallet_topup` is a
+// wallet funding, not a virtual top-up, and is kept.
 export const TRANSACTION_TYPES = {
-  airtime: { label: 'Airtime', icon: 'Phone' },
-  data: { label: 'Data Bundle', icon: 'Wifi' },
   bills: { label: 'Bill Payment', icon: 'FileText' },
   wallet_topup: { label: 'Wallet Top-up', icon: 'Plus' },
   wallet_withdrawal: { label: 'Withdrawal', icon: 'Minus' },
@@ -54,8 +55,6 @@ export const API_ENDPOINTS = {
   transactions: {
     list: '/transactions',
     detail: (id: string) => `/transactions/${id}`,
-    purchaseAirtime: '/vtu/pay',
-    purchaseData: '/transactions/data/purchase',
     payBills: '/transactions/bills/pay',
     receipt: (id: string) => `/transactions/${id}/receipt`,
   },

@@ -120,11 +120,11 @@ export const trackUserLogout = () => {
 };
 
 /**
- * Track e-commerce transactions (VTU, bills, cards, etc.)
+ * Track e-commerce transactions (bills, cards, etc.)
  */
 export const trackTransaction = (data: {
   transactionId: string;
-  type: 'airtime' | 'data' | 'bills' | 'card' | 'wallet';
+  type: 'bills' | 'card' | 'wallet';
   amount: number;
   currency?: string;
   provider?: string;

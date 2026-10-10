@@ -50,8 +50,6 @@ interface AdminSettings {
     max_transaction_amount: number;
     transaction_fee_percentage: number;
     referral_bonus_amount: number;
-    airtime_conversion_fee: number;
-    vtu_commission_rate: number;
   };
   notifications: {
     email_notifications: boolean;
@@ -63,8 +61,6 @@ interface AdminSettings {
   integrations: {
     paystack_public_key: string;
     paystack_secret_key: string;
-    vtpass_public_key: string;
-    vtpass_secret_key: string;
     maplerad_api_key: string;
     telnyx_api_key: string;
   };
@@ -94,8 +90,6 @@ const DEFAULT_SETTINGS: AdminSettings = {
     max_transaction_amount: 1000000,
     transaction_fee_percentage: 1.5,
     referral_bonus_amount: 500,
-    airtime_conversion_fee: 2.0,
-    vtu_commission_rate: 2.5,
   },
   notifications: {
     email_notifications: true,
@@ -107,8 +101,6 @@ const DEFAULT_SETTINGS: AdminSettings = {
   integrations: {
     paystack_public_key: 'pk_test_********************',
     paystack_secret_key: 'sk_test_********************',
-    vtpass_public_key: '********************',
-    vtpass_secret_key: '********************',
     maplerad_api_key: 'map_********************',
     telnyx_api_key: 'KEY********************',
   },
@@ -378,10 +370,6 @@ export default function AdminSettingsPage() {
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {renderNumberField('transactions.transaction_fee_percentage', 'Transaction Fee (%)', '1.5', 0, 100, 0.1)}
-              {renderNumberField('transactions.airtime_conversion_fee', 'Airtime Conversion Fee (%)', '2.0', 0, 100, 0.1)}
-            </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {renderNumberField('transactions.vtu_commission_rate', 'VTU Commission Rate (%)', '2.5', 0, 100, 0.1)}
               {renderNumberField('transactions.referral_bonus_amount', 'Referral Bonus (₦)', '500', 0)}
             </div>
           </div>
@@ -430,19 +418,6 @@ export default function AdminSettingsPage() {
               <div className="space-y-4">
                 {renderTextField('integrations.paystack_public_key', 'Public Key', 'pk_test_...')}
                 {renderTextField('integrations.paystack_secret_key', 'Secret Key', 'sk_test_...')}
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
-              <div className="mb-4 flex items-center gap-2">
-                <div className="rounded-lg bg-orange-100 p-1.5">
-                  <Globe size={14} className="text-orange-600" />
-                </div>
-                <span className="text-sm font-bold text-gray-700">VTPass</span>
-              </div>
-              <div className="space-y-4">
-                {renderTextField('integrations.vtpass_public_key', 'Public Key', 'Enter VTPass public key')}
-                {renderTextField('integrations.vtpass_secret_key', 'Secret Key', 'Enter VTPass secret key')}
               </div>
             </div>
 

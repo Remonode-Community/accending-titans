@@ -23,6 +23,7 @@ export default function AdminContentReviewPage() {
   const { showAlert } = useAlert();
 
   const [submissions, setSubmissions] = useState<AdminContentSubmission[]>([]);
+  const [pendingCount, setPendingCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabType>('pending');
   const [loadingAction, setLoadingAction] = useState(false);
@@ -45,18 +46,34 @@ export default function AdminContentReviewPage() {
   const fetchSubmissions = async () => {
     try {
       setLoading(true);
-      let res;
-      if (activeTab === 'pending') {
-        res = await contentService.adminGetPending();
-      } else {
-        res = await contentService.adminGetAll(activeTab);
-      }
 
+      const res =
+        activeTab === 'pending'
+          ? await contentService.adminGetPending()
+          : await contentService.adminGetAll(activeTab);
+
+      /**
+       * The array lives at `res.data.submissions`.
+       *
+       * This line used to read `res.data.data`, which this endpoint has never
+       * produced. The `?? []` swallowed the miss, so a moderator with a full
+       * moderation queue was shown "No pending submissions / All caught up!"
+       * — the empty state for work that was waiting to be done.
+       *
+       * `pending_count` comes from the queue response only, so the total is
+       * read defensively rather than assumed on every tab.
+       */
       if (res.success && res.data) {
-        const data = Array.isArray(res.data) ? res.data : (res.data as any).data ?? [];
-        setSubmissions(data);
+        setSubmissions(res.data.submissions ?? []);
+        setPendingCount(
+          'pending_count' in res.data && typeof res.data.pending_count === 'number'
+            ? res.data.pending_count
+            : null
+        );
       } else {
         setSubmissions([]);
+        setPendingCount(null);
+        showAlert(res.message || 'Failed to load submissions', 'error');
       }
     } catch (err) {
       console.error('Error fetching submissions:', err);
@@ -143,6 +160,17 @@ export default function AdminContentReviewPage() {
             >
               <Icon size={16} />
               {tab.label}
+              {/*
+                A moderator needs to know there is work waiting before clicking
+                in. The count only comes from the pending response, so it shows
+                once that tab has been loaded and stays honest rather than
+                guessing from whatever list is currently rendered.
+              */}
+              {tab.key === 'pending' && pendingCount !== null && pendingCount > 0 && (
+                <span className="rounded-full bg-[#C9A84C] px-2 py-0.5 text-[11px] font-bold text-white">
+                  {pendingCount}
+                </span>
+              )}
             </button>
           );
         })}
@@ -172,18 +200,31 @@ export default function AdminContentReviewPage() {
                       variant={sub.status === 'approved' ? 'success' : sub.status === 'rejected' ? 'danger' : 'warning'}
                       size="sm"
                     >
-                      {sub.status.replace(/_/g, ' ')}
+                      {(sub.status || 'pending review').replace(/_/g, ' ')}
                     </Badge>
                   </div>
                   <div className="mt-2 flex flex-wrap gap-3 text-xs text-gray-500">
                     <span className="capitalize">{sub.content_type.replace(/_/g, ' ')}</span>
-                    <span>By: {sub.user_name}</span>
-                    <span>{formatDate(sub.submitted_at)}</span>
+                    {/*
+                     * `submitter.name`, not `user_name` — the server never sent a
+                     * `user_name` field, so this rendered as a bare "By: ".
+                     */}
+                    <span>By: {sub.submitter?.name || 'Unknown'}</span>
+                    {sub.submitter?.email && (
+                      <span className="truncate">{sub.submitter.email}</span>
+                    )}
+                    <span>{sub.submitted_at ? formatDate(sub.submitted_at) : '—'}</span>
                   </div>
                   {activeTab === 'pending' && (
                     <div className="mt-2 flex items-center gap-1 text-xs text-amber-600">
                       <Clock size={12} />
-                      <span>Auto-approves in ~72h from submission</span>
+                      {/* The real remaining time, not a hardcoded "~72h" that
+                          ignored how long the item had actually been waiting. */}
+                      <span>
+                        {sub.is_auto_approvable
+                          ? 'Past the 72h auto-approval window'
+                          : `Auto-approves in ~${sub.auto_approval_in_hours}h`}
+                      </span>
                     </div>
                   )}
                   {sub.rejection_reason && (
@@ -191,10 +232,16 @@ export default function AdminContentReviewPage() {
                       Reason: {sub.rejection_reason}
                     </div>
                   )}
+                  {sub.reviewer && (
+                    <div className="mt-2 text-xs text-gray-500">
+                      Reviewed by {sub.reviewer.name}
+                      {sub.reviewed_at ? ` on ${formatDate(sub.reviewed_at)}` : ''}
+                    </div>
+                  )}
                   {sub.media_url && (
                     <div className="mt-2">
                       <a href={sub.media_url} target="_blank" rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline">
+                        className="inline-flex items-center gap-1 text-xs text-[#B8962E] hover:underline">
                         <Eye size={12} /> Preview Media
                       </a>
                     </div>
