@@ -263,7 +263,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
                     {/* Settings Link */}
                     <Link
-                      href="/dashboard/settings"
+                      href="/dashboard/profile"
                       onClick={() => setShowAvatarMenu(false)}
                       className="block px-4 py-2.5 text-sm text-gray-900 hover:bg-gray-50 transition-colors"
                     >

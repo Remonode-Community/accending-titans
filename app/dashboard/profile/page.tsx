@@ -18,11 +18,11 @@ import {
   Phone,
   Save,
   Shield,
-  Trash2,
   User,
   UserCircle,
 } from 'lucide-react';
 
+import { AccountDeletion } from '@/components/dashboard/AccountDeletion';
 import { useProfile } from '@/hooks/useProfile';
 import { userService } from '@/services/auth.service';
 import {
@@ -877,13 +877,9 @@ const SecurityTab: React.FC = () => {
         <p className="mt-0.5 text-xs text-red-500">
           Permanently delete your account and all associated data. This cannot be undone.
         </p>
-        <Link
-          href="/dashboard/settings"
-          className="mt-4 inline-flex items-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-2 text-xs font-semibold text-red-600 transition hover:bg-red-100"
-        >
-          <Trash2 size={12} />
-          Manage account deletion
-        </Link>
+        <div className="mt-4">
+          <AccountDeletion />
+        </div>
       </div>
     </div>
   );

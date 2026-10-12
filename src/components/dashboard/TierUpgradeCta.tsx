@@ -41,7 +41,7 @@ export const TierUpgradeCta: React.FC<TierUpgradeCtaProps> = ({
             </div>
           </div>
 
-          <Link href="/dashboard/settings">
+          <Link href="/dashboard/settings/tier-upgrade">
             <Button variant="primary" className="flex items-center gap-2 whitespace-nowrap">
               Upgrade Now
               <ChevronRight className="w-4 h-4" />

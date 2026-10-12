@@ -1,7 +1,8 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
-import { AlertCircle, Home, RotateCw } from 'lucide-react';
+import { Home, RotateCw } from 'lucide-react';
 import { ErrorPageProvider } from '@/contexts/ErrorPageContext';
 
 /**
@@ -28,8 +29,15 @@ function NotFoundContent() {
 
           <div className="px-8 py-8">
             <div className="flex justify-center mb-6">
-              <div className="w-14 h-14 rounded-xl border border-[#C9A84C]/25 bg-[#FDFAF3] flex items-center justify-center">
-                <AlertCircle className="h-6 w-6 text-[#C9A84C]" />
+              <div className="w-14 h-14 rounded-xl border border-[#C9A84C]/25 bg-[#FDFAF3] flex items-center justify-center overflow-hidden">
+                <Image
+                  src="/icon.png"
+                  alt="Accending Titans"
+                  width={44}
+                  height={44}
+                  className="h-11 w-11 object-contain"
+                  priority
+                />
               </div>
             </div>
 

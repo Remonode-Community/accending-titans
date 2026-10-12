@@ -147,7 +147,7 @@ export const Topbar: React.FC<TopbarProps> = ({
 
                   {/* Settings */}
                   <Link
-                    href="/dashboard/settings"
+                    href="/dashboard/profile"
                     className="flex items-center gap-3 px-4 py-3 text-sm font-semibold text-gray-900 hover:bg-gray-50 transition"
                     onClick={() => setShowUserMenu(false)}
                   >
