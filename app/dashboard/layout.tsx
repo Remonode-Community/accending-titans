@@ -93,11 +93,11 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
   // Network celebrations: where a member's network comes together to
   // celebrate them, and quietly plan a surprise.
   //
-  // The older `/dashboard/rewards` page (the platform's own loyalty gift) has
-  // been dropped from this menu. It duplicated the "upcoming birthdays" list
-  // that this section now owns, and having two adjacent birthday entries was
-  // confusing. The page and its endpoints are deliberately left in place so
-  // existing links and bookmarks keep working.
+  // The old `/dashboard/rewards` birthday page was folded into this section:
+  // its loyalty-reward status now renders as a "Birthday reward" card on this
+  // hub, so the separate route was removed. `/dashboard/rewards/history`
+  // (the cashback/referral transaction ledger) is a different feature and
+  // still exists.
   { href: '/dashboard/birthdays', label: 'Birthdays', icon: Cake },
     // The member network: circles, the ask board, and the impact ledger. Reading
     // it is never paywalled — only posting an ask requires an active

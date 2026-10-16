@@ -13,7 +13,6 @@ import { useAuthStore } from '@/store/auth.store';
 import { useAlert } from '@/hooks/useAlert';
 import { birthdayService } from '@/services/birthday.service';
 import { portfolioService } from '@/services/portfolio.service';
-import { formatDate } from '@/utils/format.utils';
 import type { AdminBirthdayMember } from '@/types/birthday.types';
 import type { PortfolioItem } from '@/types/portfolio.types';
 
@@ -31,7 +30,6 @@ export default function AdminBirthdaysPage() {
   const [selectedMember, setSelectedMember] = useState<AdminBirthdayMember | null>(null);
   const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([]);
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
-  const [selectedProviderId, setSelectedProviderId] = useState<number | null>(null);
 
   const isAdmin = useMemo(() => Boolean(user?.roles?.some((r) => r === 'admin')), [user]);
 
@@ -49,7 +47,7 @@ export default function AdminBirthdaysPage() {
       setLoading(true);
       const res = await birthdayService.adminGetEligible();
       if (res.success && res.data) {
-        setMembers((res.data as any).members ?? []);
+        setMembers((res.data as any).eligible_members ?? []);
       }
     } catch (err) {
       console.error('Error fetching birthday members:', err);
@@ -62,7 +60,6 @@ export default function AdminBirthdaysPage() {
   const handleOpenAssign = async (member: AdminBirthdayMember) => {
     setSelectedMember(member);
     setSelectedItemId(null);
-    setSelectedProviderId(null);
     setPortfolioItems([]);
 
     // Fetch portfolios to get items for gift selection
@@ -95,7 +92,7 @@ export default function AdminBirthdaysPage() {
   };
 
   const handleAssignGift = async () => {
-    if (!selectedMember || !selectedItemId || !selectedProviderId) {
+    if (!selectedMember || !selectedItemId) {
       showAlert('Please select a gift item', 'warning');
       return;
     }
@@ -104,7 +101,6 @@ export default function AdminBirthdaysPage() {
       setLoadingAction(true);
       const res = await birthdayService.adminAssignGift({
         user_id: selectedMember.user_id,
-        gift_provider_user_id: selectedProviderId,
         gift_portfolio_item_id: selectedItemId,
         reward_type: 'physical_delivery',
       });
@@ -258,12 +254,7 @@ export default function AdminBirthdaysPage() {
                         type="radio"
                         name="gift-item"
                         checked={isSelected}
-                        onChange={() => {
-                          setSelectedItemId(item.id);
-                          // We need provider user_id - this would ideally come from the portfolio data
-                          // For now, we'll use a placeholder approach
-                          setSelectedProviderId(1);
-                        }}
+                        onChange={() => setSelectedItemId(item.id)}
                         className="h-4 w-4 text-[#C9A84C]"
                       />
                       <div className="flex-1 min-w-0">

@@ -71,7 +71,7 @@ const faqs = [
       },
       {
         q: 'Do I get birthday rewards?',
-        a: 'Yes! On your birthday, you receive special rewards and recognition from the community. Premium members get enhanced birthday benefits.',
+        a: 'Yes! In your birthday month, members with 8 or more months of active subscription receive a gift from a fellow member\u2019s business; newer members get a shoutout. Your network can also plan a surprise on your Birthdays page.',
       },
       {
         q: 'How are rewards paid?',

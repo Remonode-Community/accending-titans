@@ -261,6 +261,15 @@ export interface AdminCelebration {
   hidden_wishes_count: number;
 }
 
+/** A single wall message as seen by the admin moderation surface. */
+export interface AdminWish {
+  id: number;
+  message: string;
+  is_hidden: boolean;
+  author: string | null;
+  created_at: string;
+}
+
 /* ──────────────────────────────────────────────
  * Platform loyalty scheme (pre-existing)
  * ────────────────────────────────────────────── */
@@ -321,7 +330,8 @@ export interface AdminBirthdayMember {
 
 export interface AssignGiftRequest {
     user_id: number;
-    gift_provider_user_id: number;
+    /** Optional: the server derives the provider from the item's owner. */
+    gift_provider_user_id?: number;
     gift_portfolio_item_id: number;
     reward_type: string;
 }

@@ -2,11 +2,12 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Image from 'next/image';
-import { Cake, EyeOff, Gift, Lock, RefreshCw, RotateCcw, Users } from 'lucide-react';
+import { Cake, Eye, EyeOff, Gift, Lock, MessageSquare, RefreshCw, Users } from 'lucide-react';
 import { Button } from '@/components/shared/Button';
 import { EmptyState } from '@/components/shared/EmptyState';
+import { AdminModal } from '@/components/admin/AdminModal';
 import { birthdayService } from '@/services/birthday.service';
-import type { AdminCelebration } from '@/types/birthday.types';
+import type { AdminCelebration, AdminWish } from '@/types/birthday.types';
 
 const CARD =
   'rounded-2xl border border-[#e5e7eb] bg-white shadow-[0_10px_35px_rgba(0,0,0,0.04)]';
@@ -35,9 +36,61 @@ const STATUS_STYLES: Record<string, string> = {
 export default function AdminCelebrationsPage() {
   const [items, setItems] = useState<AdminCelebration[]>([]);
   const [loading, setLoading] = useState(true);
-  const [busyId, setBusyId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<'' | 'planning' | 'active' | 'completed'>('');
+
+  // Wall-message moderation modal
+  const [wishesOpen, setWishesOpen] = useState(false);
+  const [wishesFor, setWishesFor] = useState<AdminCelebration | null>(null);
+  const [wishes, setWishes] = useState<AdminWish[]>([]);
+  const [wishesLoading, setWishesLoading] = useState(false);
+  const [togglingWishId, setTogglingWishId] = useState<number | null>(null);
+
+  const openWishes = async (c: AdminCelebration) => {
+    setWishesFor(c);
+    setWishes([]);
+    setWishesOpen(true);
+    setWishesLoading(true);
+    try {
+      const res = await birthdayService.adminGetCelebrationWishes(c.id);
+      if (res.success && res.data?.wishes) setWishes(res.data.wishes);
+    } catch {
+      // Keep the modal open with its empty state; the counts still show above.
+    } finally {
+      setWishesLoading(false);
+    }
+  };
+
+  const toggleWish = async (wish: AdminWish) => {
+    if (!wishesFor) return;
+    setTogglingWishId(wish.id);
+    try {
+      const res = await birthdayService.adminSetWishVisibility(wish.id, !wish.is_hidden);
+      if (res.success) {
+        const nextHidden = !wish.is_hidden;
+        setWishes((prev) =>
+          prev.map((w) => (w.id === wish.id ? { ...w, is_hidden: nextHidden } : w))
+        );
+        setItems((prev) =>
+          prev.map((c) =>
+            c.id === wishesFor.id
+              ? {
+                  ...c,
+                  hidden_wishes_count: Math.max(
+                    0,
+                    c.hidden_wishes_count + (nextHidden ? 1 : -1)
+                  ),
+                }
+              : c
+          )
+        );
+      }
+    } catch {
+      // Leave the wish as it was; the row still shows its current state.
+    } finally {
+      setTogglingWishId(null);
+    }
+  };
 
   const load = useCallback(async () => {
     try {
@@ -228,19 +281,10 @@ export default function AdminCelebrationsPage() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        disabled={busyId === c.id}
-                        isLoading={busyId === c.id}
-                        onClick={async () => {
-                          // Restores every hidden message on the wall. The
-                          // endpoint takes a single wish id, so this is driven
-                          // from the per-wish control below.
-                          setBusyId(c.id);
-                          await load();
-                          setBusyId(null);
-                        }}
+                        onClick={() => void openWishes(c)}
                       >
-                        <RotateCcw size={12} />
-                        Refresh
+                        <MessageSquare size={12} />
+                        Manage wishes
                       </Button>
                     </td>
                   </tr>
@@ -288,11 +332,102 @@ export default function AdminCelebrationsPage() {
                     {c.hidden_wishes_count} hidden {c.hidden_wishes_count === 1 ? 'message' : 'messages'}
                   </p>
                 )}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="mt-3 w-full"
+                  onClick={() => void openWishes(c)}
+                >
+                  <MessageSquare size={12} />
+                  Manage wishes
+                </Button>
               </li>
             ))}
           </ul>
         </div>
       )}
+
+      {/* Wall messages for moderation — gift/vote data is deliberately absent. */}
+      <AdminModal
+        isOpen={wishesOpen}
+        onClose={() => {
+          setWishesOpen(false);
+          setWishesFor(null);
+          setWishes([]);
+        }}
+        title="Wall messages"
+        subtitle={
+          wishesFor
+            ? `${wishesFor.celebrant?.name ?? 'Unknown member'} · ${wishesFor.year}`
+            : ''
+        }
+        icon={MessageSquare}
+        size="lg"
+      >
+        {wishesLoading ? (
+          <div className="space-y-3">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="h-16 animate-pulse rounded-xl bg-gray-100" />
+            ))}
+          </div>
+        ) : wishes.length === 0 ? (
+          <p className="py-8 text-center text-sm text-gray-500">
+            No wishes on this wall yet.
+          </p>
+        ) : (
+          <ul className="max-h-[60vh] space-y-3 overflow-y-auto">
+            {wishes.map((w) => (
+              <li
+                key={w.id}
+                className={`rounded-xl border p-4 ${
+                  w.is_hidden ? 'border-red-100 bg-red-50/50' : 'border-[#e5e7eb] bg-white'
+                }`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-bold text-gray-900">
+                        {w.author ?? 'Anonymous'}
+                      </p>
+                      {w.is_hidden && (
+                        <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-red-600">
+                          hidden
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-1 whitespace-pre-wrap text-sm text-gray-600">
+                      {w.message}
+                    </p>
+                    <p className="mt-1.5 text-[11px] text-gray-400">{w.created_at}</p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={togglingWishId === w.id}
+                    isLoading={togglingWishId === w.id}
+                    onClick={() => void toggleWish(w)}
+                    className={
+                      w.is_hidden
+                        ? 'border-green-200 text-green-600 hover:bg-green-50'
+                        : 'border-red-200 text-red-500 hover:bg-red-50'
+                    }
+                  >
+                    {w.is_hidden ? (
+                      <>
+                        <Eye size={12} className="mr-1" /> Restore
+                      </>
+                    ) : (
+                      <>
+                        <EyeOff size={12} className="mr-1" /> Hide
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </AdminModal>
     </div>
   );
 }

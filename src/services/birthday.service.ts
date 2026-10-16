@@ -22,6 +22,7 @@ import type {
   RevealRequest,
   BirthdayActivityStatus,
   AdminCelebration,
+  AdminWish,
 } from '@/types/birthday.types';
 
 class BirthdayService {
@@ -185,6 +186,13 @@ class BirthdayService {
     });
   }
 
+  /** GET /admin/birthday-celebrations/{id}/wishes — full messages for moderation. */
+  async adminGetCelebrationWishes(
+    celebrationId: number
+  ): Promise<ApiResponse<{ wishes: AdminWish[] }>> {
+    return apiClient.get(`/admin/birthday-celebrations/${celebrationId}/wishes`);
+  }
+
   // ────────────────────────────────────────────
   // Platform loyalty scheme (pre-existing)
   // ────────────────────────────────────────────
@@ -194,8 +202,8 @@ class BirthdayService {
     return apiClient.get('/birthdays/upcoming');
   }
 
-  /** GET /birthdays/eligibility */
-  async getEligibility(): Promise<ApiResponse<{ eligibility: BirthdayEligibility }>> {
+  /** GET /birthdays/eligibility — payload is returned at the top level. */
+  async getEligibility(): Promise<ApiResponse<BirthdayEligibility>> {
     return apiClient.get('/birthdays/eligibility');
   }
 
@@ -210,8 +218,8 @@ class BirthdayService {
     return apiClient.get(`/admin/birthdays${params}`);
   }
 
-  /** GET /admin/birthdays/eligible */
-  async adminGetEligible(): Promise<ApiResponse<{ members: AdminBirthdayMember[] }>> {
+  /** GET /admin/birthdays/eligible — payload key is `eligible_members`. */
+  async adminGetEligible(): Promise<ApiResponse<{ eligible_members: AdminBirthdayMember[] }>> {
     return apiClient.get('/admin/birthdays/eligible');
   }
 

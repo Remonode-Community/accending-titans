@@ -21,7 +21,11 @@ import { BirthdayCountdownCard } from '@/components/birthday/BirthdayCountdownCa
 import { birthdayService } from '@/services/birthday.service';
 import { useAuth } from '@/hooks/useAuth';
 import { formatDate } from '@/utils/format.utils';
-import type { MyBirthday, NetworkBirthday } from '@/types/birthday.types';
+import type {
+  BirthdayEligibility,
+  MyBirthday,
+  NetworkBirthday,
+} from '@/types/birthday.types';
 
 const CARD =
   'rounded-2xl border border-[#e5e7eb] bg-white shadow-[0_10px_35px_rgba(0,0,0,0.04)]';
@@ -46,6 +50,7 @@ export default function BirthdaysPage() {
   const { user } = useAuth();
   const [mine, setMine] = useState<MyBirthday | null>(null);
   const [network, setNetwork] = useState<NetworkBirthday[]>([]);
+  const [reward, setReward] = useState<BirthdayEligibility | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
@@ -61,6 +66,15 @@ export default function BirthdaysPage() {
 
       if (mineRes.success && mineRes.data) setMine(mineRes.data);
       if (networkRes.success && networkRes.data?.birthdays) setNetwork(networkRes.data.birthdays);
+
+      // The loyalty reward card is supplementary: if this call fails the rest
+      // of the page still works, so it just goes without the card.
+      try {
+        const eligRes = await birthdayService.getEligibility();
+        if (eligRes.success && eligRes.data) setReward(eligRes.data);
+      } catch {
+        // Omit the reward card.
+      }
     } catch {
       setError('Could not load birthdays right now.');
     } finally {
@@ -156,6 +170,70 @@ export default function BirthdaysPage() {
               )}
             </div>
           </section>
+
+          {/* ── My birthday reward (platform loyalty scheme) ── */}
+          {reward && (
+            <section className={CARD}>
+              <div className="flex items-center gap-3 border-b border-[#e5e7eb] px-5 py-4 sm:px-6">
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#FDFAF3] text-[#C9A84C]">
+                  <Gift size={17} />
+                </span>
+                <div>
+                  <h2 className="text-base font-black tracking-tight text-gray-900">
+                    Birthday reward
+                  </h2>
+                  <p className="mt-0.5 text-xs text-gray-400">
+                    {reward.total_subscription_months} month
+                    {reward.total_subscription_months === 1 ? '' : 's'} of active subscription
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-3 p-5 sm:p-6">
+                <div className="flex flex-wrap items-center gap-2">
+                  {reward.is_eligible_for_reward ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1 text-xs font-bold text-green-700">
+                      <Check size={12} /> Eligible for a birthday gift
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">
+                      {reward.is_shoutout_only
+                        ? 'Shoutout only this month'
+                        : `${reward.total_subscription_months} of 8 months subscribed`}
+                    </span>
+                  )}
+                  {reward.birthday_this_month && (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-pink-50 px-3 py-1 text-xs font-bold text-pink-600">
+                      <Cake size={12} /> Your birthday month
+                    </span>
+                  )}
+                </div>
+
+                {reward.current_reward ? (
+                  <div className="rounded-xl border border-[#e5e7eb] bg-[#FDFAF3]/60 p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <p className="text-sm font-bold text-gray-900">Your gift this month</p>
+                        <p className="mt-0.5 text-xs capitalize text-gray-500">
+                          {reward.current_reward.reward_type.replace(/_/g, ' ')}
+                        </p>
+                      </div>
+                      <span className="rounded-full border border-[#C9A84C]/30 bg-white px-3 py-1 text-[11px] font-bold capitalize text-[#B8962E]">
+                        {reward.current_reward.status}
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  !reward.is_eligible_for_reward && (
+                    <p className="text-xs text-gray-400">
+                      Reach 8 months of active subscription to unlock a physical
+                      gift from the community.
+                    </p>
+                  )
+                )}
+              </div>
+            </section>
+          )}
 
           {/* ── Network birthdays ── */}
           <section className={CARD}>
