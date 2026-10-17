@@ -11,7 +11,6 @@ import {
   Gift,
   Share2,
   Bell,
-  BarChart3,
   FileText,
   Award,
   LogOut,
@@ -102,13 +101,6 @@ const navGroups: NavGroup[] = [
       { label: 'Advertisements', href: '/admin/advertisements', icon: Megaphone },
       { label: 'Notifications', href: '/admin/notifications', icon: Bell },
       { label: 'Email Campaigns', href: '/admin/promotional-emails', icon: Mail },
-    ],
-  },
-  {
-    label: 'Insights',
-    items: [
-      { label: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
-      { label: 'Reports', href: '/admin/reports', icon: FileText },
     ],
   },
   {

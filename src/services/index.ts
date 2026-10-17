@@ -9,7 +9,7 @@ export { paymentService } from './payment.service';
 export { pinService } from './pin.service';
 export { providerService } from './provider.service';
 export { referralService } from './referral.service';
-export { reportService } from './report.service';
+// `reportService` was removed with the Insights section (/admin/reports).
 export { rewardService } from './reward.service';
 export { tierUpgradeService } from './tier-upgrade.service';
 export { transactionService } from './transaction.service';

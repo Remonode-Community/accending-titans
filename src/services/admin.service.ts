@@ -5,17 +5,12 @@ import {
   Agent,
   UpdateUserStatusRequest,
   RefundTransactionRequest,
-  GenerateReportRequest,
   ApiResponse,
   PaginatedResponse,
   SendEmailRequest,
 } from '@/types/api.types';
-import {
-  AdminStatisticsData,
-  UserWalletStatistics,
-  UserStatistics,
-  CombinedUserStatistics,
-} from '@/types/admin-analytics.types';
+// `@/types/admin-analytics.types` was removed with the Insights section; the
+// statistics methods that consumed it went with it.
 import type {
   Role,
   Permission,
@@ -473,41 +468,22 @@ class AdminService {
     return apiClient.get('/stats/admin');
   }
 
-  async generateReport(data: GenerateReportRequest): Promise<any> {
-    return apiClient.post('/admin/reports/generate', data);
-  }
-
   async getAgents(page = 1, per_page = 20): Promise<ApiResponse<PaginatedResponse<Agent>>> {
     return apiClient.get(`/admin/agents?page=${page}&per_page=${per_page}`);
   }
 
-  async getAnalytics(metric: string, period: string): Promise<any> {
-    return apiClient.get(`/admin/analytics?metric=${metric}&period=${period}`);
-  }
-
-  // ────────────────────────────────────────────
-  // Statistics
+  // ──────────────────────────────────────────────
+  // Removed with the Insights section
   //
-  // The VTU variants of these (getAdminVtuStatistics, getUserVtuStatistics)
-  // were removed along with the VTU feature. They are not replacements:
-  // `/admin/statistics` and `/statistics/vtu` reported airtime, data and bill
-  // volume, which this platform does not offer.
-  // ────────────────────────────────────────────
-  async getUserWalletStatistics(period: 'week' | 'month' | 'year' = 'month'): Promise<ApiResponse<UserWalletStatistics>> {
-    return apiClient.get(`/statistics/wallet?period=${period}`);
-  }
-
-  async getUserStatistics(): Promise<ApiResponse<UserStatistics>> {
-    return apiClient.get(`/statistics/user`);
-  }
-
-  async getCombinedUserStatistics(period: 'week' | 'month' | 'year' = 'month'): Promise<ApiResponse<CombinedUserStatistics>> {
-    return apiClient.get(`/statistics/all?period=${period}`);
-  }
-
-  async getAdminDashboardComprehensive(period: 'week' | 'month' | 'year' = 'month'): Promise<ApiResponse<AdminStatisticsData>> {
-    return apiClient.get(`/admin/dashboard/comprehensive?period=${period}`);
-  }
+  // getAnalytics, generateReport, getUserWalletStatistics, getUserStatistics,
+  // getCombinedUserStatistics and getAdminDashboardComprehensive were the only
+  // consumers of `@/types/admin-analytics.types`, which has been deleted along
+  // with /admin/analytics and /admin/reports. Every one of them had already
+  // lost its last caller once those pages went.
+  //
+  // getAllStats, getStatsAdmin and getAgents above are kept: they are not part
+  // of the Insights surface and may be wanted elsewhere.
+  // ──────────────────────────────────────────────
 
   // ── NEW ADMIN USER MANAGEMENT ENDPOINTS (from API docs) ──────────────
 

@@ -6,9 +6,6 @@
 // Auth & User types
 export * from './api.types';
 
-// Admin analytics (replaced the removed vtu.types)
-export * from './admin-analytics.types';
-
 // Reward & Loyalty types
 export * from './rewards.types';
 

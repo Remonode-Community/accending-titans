@@ -4,29 +4,28 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Activity,
-  Filter,
-  Eye,
-  UserCheck,
-  UserX,
-  Shield,
-  ShieldOff,
-  Settings,
-  DollarSign,
-  Mail,
-  Bell,
-  LogIn,
-  LogOut,
   AlertTriangle,
   CheckCircle,
-  XCircle,
-  RefreshCw,
   ChevronLeft,
   ChevronRight,
-  Search,
   Clock,
+  Eye,
+  FileText,
+  Filter,
   Globe,
-  Smartphone,
+  HandHeart,
+  LogIn,
+  LogOut,
   Monitor,
+  RefreshCw,
+  Search,
+  Shield,
+  ShieldCheck,
+  ShieldOff,
+  Smartphone,
+  UserCheck,
+  UserX,
+  XCircle,
 } from 'lucide-react';
 
 import { useAuthStore } from '@/store/auth.store';
@@ -40,163 +39,84 @@ import { Modal } from '@/components/shared/Modal';
 import { TableSkeleton } from '@/components/shared/SkeletonLoader';
 import { formatDate, formatDateTime } from '@/utils/format.utils';
 import { clsx } from 'clsx';
-
-// ─── Types ──────────────────────────────────────────────────────────────
-
-interface AuditLogEntry {
-  id: string | number;
-  actor_id: number;
-  actor_name: string;
-  actor_email: string;
-  action: string;
-  resource_type: string;
-  resource_id: string | number;
-  description: string;
-  status: 'success' | 'failure' | 'pending';
-  ip_address: string;
-  user_agent: string;
-  metadata: Record<string, any>;
-  created_at: string;
-}
-
-interface AuditLogStats {
-  total_events: number;
-  successful_events: number;
-  failed_events: number;
-  unique_actors: number;
-  events_today: number;
-  top_actions: Array<{ action: string; count: number }>;
-}
-
-// ─── Dummy Data ─────────────────────────────────────────────────────────
-
-const MOCK_STATS: AuditLogStats = {
-  total_events: 15420,
-  successful_events: 14890,
-  failed_events: 530,
-  unique_actors: 124,
-  events_today: 847,
-  top_actions: [
-    { action: 'user.login', count: 3421 },
-    { action: 'transaction.create', count: 2890 },
-    { action: 'user.update', count: 1256 },
-    { action: 'admin.action', count: 876 },
-    { action: 'notification.send', count: 654 },
-  ],
-};
-
-function generateMockLogs(count: number): AuditLogEntry[] {
-  const actors = [
-    { id: 1, name: 'John Admin', email: 'john@acceding-titans.com' },
-    { id: 2, name: 'Sarah Manager', email: 'sarah@acceding-titans.com' },
-    { id: 3, name: 'Mike SuperAdmin', email: 'mike@acceding-titans.com' },
-    { id: 5, name: 'Emma Support', email: 'emma@acceding-titans.com' },
-    { id: 8, name: 'David Operations', email: 'david@acceding-titans.com' },
-  ];
-
-  const actions = [
-    { action: 'user.login', resource: 'session', desc: 'User logged into the system', status: 'success' as const },
-    { action: 'user.logout', resource: 'session', desc: 'User logged out of the system', status: 'success' as const },
-    { action: 'user.create', resource: 'user', desc: 'New user account created', status: 'success' as const },
-    { action: 'user.update', resource: 'user', desc: 'User profile updated', status: 'success' as const },
-    { action: 'user.delete', resource: 'user', desc: 'User account deleted', status: 'success' as const },
-    { action: 'user.suspend', resource: 'user', desc: 'User account suspended', status: 'success' as const },
-    { action: 'user.verify', resource: 'user', desc: 'User account verified', status: 'success' as const },
-    { action: 'user.role.change', resource: 'role', desc: 'User role changed', status: 'success' as const },
-    { action: 'transaction.create', resource: 'transaction', desc: 'Transaction initiated', status: 'success' as const },
-    { action: 'transaction.complete', resource: 'transaction', desc: 'Transaction completed', status: 'success' as const },
-    { action: 'transaction.fail', resource: 'transaction', desc: 'Transaction failed', status: 'failure' as const },
-    { action: 'transaction.refund', resource: 'transaction', desc: 'Transaction refunded', status: 'success' as const },
-    { action: 'admin.settings.update', resource: 'settings', desc: 'Admin settings updated', status: 'success' as const },
-    { action: 'admin.notification.send', resource: 'notification', desc: 'Admin sent notification', status: 'success' as const },
-    { action: 'admin.email.send', resource: 'email', desc: 'Admin sent email campaign', status: 'success' as const },
-    { action: 'admin.report.generate', resource: 'report', desc: 'Report generated', status: 'success' as const },
-    { action: 'security.login.failed', resource: 'session', desc: 'Failed login attempt', status: 'failure' as const },
-    { action: 'security.2fa.enabled', resource: 'security', desc: 'Two-factor authentication enabled', status: 'success' as const },
-    { action: 'security.password.reset', resource: 'security', desc: 'Password reset requested', status: 'success' as const },
-    { action: 'offer_code.create', resource: 'offer_code', desc: 'New offer code created', status: 'success' as const },
-    { action: 'offer_code.redeem', resource: 'offer_code', desc: 'Offer code redeemed', status: 'success' as const },
-    { action: 'reward.payout', resource: 'reward', desc: 'Reward payout processed', status: 'success' as const },
-    { action: 'kyc.submit', resource: 'kyc', desc: 'KYC documentation submitted', status: 'pending' as const },
-    { action: 'kyc.approve', resource: 'kyc', desc: 'KYC application approved', status: 'success' as const },
-    { action: 'kyc.reject', resource: 'kyc', desc: 'KYC application rejected', status: 'failure' as const },
-  ];
-
-  const ips = ['192.168.1.1', '10.0.0.1', '172.16.0.1', '203.0.113.1', '198.51.100.1'];
-  const userAgents = [
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0',
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15',
-    'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Mobile/15E148',
-    'Mozilla/5.0 (Linux; Android 14) Chrome/120.0.0.0 Mobile',
-    'PostmanRuntime/7.36.0',
-  ];
-
-  const devices: ('web' | 'mobile' | 'api')[] = ['web', 'mobile', 'api'];
-
-  return Array.from({ length: count }, (_, i) => {
-    const actor = actors[Math.floor(Math.random() * actors.length)];
-    const actionData = actions[Math.floor(Math.random() * actions.length)];
-    const ip = ips[Math.floor(Math.random() * ips.length)];
-    const ua = userAgents[Math.floor(Math.random() * userAgents.length)];
-    const device = devices[Math.floor(Math.random() * devices.length)];
-
-    // Random date within the last 7 days
-    const date = new Date();
-    date.setDate(date.getDate() - Math.random() * 7);
-    date.setHours(date.getHours() - Math.random() * 24);
-
-    return {
-      id: `log-${Date.now()}-${i}`,
-      actor_id: actor.id,
-      actor_name: actor.name,
-      actor_email: actor.email,
-      action: actionData.action,
-      resource_type: actionData.resource,
-      resource_id: Math.floor(Math.random() * 10000) + 1,
-      description: actionData.desc,
-      status: actionData.status,
-      ip_address: ip,
-      user_agent: ua,
-      metadata: { device, browser: ua.split('/')[0] },
-      created_at: date.toISOString(),
-    };
-  }).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-}
+import { activityLogService } from '@/services/activity-log.service';
+import type {
+  ActivityLogFilters,
+  AuditLogEntry,
+  AuditLogStats,
+} from '@/types/activity-log.types';
 
 // ─── Action Helpers ─────────────────────────────────────────────────────
 
+/*
+ * Icon and colour are chosen from the REAL action strings the server writes.
+ * Matching is done on the family prefix (`user.`, `ask.`, `security.`) rather
+ * than on an exact verb list, so a new action is styled by its family without
+ * this file needing to know it exists — and an unrecognised action still renders
+ * with a sensible default instead of breaking.
+ */
 function getActionIcon(action: string): React.ElementType {
   if (action.startsWith('user.login')) return LogIn;
   if (action.startsWith('user.logout')) return LogOut;
-  if (action.startsWith('user.create')) return UserCheck;
-  if (action.startsWith('user.delete')) return UserX;
+  if (action.startsWith('user.role')) return Shield;
+  if (action.startsWith('user.verify') || action.startsWith('user.create')) return UserCheck;
   if (action.startsWith('user.suspend')) return ShieldOff;
-  if (action.startsWith('user.verify') || action.startsWith('user.role')) return Shield;
-  if (action.startsWith('transaction')) return DollarSign;
-  if (action.startsWith('admin.settings')) return Settings;
-  if (action.startsWith('admin.notification')) return Bell;
-  if (action.startsWith('admin.email')) return Mail;
-  if (action.startsWith('admin.report')) return Activity;
+  if (action.startsWith('user.delete')) return UserX;
+
+  // Member network: asks and moderation of them.
+  if (action.startsWith('ask.fulfil')) return CheckCircle;
+  if (action.startsWith('ask.claim')) return HandHeart;
+  if (action.startsWith('ask.withdraw') || action.startsWith('ask.cancel')) return XCircle;
+  if (action.startsWith('ask')) return HandHeart;
+  if (action.startsWith('network')) return ShieldCheck;
+
+  // Content moderation.
+  if (action.startsWith('content.approve')) return CheckCircle;
+  if (action.startsWith('content.reject')) return XCircle;
+  if (action.startsWith('content')) return FileText;
+
   if (action.startsWith('security')) return AlertTriangle;
-  if (action.startsWith('kyc')) return CheckCircle;
-  if (action.startsWith('offer_code')) return Activity;
-  if (action.startsWith('reward')) return DollarSign;
   return Activity;
 }
 
+/**
+ * Colour by action family.
+ *
+ * No indigo or blue: the brand palette is gold on neutrals, and this screen is
+ * part of that brand. Semantic green/amber/red are kept because status colour is
+ * information rather than decoration, and they are already used for status
+ * across the application.
+ */
 function getActionColor(action: string): string {
-  if (action.startsWith('user.login') || action.startsWith('user.logout')) return 'text-blue-600 bg-blue-50';
-  if (action.startsWith('user.create') || action.startsWith('user.verify')) return 'text-emerald-600 bg-emerald-50';
-  if (action.startsWith('user.delete') || action.startsWith('user.suspend')) return 'text-red-600 bg-red-50';
-  if (action.startsWith('user.role')) return 'text-purple-600 bg-purple-50';
-  if (action.startsWith('transaction.complete')) return 'text-green-600 bg-green-50';
-  if (action.startsWith('transaction.fail') || action.startsWith('transaction.refund')) return 'text-orange-600 bg-orange-50';
-  if (action.startsWith('transaction')) return 'text-cyan-600 bg-cyan-50';
-  if (action.startsWith('admin.settings')) return 'text-gray-600 bg-gray-50';
-  if (action.startsWith('admin.notification') || action.startsWith('admin.email')) return 'text-amber-600 bg-amber-50';
-  if (action.startsWith('security') || action.startsWith('kyc.reject')) return 'text-rose-600 bg-rose-50';
-  if (action.startsWith('kyc')) return 'text-indigo-600 bg-indigo-50';
-  return 'text-slate-600 bg-slate-50';
+  if (action.startsWith('user.role')) return 'text-[#8A6F1F] bg-[#C9A84C]/10';
+  if (action.startsWith('user.login') || action.startsWith('user.logout')) {
+    return 'text-gray-700 bg-gray-100';
+  }
+  if (action.startsWith('user.verify') || action.startsWith('user.create')) {
+    return 'text-emerald-700 bg-emerald-50';
+  }
+  if (action.startsWith('user.suspend') || action.startsWith('user.delete')) {
+    return 'text-red-700 bg-red-50';
+  }
+
+  if (action.startsWith('ask.fulfil')) return 'text-emerald-700 bg-emerald-50';
+  if (action.startsWith('ask.claim') || action.startsWith('ask.create')) {
+    return 'text-[#8A6F1F] bg-[#C9A84C]/10';
+  }
+  if (action.startsWith('ask.withdraw') || action.startsWith('ask.cancel')) {
+    return 'text-gray-600 bg-gray-100';
+  }
+  if (action.startsWith('ask')) return 'text-[#8A6F1F] bg-[#C9A84C]/10';
+
+  if (action.startsWith('network')) return 'text-amber-700 bg-amber-50';
+
+  if (action.startsWith('content.approve')) return 'text-emerald-700 bg-emerald-50';
+  if (action.startsWith('content.reject')) return 'text-red-700 bg-red-50';
+  if (action.startsWith('content')) return 'text-gray-700 bg-gray-100';
+
+  if (action.startsWith('security')) return 'text-rose-700 bg-rose-50';
+
+  return 'text-gray-600 bg-gray-100';
 }
 
 function getStatusVariant(status: string): 'success' | 'danger' | 'warning' | 'info' {
@@ -206,6 +126,40 @@ function getStatusVariant(status: string): 'success' | 'danger' | 'warning' | 'i
     pending: 'warning',
   };
   return map[status] || 'info';
+}
+
+/**
+ * Initials for the avatar.
+ *
+ * Null-safe on purpose. `actor_name` is null whenever the account has been
+ * deleted — the audit row outliving the account is deliberate, so a null here is
+ * an expected state and not an edge case. The previous code called
+ * `.split()` unguarded because the mock always supplied a name, which would
+ * have crashed the entire table on the first real deleted actor.
+ */
+function getInitials(name: string | null): string {
+  if (!name || !name.trim()) return '?';
+
+  return name
+    .trim()
+    .split(/\s+/)
+    .map((part) => part.charAt(0))
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+}
+
+/**
+ * What to show in place of a deleted actor.
+ *
+ * Deliberately not a blank cell. A row with no name is unreadable, and
+ * "deleted" is more informative than a dash — it tells the reader that the
+ * person is gone, which is usually exactly what they are looking for.
+ */
+function getActorLabel(name: string | null, email: string | null): string {
+  if (name && name.trim()) return name;
+  if (email) return email;
+  return 'Deleted member';
 }
 
 function getDeviceIcon(device?: string): React.ElementType {
@@ -222,28 +176,34 @@ function formatActionLabel(action: string): string {
 
 // ─── Filter Fields ──────────────────────────────────────────────────────
 
-const FILTER_FIELDS: FilterField[] = [
+/**
+ * The filter fields are built at render time rather than being a module constant,
+ * because the Action Type list is loaded from the server.
+ *
+ * The previous version hardcoded `kyc`, `offer_code`, `reward` and `transaction`
+ * — verbs this product never recorded. An administrator selecting "KYC Events"
+ * was given an empty result and no indication the filter was nonsense. The
+ * options are now the actions that actually exist in the log.
+ */
+const buildFilterFields = (actions: string[]): FilterField[] => [
   {
     id: 'search',
     label: 'Search',
     type: 'text',
     placeholder: 'Actor, action, description...',
-    helpText: 'Search across actors, actions, and descriptions',
+    helpText: 'Search across actors, actions, descriptions and IP addresses',
   },
   {
     id: 'action',
     label: 'Action Type',
     type: 'select',
     placeholder: 'All Actions',
-    options: [
-      { value: 'user', label: 'User Actions' },
-      { value: 'transaction', label: 'Transactions' },
-      { value: 'admin', label: 'Admin Actions' },
-      { value: 'security', label: 'Security Events' },
-      { value: 'kyc', label: 'KYC Events' },
-      { value: 'offer_code', label: 'Offer Codes' },
-      { value: 'reward', label: 'Rewards' },
-    ],
+    options: actions.length
+      ? actions.map((action) => ({ value: action, label: formatActionLabel(action) }))
+      : [{ value: '', label: 'No actions recorded yet' }],
+    helpText: actions.length
+      ? 'Only actions that have actually been recorded are listed'
+      : 'Nothing has been recorded yet',
   },
   {
     id: 'status',
@@ -279,16 +239,32 @@ export default function AdminActivityLogPage() {
   const [logs, setLogs] = useState<AuditLogEntry[]>([]);
   const [stats, setStats] = useState<AuditLogStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalEvents, setTotalEvents] = useState(0);
   const [selectedLog, setSelectedLog] = useState<AuditLogEntry | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(false);
-  const perPage = 20;
+  const [availableActions, setAvailableActions] = useState<string[]>([]);
+
+  /**
+   * Server-side pagination, so the page size is the server's default rather than
+   * a number this screen invented.
+   */
+  const perPage = 25;
 
   const isAdmin = useMemo(
     () => Boolean(user?.roles?.some((role) => role === 'admin')),
     [user]
   );
+
+  /**
+   * Rebuilt whenever the server's action list changes, so the Action Type
+   * dropdown always offers verbs that actually exist rather than a hardcoded
+   * list including ones this product never recorded.
+   */
+  const filterFields = useMemo(() => buildFilterFields(availableActions), [availableActions]);
 
   const {
     isOpen,
@@ -300,9 +276,18 @@ export default function AdminActivityLogPage() {
     applyFilters,
     resetFilters,
   } = useFilters({
-    fields: FILTER_FIELDS,
+    fields: filterFields,
     onFiltersChange: () => setCurrentPage(1),
   });
+
+  /**
+   * A stable string describing the active filters, so the reload effect can
+   * depend on it. `filters` is a fresh object on every render, and depending on
+   * it directly would re-fetch in a loop.
+   *
+   * Declared after `useFilters` because it reads the value that returns it.
+   */
+  const appliedFiltersKey = JSON.stringify(filters);
 
   useEffect(() => {
     if (user && !isAdmin) {
@@ -310,74 +295,105 @@ export default function AdminActivityLogPage() {
     }
   }, [user, isAdmin, router]);
 
-  const loadLogs = async () => {
+  /**
+   * Load one page of entries plus the summary counts, in parallel.
+   *
+   * Both requests carry the SAME filters. They used to disagree: the summary was
+   * all-time while the table was filtered, which is how the header could claim
+   * 15,420 events above three visible rows. Two calls over one filter set cannot
+   * drift apart.
+   *
+   * On failure the table is emptied rather than left showing the previous result.
+   * A stale audit list beside a fresh-looking header reads as current data,
+   * which is the one thing an audit screen must never do.
+   */
+  const loadLogs = async (page = 1) => {
     try {
       setLoading(true);
-      // Simulate API call - replace with actual service
-      await new Promise((r) => setTimeout(r, 600));
-      const mockLogs = generateMockLogs(150);
-      setLogs(mockLogs);
-      setStats(MOCK_STATS);
+      setError(null);
+
+      const [listRes, statsRes] = await Promise.all([
+        activityLogService.getLogs(filters as ActivityLogFilters, page, perPage),
+        activityLogService.getStats(filters as ActivityLogFilters),
+      ]);
+
+      if (!listRes.success) {
+        setLogs([]);
+        setStats(null);
+        setTotalPages(1);
+        setTotalEvents(0);
+        setError(listRes.message || 'Could not load the activity log.');
+        return;
+      }
+
+      setLogs(listRes.data?.logs ?? []);
+      setTotalPages(Math.max(1, listRes.data?.pagination.last_page ?? 1));
+      setTotalEvents(listRes.data?.pagination.total ?? 0);
+      setStats(statsRes.success ? statsRes.data ?? null : null);
     } catch (err) {
-      console.error('Failed to load audit logs:', err);
+      console.error('Failed to load activity log:', err);
+      setLogs([]);
+      setStats(null);
+      setTotalPages(1);
+      setTotalEvents(0);
+      setError('Could not reach the server to load the activity log.');
     } finally {
       setLoading(false);
     }
   };
 
+  /**
+   * Load the real action list. Failure is not fatal: the screen still works and
+   * the dropdown simply offers nothing to narrow by.
+   */
+  const loadActions = async () => {
+    try {
+      const res = await activityLogService.getActions();
+      if (res.success) setAvailableActions(res.data?.actions ?? []);
+    } catch (err) {
+      console.error('Failed to load activity actions:', err);
+    }
+  };
+
   useEffect(() => {
-    if (isAdmin) loadLogs();
+    if (!isAdmin) return;
+    loadActions();
+    loadLogs(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin]);
 
-  // Auto-refresh every 30 seconds
+  // Reload whenever the applied filters change, because filtering is now a
+  // server concern rather than an in-memory one.
+  useEffect(() => {
+    if (!isAdmin) return;
+    loadLogs(currentPage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin, appliedFiltersKey]);
+
+  /**
+   * Auto-refresh, off by default.
+   *
+   * An audit screen that reloads itself every 30 seconds makes it impossible to
+   * finish copying an IP address out of a row.
+   */
   useEffect(() => {
     if (!autoRefresh || !isAdmin) return;
-    const interval = setInterval(loadLogs, 30000);
+    const interval = setInterval(() => loadLogs(currentPage), 30000);
     return () => clearInterval(interval);
-  }, [autoRefresh, isAdmin]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoRefresh, isAdmin, currentPage]);
 
-  const filteredLogs = useMemo(() => {
-    let result = [...logs];
-
-    if (filters.search) {
-      const q = filters.search.toLowerCase();
-      result = result.filter(
-        (l) =>
-          l.actor_name.toLowerCase().includes(q) ||
-          l.actor_email.toLowerCase().includes(q) ||
-          l.action.toLowerCase().includes(q) ||
-          l.description.toLowerCase().includes(q) ||
-          l.ip_address.includes(q)
-      );
-    }
-
-    if (filters.action) {
-      result = result.filter((l) => l.action.startsWith(filters.action));
-    }
-
-    if (filters.status) {
-      result = result.filter((l) => l.status === filters.status);
-    }
-
-    if (filters.date_from) {
-      const from = new Date(filters.date_from);
-      result = result.filter((l) => new Date(l.created_at) >= from);
-    }
-
-    if (filters.date_to) {
-      const to = new Date(filters.date_to);
-      to.setHours(23, 59, 59, 999);
-      result = result.filter((l) => new Date(l.created_at) <= to);
-    }
-
-    return result;
-  }, [logs, filters]);
-
-  const totalPages = Math.ceil(filteredLogs.length / perPage);
-  const paginatedLogs = filteredLogs.slice(
-    (currentPage - 1) * perPage,
-    currentPage * perPage
-  );
+  /**
+   * The server has already filtered and paged. These are the current page's
+   * rows, nothing more.
+   *
+   * The previous implementation filtered `logs` again in the browser and sliced
+   * it into pages. That is not merely redundant now — it is wrong, because it
+   * re-filtered the rows of ONE page against the whole filter set, so applying a
+   * filter would show fewer rows than the page held while the pagination
+   * controls still believed a full page was present.
+   */
+  const paginatedLogs = logs;
 
   const handleViewDetails = (log: AuditLogEntry) => {
     setSelectedLog(log);
@@ -428,7 +444,7 @@ export default function AdminActivityLogPage() {
               <span className="text-xs font-semibold text-gray-500">Auto-refresh</span>
             </label>
             <Button
-              onClick={loadLogs}
+              onClick={() => loadLogs(currentPage)}
               variant="secondary"
               size="sm"
               className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
@@ -473,7 +489,7 @@ export default function AdminActivityLogPage() {
         <div className="text-sm text-gray-500">
           {hasActiveFilters ? (
             <span>
-              Showing <strong className="text-gray-900">{filteredLogs.length}</strong> of{' '}
+              Showing <strong className="text-gray-900">{paginatedLogs.length}</strong> of{' '}
               <strong className="text-gray-900">{logs.length}</strong> events
             </span>
           ) : (
@@ -498,7 +514,7 @@ export default function AdminActivityLogPage() {
       <FilterPanel
         title="Filter Activity Log"
         description="Narrow down events by action type, status, date range, or search term"
-        fields={FILTER_FIELDS}
+        fields={filterFields}
         isOpen={isOpen}
         onClose={closeFilters}
         onApply={applyFilters}
@@ -511,6 +527,35 @@ export default function AdminActivityLogPage() {
       <Card className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
         {loading ? (
           <TableSkeleton rows={10} cols={6} />
+        ) : error ? (
+          /**
+           * A failed load is shown as a failure, never as an empty log.
+           *
+           * "No events found" on a screen whose job is to answer "did anything
+           * happen?" is the most dangerous possible misreading: an administrator
+           * would conclude nothing was done. The distinction has to be explicit.
+           */
+          <div className="flex flex-col items-center py-16">
+            <div className="flex h-16 w-16 items-center justify-center rounded-3xl border border-red-200 bg-red-50">
+              <AlertTriangle className="h-7 w-7 text-red-600" />
+            </div>
+            <h3 className="mt-5 text-xl font-black text-gray-900">
+              The activity log could not be loaded
+            </h3>
+            <p className="mt-2 max-w-md text-sm text-gray-600">{error}</p>
+            <p className="mt-1 max-w-md text-xs text-gray-500">
+              This is a loading failure, not an absence of activity. Nothing here
+              should be read as meaning that no events occurred.
+            </p>
+            <button
+              type="button"
+              onClick={() => loadLogs(currentPage)}
+              className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#C9A84C] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#B8962E]"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              Try again
+            </button>
+          </div>
         ) : paginatedLogs.length === 0 ? (
           <div className="flex flex-col items-center py-16">
             <div className="flex h-16 w-16 items-center justify-center rounded-3xl border border-gray-200 bg-gray-50">
@@ -546,7 +591,16 @@ export default function AdminActivityLogPage() {
                   {paginatedLogs.map((log) => {
                     const ActionIcon = getActionIcon(log.action);
                     const actionColor = getActionColor(log.action);
-                    const DeviceIcon = getDeviceIcon(log.metadata?.device);
+                    /**
+                     * `channel` is recorded by LoginListener and is a real key;
+                     * the mock's `device` key was invented here and would always
+                     * have been undefined against live data.
+                     */
+                    const DeviceIcon = getDeviceIcon(
+                      typeof log.metadata?.channel === 'string'
+                        ? log.metadata.channel
+                        : undefined
+                    );
 
                     return (
                       <tr
@@ -565,11 +619,11 @@ export default function AdminActivityLogPage() {
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-2.5">
                             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-bold text-gray-600">
-                              {log.actor_name.split(' ').map((n) => n[0]).join('').slice(0, 2)}
+                              {getInitials(log.actor_name)}
                             </div>
                             <div>
-                              <p className="text-sm font-semibold text-gray-900">{log.actor_name}</p>
-                              <p className="text-xs text-gray-400">{log.actor_email}</p>
+                              <p className="text-sm font-semibold text-gray-900">{getActorLabel(log.actor_name, log.actor_email)}</p>
+                              <p className="text-xs text-gray-400">{log.actor_email ?? '—'}</p>
                             </div>
                           </div>
                         </td>
@@ -638,7 +692,7 @@ export default function AdminActivityLogPage() {
                           <p className="text-sm font-black text-gray-900 capitalize">
                             {formatActionLabel(log.action)}
                           </p>
-                          <p className="text-xs text-gray-500">{log.actor_name}</p>
+                          <p className="text-xs text-gray-500">{getActorLabel(log.actor_name, log.actor_email)}</p>
                         </div>
                       </div>
                       <Badge variant={getStatusVariant(log.status)} size="sm">
@@ -669,11 +723,17 @@ export default function AdminActivityLogPage() {
             Page <span className="font-semibold text-gray-700">{currentPage}</span> of{' '}
             <span className="font-semibold text-gray-700">{totalPages}</span>
             {' '}&middot;{' '}
-            <span className="font-semibold text-gray-700">{filteredLogs.length}</span> total events
+            <span className="font-semibold text-gray-700">{totalEvents}</span> total events
           </p>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              onClick={() => {
+                    // Change the page AND fetch: filtering is server-side now,
+                    // so moving page state alone would redisplay the same rows.
+                    const next = Math.max(1, currentPage - 1);
+                    setCurrentPage(next);
+                    loadLogs(next);
+                  }}
               disabled={currentPage === 1}
               className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white disabled:opacity-40 hover:border-[#C9A84C]/40"
             >
@@ -683,7 +743,11 @@ export default function AdminActivityLogPage() {
               {currentPage} / {totalPages}
             </span>
             <button
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              onClick={() => {
+                    const next = Math.min(totalPages, currentPage + 1);
+                    setCurrentPage(next);
+                    loadLogs(next);
+                  }}
               disabled={currentPage === totalPages}
               className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white disabled:opacity-40 hover:border-[#C9A84C]/40"
             >
@@ -756,10 +820,10 @@ export default function AdminActivityLogPage() {
               <p className="mb-3 text-xs font-bold uppercase tracking-wider text-gray-500">Actor</p>
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#C9A84C]/10 text-sm font-bold text-[#C9A84C]">
-                  {selectedLog.actor_name.split(' ').map((n) => n[0]).join('').slice(0, 2)}
+                  {getInitials(selectedLog.actor_name)}
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-gray-900">{selectedLog.actor_name}</p>
+                  <p className="text-sm font-bold text-gray-900">{getActorLabel(selectedLog.actor_name, selectedLog.actor_email)}</p>
                   <p className="text-xs text-gray-500">{selectedLog.actor_email}</p>
                   <p className="text-xs text-gray-400">ID: {selectedLog.actor_id}</p>
                 </div>
@@ -779,12 +843,14 @@ export default function AdminActivityLogPage() {
                   <span className="text-gray-500">User Agent</span>
                   <p className="mt-1 font-mono text-xs text-gray-700 break-all">{selectedLog.user_agent}</p>
                 </div>
-                {selectedLog.metadata?.device && (
+                {typeof selectedLog.metadata?.channel === 'string' && (
                   <>
                     <div className="border-t border-gray-200" />
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-500">Device</span>
-                      <span className="font-semibold text-gray-900 capitalize">{selectedLog.metadata.device}</span>
+                      <span className="text-gray-500">Channel</span>
+                      <span className="font-semibold text-gray-900 capitalize">
+                        {selectedLog.metadata.channel}
+                      </span>
                     </div>
                   </>
                 )}
