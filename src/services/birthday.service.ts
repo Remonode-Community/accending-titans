@@ -219,8 +219,11 @@ class BirthdayService {
   }
 
   /** GET /admin/birthdays/eligible — payload key is `eligible_members`. */
-  async adminGetEligible(): Promise<ApiResponse<{ eligible_members: AdminBirthdayMember[] }>> {
-    return apiClient.get('/admin/birthdays/eligible');
+  async adminGetEligible(
+    scope: 'all' | 'month' = 'month'
+  ): Promise<ApiResponse<{ eligible_members: AdminBirthdayMember[] }>> {
+    const qs = scope === 'all' ? '?all=1' : '';
+    return apiClient.get(`/admin/birthdays/eligible${qs}`);
   }
 
   /** POST /admin/birthdays/assign-gift */

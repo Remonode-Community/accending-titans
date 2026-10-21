@@ -15,6 +15,7 @@
  */
 
 import type { NetworkMember } from '@/types/network.types';
+import type { BirthdayEligibilityRule } from '@/types/platform-settings.types';
 
 /* ──────────────────────────────────────────────
  * Network celebrations
@@ -277,9 +278,11 @@ export interface AdminWish {
 export interface BirthdayEligibility {
     date_of_birth: string | null;
     birthday_this_month: boolean;
+    birthday_month?: string | null;
     total_subscription_months: number;
     is_eligible_for_reward: boolean;
     is_shoutout_only: boolean;
+    eligibility_rule?: BirthdayEligibilityRule | null;
     current_reward: BirthdayReward | null;
 }
 
@@ -320,12 +323,15 @@ export interface AdminBirthdayMember {
     name: string;
     email: string;
     birth_date: string;
+    birthday_month?: string | null;
+    birthday_this_month?: boolean;
     age: number;
     rank: string | null;
     total_subscription_months: number;
     is_eligible: boolean;
     is_shoutout_only: boolean;
     reward: BirthdayReward | null;
+    business?: string | null;
 }
 
 export interface AssignGiftRequest {

@@ -1,6 +1,6 @@
-'use client';
+﻿'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Activity,
@@ -22,148 +22,37 @@ import {
   RefreshCw,
   ChevronLeft,
   ChevronRight,
-  Search,
   Clock,
   Globe,
   Smartphone,
   Monitor,
+  Gift,
+  Users,
+  Store,
 } from 'lucide-react';
 
 import { useAuthStore } from '@/store/auth.store';
-import { Card, CardBody, CardHeader } from '@/components/shared/Card';
+import { Card } from '@/components/shared/Card';
 import { Badge } from '@/components/shared/Badge';
 import { Button } from '@/components/shared/Button';
-import { Input } from '@/components/shared/Input';
 import { FilterPanel, type FilterField } from '@/components/shared/FilterPanel';
 import { useFilters } from '@/hooks/useFilters';
 import { Modal } from '@/components/shared/Modal';
 import { TableSkeleton } from '@/components/shared/SkeletonLoader';
-import { formatDate, formatDateTime } from '@/utils/format.utils';
+import { formatDateTime } from '@/utils/format.utils';
 import { clsx } from 'clsx';
+import { activityLogService } from '@/services/activity-log.service';
+import type {
+  ActivityLogEntry,
+  ActivityLogPagination,
+  ActivityLogStats,
+} from '@/types/activity-log.types';
 
-// ─── Types ──────────────────────────────────────────────────────────────
+// â”€â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-interface AuditLogEntry {
-  id: string | number;
-  actor_id: number;
-  actor_name: string;
-  actor_email: string;
-  action: string;
-  resource_type: string;
-  resource_id: string | number;
-  description: string;
-  status: 'success' | 'failure' | 'pending';
-  ip_address: string;
-  user_agent: string;
-  metadata: Record<string, any>;
-  created_at: string;
-}
+const PER_PAGE = 20;
 
-interface AuditLogStats {
-  total_events: number;
-  successful_events: number;
-  failed_events: number;
-  unique_actors: number;
-  events_today: number;
-  top_actions: Array<{ action: string; count: number }>;
-}
-
-// ─── Dummy Data ─────────────────────────────────────────────────────────
-
-const MOCK_STATS: AuditLogStats = {
-  total_events: 15420,
-  successful_events: 14890,
-  failed_events: 530,
-  unique_actors: 124,
-  events_today: 847,
-  top_actions: [
-    { action: 'user.login', count: 3421 },
-    { action: 'transaction.create', count: 2890 },
-    { action: 'user.update', count: 1256 },
-    { action: 'admin.action', count: 876 },
-    { action: 'notification.send', count: 654 },
-  ],
-};
-
-function generateMockLogs(count: number): AuditLogEntry[] {
-  const actors = [
-    { id: 1, name: 'John Admin', email: 'john@acceding-titans.com' },
-    { id: 2, name: 'Sarah Manager', email: 'sarah@acceding-titans.com' },
-    { id: 3, name: 'Mike SuperAdmin', email: 'mike@acceding-titans.com' },
-    { id: 5, name: 'Emma Support', email: 'emma@acceding-titans.com' },
-    { id: 8, name: 'David Operations', email: 'david@acceding-titans.com' },
-  ];
-
-  const actions = [
-    { action: 'user.login', resource: 'session', desc: 'User logged into the system', status: 'success' as const },
-    { action: 'user.logout', resource: 'session', desc: 'User logged out of the system', status: 'success' as const },
-    { action: 'user.create', resource: 'user', desc: 'New user account created', status: 'success' as const },
-    { action: 'user.update', resource: 'user', desc: 'User profile updated', status: 'success' as const },
-    { action: 'user.delete', resource: 'user', desc: 'User account deleted', status: 'success' as const },
-    { action: 'user.suspend', resource: 'user', desc: 'User account suspended', status: 'success' as const },
-    { action: 'user.verify', resource: 'user', desc: 'User account verified', status: 'success' as const },
-    { action: 'user.role.change', resource: 'role', desc: 'User role changed', status: 'success' as const },
-    { action: 'transaction.create', resource: 'transaction', desc: 'Transaction initiated', status: 'success' as const },
-    { action: 'transaction.complete', resource: 'transaction', desc: 'Transaction completed', status: 'success' as const },
-    { action: 'transaction.fail', resource: 'transaction', desc: 'Transaction failed', status: 'failure' as const },
-    { action: 'transaction.refund', resource: 'transaction', desc: 'Transaction refunded', status: 'success' as const },
-    { action: 'admin.settings.update', resource: 'settings', desc: 'Admin settings updated', status: 'success' as const },
-    { action: 'admin.notification.send', resource: 'notification', desc: 'Admin sent notification', status: 'success' as const },
-    { action: 'admin.email.send', resource: 'email', desc: 'Admin sent email campaign', status: 'success' as const },
-    { action: 'admin.report.generate', resource: 'report', desc: 'Report generated', status: 'success' as const },
-    { action: 'security.login.failed', resource: 'session', desc: 'Failed login attempt', status: 'failure' as const },
-    { action: 'security.2fa.enabled', resource: 'security', desc: 'Two-factor authentication enabled', status: 'success' as const },
-    { action: 'security.password.reset', resource: 'security', desc: 'Password reset requested', status: 'success' as const },
-    { action: 'offer_code.create', resource: 'offer_code', desc: 'New offer code created', status: 'success' as const },
-    { action: 'offer_code.redeem', resource: 'offer_code', desc: 'Offer code redeemed', status: 'success' as const },
-    { action: 'reward.payout', resource: 'reward', desc: 'Reward payout processed', status: 'success' as const },
-    { action: 'kyc.submit', resource: 'kyc', desc: 'KYC documentation submitted', status: 'pending' as const },
-    { action: 'kyc.approve', resource: 'kyc', desc: 'KYC application approved', status: 'success' as const },
-    { action: 'kyc.reject', resource: 'kyc', desc: 'KYC application rejected', status: 'failure' as const },
-  ];
-
-  const ips = ['192.168.1.1', '10.0.0.1', '172.16.0.1', '203.0.113.1', '198.51.100.1'];
-  const userAgents = [
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0',
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15',
-    'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Mobile/15E148',
-    'Mozilla/5.0 (Linux; Android 14) Chrome/120.0.0.0 Mobile',
-    'PostmanRuntime/7.36.0',
-  ];
-
-  const devices: ('web' | 'mobile' | 'api')[] = ['web', 'mobile', 'api'];
-
-  return Array.from({ length: count }, (_, i) => {
-    const actor = actors[Math.floor(Math.random() * actors.length)];
-    const actionData = actions[Math.floor(Math.random() * actions.length)];
-    const ip = ips[Math.floor(Math.random() * ips.length)];
-    const ua = userAgents[Math.floor(Math.random() * userAgents.length)];
-    const device = devices[Math.floor(Math.random() * devices.length)];
-
-    // Random date within the last 7 days
-    const date = new Date();
-    date.setDate(date.getDate() - Math.random() * 7);
-    date.setHours(date.getHours() - Math.random() * 24);
-
-    return {
-      id: `log-${Date.now()}-${i}`,
-      actor_id: actor.id,
-      actor_name: actor.name,
-      actor_email: actor.email,
-      action: actionData.action,
-      resource_type: actionData.resource,
-      resource_id: Math.floor(Math.random() * 10000) + 1,
-      description: actionData.desc,
-      status: actionData.status,
-      ip_address: ip,
-      user_agent: ua,
-      metadata: { device, browser: ua.split('/')[0] },
-      created_at: date.toISOString(),
-    };
-  }).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-}
-
-// ─── Action Helpers ─────────────────────────────────────────────────────
+// â”€â”€â”€ Action Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function getActionIcon(action: string): React.ElementType {
   if (action.startsWith('user.login')) return LogIn;
@@ -172,15 +61,15 @@ function getActionIcon(action: string): React.ElementType {
   if (action.startsWith('user.delete')) return UserX;
   if (action.startsWith('user.suspend')) return ShieldOff;
   if (action.startsWith('user.verify') || action.startsWith('user.role')) return Shield;
+  if (action.startsWith('user.birthday') || action.startsWith('reward')) return Gift;
+  if (action.startsWith('user.network') || action.startsWith('admin.network')) return Users;
+  if (action.startsWith('user.catalogue') || action.startsWith('admin.portfolio')) return Store;
   if (action.startsWith('transaction')) return DollarSign;
   if (action.startsWith('admin.settings')) return Settings;
   if (action.startsWith('admin.notification')) return Bell;
   if (action.startsWith('admin.email')) return Mail;
-  if (action.startsWith('admin.report')) return Activity;
+  if (action.startsWith('admin.report') || action.startsWith('admin.content')) return Activity;
   if (action.startsWith('security')) return AlertTriangle;
-  if (action.startsWith('kyc')) return CheckCircle;
-  if (action.startsWith('offer_code')) return Activity;
-  if (action.startsWith('reward')) return DollarSign;
   return Activity;
 }
 
@@ -189,13 +78,15 @@ function getActionColor(action: string): string {
   if (action.startsWith('user.create') || action.startsWith('user.verify')) return 'text-emerald-600 bg-emerald-50';
   if (action.startsWith('user.delete') || action.startsWith('user.suspend')) return 'text-red-600 bg-red-50';
   if (action.startsWith('user.role')) return 'text-purple-600 bg-purple-50';
+  if (action.startsWith('user.birthday') || action.startsWith('reward')) return 'text-pink-600 bg-pink-50';
+  if (action.startsWith('user.network') || action.startsWith('admin.network')) return 'text-teal-600 bg-teal-50';
+  if (action.startsWith('user.catalogue') || action.startsWith('admin.portfolio')) return 'text-indigo-600 bg-indigo-50';
   if (action.startsWith('transaction.complete')) return 'text-green-600 bg-green-50';
   if (action.startsWith('transaction.fail') || action.startsWith('transaction.refund')) return 'text-orange-600 bg-orange-50';
   if (action.startsWith('transaction')) return 'text-cyan-600 bg-cyan-50';
   if (action.startsWith('admin.settings')) return 'text-gray-600 bg-gray-50';
   if (action.startsWith('admin.notification') || action.startsWith('admin.email')) return 'text-amber-600 bg-amber-50';
-  if (action.startsWith('security') || action.startsWith('kyc.reject')) return 'text-rose-600 bg-rose-50';
-  if (action.startsWith('kyc')) return 'text-indigo-600 bg-indigo-50';
+  if (action.startsWith('security')) return 'text-rose-600 bg-rose-50';
   return 'text-slate-600 bg-slate-50';
 }
 
@@ -220,7 +111,7 @@ function formatActionLabel(action: string): string {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-// ─── Filter Fields ──────────────────────────────────────────────────────
+// â”€â”€â”€ Filter Fields â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const FILTER_FIELDS: FilterField[] = [
   {
@@ -236,13 +127,14 @@ const FILTER_FIELDS: FilterField[] = [
     type: 'select',
     placeholder: 'All Actions',
     options: [
-      { value: 'user', label: 'User Actions' },
+      { value: 'user.birthday', label: 'Birthday celebrations' },
+      { value: 'user.network', label: 'Member network' },
+      { value: 'user.catalogue', label: 'Business catalogue' },
+      { value: 'user', label: 'Other member actions' },
+      { value: 'admin', label: 'Admin actions' },
+      { value: 'security', label: 'Security events' },
+      { value: 'reward', label: 'Birthday rewards' },
       { value: 'transaction', label: 'Transactions' },
-      { value: 'admin', label: 'Admin Actions' },
-      { value: 'security', label: 'Security Events' },
-      { value: 'kyc', label: 'KYC Events' },
-      { value: 'offer_code', label: 'Offer Codes' },
-      { value: 'reward', label: 'Rewards' },
     ],
   },
   {
@@ -270,20 +162,21 @@ const FILTER_FIELDS: FilterField[] = [
   },
 ];
 
-// ─── Component ──────────────────────────────────────────────────────────
+// â”€â”€â”€ Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function AdminActivityLogPage() {
   const router = useRouter();
   const { user } = useAuthStore();
 
-  const [logs, setLogs] = useState<AuditLogEntry[]>([]);
-  const [stats, setStats] = useState<AuditLogStats | null>(null);
+  const [logs, setLogs] = useState<ActivityLogEntry[]>([]);
+  const [stats, setStats] = useState<ActivityLogStats | null>(null);
+  const [pagination, setPagination] = useState<ActivityLogPagination | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedLog, setSelectedLog] = useState<AuditLogEntry | null>(null);
+  const [selectedLog, setSelectedLog] = useState<ActivityLogEntry | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(false);
-  const perPage = 20;
 
   const isAdmin = useMemo(
     () => Boolean(user?.roles?.some((role) => role === 'admin')),
@@ -301,7 +194,10 @@ export default function AdminActivityLogPage() {
     resetFilters,
   } = useFilters({
     fields: FILTER_FIELDS,
-    onFiltersChange: () => setCurrentPage(1),
+    onFiltersChange: () => {
+      setLoading(true);
+      setCurrentPage(1);
+    },
   });
 
   useEffect(() => {
@@ -310,83 +206,81 @@ export default function AdminActivityLogPage() {
     }
   }, [user, isAdmin, router]);
 
-  const loadLogs = async () => {
-    try {
-      setLoading(true);
-      // Simulate API call - replace with actual service
-      await new Promise((r) => setTimeout(r, 600));
-      const mockLogs = generateMockLogs(150);
-      setLogs(mockLogs);
-      setStats(MOCK_STATS);
-    } catch (err) {
-      console.error('Failed to load audit logs:', err);
-    } finally {
-      setLoading(false);
-    }
+  const loadLogs = useCallback(
+    async (options?: { silent?: boolean }) => {
+      if (!isAdmin) return;
+
+      try {
+        const res = await activityLogService.adminList({
+          page: currentPage,
+          per_page: PER_PAGE,
+          search: filters.search || undefined,
+          action: filters.action || undefined,
+          status: filters.status || undefined,
+          date_from: filters.date_from || undefined,
+          date_to: filters.date_to || undefined,
+        });
+
+        if (!res.success || !res.data) {
+          setError(res.message || 'Unable to load the activity log.');
+          return;
+        }
+
+        setError(null);
+        setLogs(res.data.logs ?? []);
+        setStats(res.data.stats ?? null);
+        setPagination(res.data.pagination ?? null);
+      } catch (err) {
+        setError(
+          err instanceof Error && err.message
+            ? err.message
+            : 'Unable to load the activity log.'
+        );
+      } finally {
+        if (!options?.silent) setLoading(false);
+      }
+    },
+    [isAdmin, currentPage, filters]
+  );
+
+  const reload = () => {
+    setLoading(true);
+    void loadLogs();
+  };
+
+  const goToPage = (page: number) => {
+    if (page === currentPage) return;
+    setLoading(true);
+    setCurrentPage(page);
   };
 
   useEffect(() => {
-    if (isAdmin) loadLogs();
-  }, [isAdmin]);
+    // Fetch on mount and whenever the page or filters change. The rule flags
+    // the loading state that `loadLogs` sets after the request completes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadLogs();
+  }, [loadLogs]);
 
-  // Auto-refresh every 30 seconds
+  // Auto-refresh every 30 seconds, without flashing the table skeleton.
   useEffect(() => {
     if (!autoRefresh || !isAdmin) return;
-    const interval = setInterval(loadLogs, 30000);
+    const interval = setInterval(() => {
+      void loadLogs({ silent: true });
+    }, 30000);
     return () => clearInterval(interval);
-  }, [autoRefresh, isAdmin]);
+  }, [autoRefresh, isAdmin, loadLogs]);
 
-  const filteredLogs = useMemo(() => {
-    let result = [...logs];
+  const totalPages = pagination?.last_page ?? 1;
+  const totalEvents = pagination?.total ?? logs.length;
 
-    if (filters.search) {
-      const q = filters.search.toLowerCase();
-      result = result.filter(
-        (l) =>
-          l.actor_name.toLowerCase().includes(q) ||
-          l.actor_email.toLowerCase().includes(q) ||
-          l.action.toLowerCase().includes(q) ||
-          l.description.toLowerCase().includes(q) ||
-          l.ip_address.includes(q)
-      );
-    }
-
-    if (filters.action) {
-      result = result.filter((l) => l.action.startsWith(filters.action));
-    }
-
-    if (filters.status) {
-      result = result.filter((l) => l.status === filters.status);
-    }
-
-    if (filters.date_from) {
-      const from = new Date(filters.date_from);
-      result = result.filter((l) => new Date(l.created_at) >= from);
-    }
-
-    if (filters.date_to) {
-      const to = new Date(filters.date_to);
-      to.setHours(23, 59, 59, 999);
-      result = result.filter((l) => new Date(l.created_at) <= to);
-    }
-
-    return result;
-  }, [logs, filters]);
-
-  const totalPages = Math.ceil(filteredLogs.length / perPage);
-  const paginatedLogs = filteredLogs.slice(
-    (currentPage - 1) * perPage,
-    currentPage * perPage
-  );
-
-  const handleViewDetails = (log: AuditLogEntry) => {
+  const handleViewDetails = (log: ActivityLogEntry) => {
     setSelectedLog(log);
     setShowDetails(true);
   };
 
   if (!isAdmin) return null;
 
-  // ─── Render ──────────────────────────────────────────────────────────
+  // â”€â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   return (
     <div
@@ -400,7 +294,7 @@ export default function AdminActivityLogPage() {
         .scrollbar-hide::-webkit-scrollbar { display: none; }
       `}</style>
 
-      {/* ── Header ─────────────────────────────────────── */}
+      {/* â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div className="mb-8">
         <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-wider text-gray-600 shadow-sm">
           <Activity className="h-3.5 w-3.5 text-[#C9A84C]" />
@@ -428,7 +322,7 @@ export default function AdminActivityLogPage() {
               <span className="text-xs font-semibold text-gray-500">Auto-refresh</span>
             </label>
             <Button
-              onClick={loadLogs}
+              onClick={reload}
               variant="secondary"
               size="sm"
               className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
@@ -440,7 +334,22 @@ export default function AdminActivityLogPage() {
         </div>
       </div>
 
-      {/* ── Stats ───────────────────────────────────────── */}
+      {error && (
+        <div className="mb-6 flex items-start justify-between gap-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-600" />
+            <p className="text-sm font-medium text-red-700">{error}</p>
+          </div>
+          <button
+            onClick={reload}
+            className="shrink-0 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-100"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
+      {/* â”€â”€ Stats â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {stats && (
         <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
           {[
@@ -468,17 +377,18 @@ export default function AdminActivityLogPage() {
         </div>
       )}
 
-      {/* ── Filters ─────────────────────────────────────── */}
+      {/* â”€â”€ Filters â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div className="mb-4 flex items-center justify-between">
         <div className="text-sm text-gray-500">
           {hasActiveFilters ? (
             <span>
-              Showing <strong className="text-gray-900">{filteredLogs.length}</strong> of{' '}
-              <strong className="text-gray-900">{logs.length}</strong> events
+              <strong className="text-gray-900">{totalEvents.toLocaleString()}</strong>{' '}
+              matching {totalEvents === 1 ? 'event' : 'events'}
             </span>
           ) : (
             <span>
-              <strong className="text-gray-900">{logs.length}</strong> events recorded
+              <strong className="text-gray-900">{totalEvents.toLocaleString()}</strong>{' '}
+              {totalEvents === 1 ? 'event' : 'events'} recorded
             </span>
           )}
         </div>
@@ -507,11 +417,11 @@ export default function AdminActivityLogPage() {
         mobilePosition="auto"
       />
 
-      {/* ── Logs Table ──────────────────────────────────── */}
+      {/* â”€â”€ Logs Table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <Card className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
         {loading ? (
           <TableSkeleton rows={10} cols={6} />
-        ) : paginatedLogs.length === 0 ? (
+        ) : logs.length === 0 ? (
           <div className="flex flex-col items-center py-16">
             <div className="flex h-16 w-16 items-center justify-center rounded-3xl border border-gray-200 bg-gray-50">
               <Activity className="h-7 w-7 text-gray-400" />
@@ -543,7 +453,7 @@ export default function AdminActivityLogPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {paginatedLogs.map((log) => {
+                  {logs.map((log) => {
                     const ActionIcon = getActionIcon(log.action);
                     const actionColor = getActionColor(log.action);
                     const DeviceIcon = getDeviceIcon(log.metadata?.device);
@@ -620,7 +530,7 @@ export default function AdminActivityLogPage() {
 
             {/* Mobile Cards */}
             <div className="space-y-3 p-4 lg:hidden">
-              {paginatedLogs.map((log) => {
+              {logs.map((log) => {
                 const ActionIcon = getActionIcon(log.action);
                 const actionColor = getActionColor(log.action);
                 return (
@@ -662,18 +572,19 @@ export default function AdminActivityLogPage() {
         )}
       </Card>
 
-      {/* ── Pagination ───────────────────────────────────── */}
+      {/* â”€â”€ Pagination â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {totalPages > 1 && (
         <div className="mt-4 flex items-center justify-between rounded-2xl border border-gray-200 bg-white px-5 py-4 shadow-sm">
           <p className="text-xs text-gray-500">
-            Page <span className="font-semibold text-gray-700">{currentPage}</span> of{' '}
+            Page <span className="font-semibold text-gray-700">{pagination?.current_page ?? currentPage}</span> of{' '}
             <span className="font-semibold text-gray-700">{totalPages}</span>
             {' '}&middot;{' '}
-            <span className="font-semibold text-gray-700">{filteredLogs.length}</span> total events
+            <span className="font-semibold text-gray-700">{totalEvents.toLocaleString()}</span>{' '}
+            {totalEvents === 1 ? 'event' : 'events'}
           </p>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              onClick={() => goToPage(currentPage - 1)}
               disabled={currentPage === 1}
               className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white disabled:opacity-40 hover:border-[#C9A84C]/40"
             >
@@ -683,7 +594,7 @@ export default function AdminActivityLogPage() {
               {currentPage} / {totalPages}
             </span>
             <button
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              onClick={() => goToPage(currentPage + 1)}
               disabled={currentPage === totalPages}
               className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white disabled:opacity-40 hover:border-[#C9A84C]/40"
             >
@@ -693,7 +604,7 @@ export default function AdminActivityLogPage() {
         </div>
       )}
 
-      {/* ── Detail Modal ─────────────────────────────────── */}
+      {/* â”€â”€ Detail Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {showDetails && selectedLog && (
         <Modal
           isOpen={showDetails}
@@ -746,7 +657,8 @@ export default function AdminActivityLogPage() {
               <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">Resource</p>
                 <p className="mt-1.5 text-sm font-semibold text-gray-900 capitalize">
-                  {selectedLog.resource_type} #{selectedLog.resource_id}
+                  {selectedLog.resource_type ?? 'System'}
+                  {selectedLog.resource_id ? ` #${selectedLog.resource_id}` : ''}
                 </p>
               </div>
             </div>
@@ -761,7 +673,9 @@ export default function AdminActivityLogPage() {
                 <div>
                   <p className="text-sm font-bold text-gray-900">{selectedLog.actor_name}</p>
                   <p className="text-xs text-gray-500">{selectedLog.actor_email}</p>
-                  <p className="text-xs text-gray-400">ID: {selectedLog.actor_id}</p>
+                  <p className="text-xs text-gray-400">
+                    ID: {selectedLog.actor_id ?? 'Not linked'}
+                  </p>
                 </div>
               </div>
             </div>
@@ -792,7 +706,7 @@ export default function AdminActivityLogPage() {
             </div>
 
             {/* Raw Metadata */}
-            {Object.keys(selectedLog.metadata).length > 0 && (
+            {Object.keys(selectedLog.metadata ?? {}).length > 0 && (
               <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
                 <p className="mb-3 text-xs font-bold uppercase tracking-wider text-gray-500">Metadata</p>
                 <pre className="overflow-auto rounded-lg bg-white p-3 text-xs font-mono text-gray-700 max-h-40 border border-gray-200">

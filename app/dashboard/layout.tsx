@@ -33,6 +33,70 @@ import { Topbar } from '@/components/shared/Topbar';
 import { AuthProtected } from '@/components/AuthProtected';
 import { NotificationBell } from '@/components/dashboard/NotificationBell';
 import { RoleSwitcher } from '@/components/shared/RoleSwitcher';
+import { useFeatureStore } from '@/store/feature.store';
+import type { FeatureKey } from '@/types/platform-settings.types';
+
+/**
+ * Sidebar items that an administrator can switch off.
+ *
+ * Kept beside the navigation rather than inside each item so the nav array
+ * (and its explanatory comments) stay untouched.
+ */
+const NAV_FEATURES: Record<string, FeatureKey> = {
+  '/dashboard/catalogue': 'catalogue',
+  '/dashboard/subscriptions': 'subscriptions',
+  '/dashboard/wallet': 'wallet',
+  '/dashboard/birthdays': 'birthdays',
+  '/dashboard/network': 'network',
+  '/dashboard/content': 'content',
+  '/dashboard/rankings': 'rankings',
+  '/dashboard/referral': 'referrals',
+  '/dashboard/messages': 'messages',
+  '/dashboard/opportunities': 'opportunities',
+};
+
+/**
+ * Route prefixes owned by a switchable feature. Direct navigation is blocked
+ * too, not just the link: hiding a menu item is not access control.
+ */
+const FEATURE_ROUTE_PREFIXES: Array<{
+  prefix: string;
+  feature: FeatureKey;
+  label: string;
+}> = [
+  { prefix: '/dashboard/catalogue', feature: 'catalogue', label: 'Business Catalogue' },
+  { prefix: '/dashboard/subscriptions', feature: 'subscriptions', label: 'Subscription' },
+  { prefix: '/dashboard/wallet', feature: 'wallet', label: 'Wallet' },
+  { prefix: '/dashboard/birthdays', feature: 'birthdays', label: 'Birthdays' },
+  { prefix: '/dashboard/network', feature: 'network', label: 'Member Network' },
+  { prefix: '/dashboard/content', feature: 'content', label: 'Submit Content' },
+  { prefix: '/dashboard/rankings', feature: 'rankings', label: 'Rankings' },
+  { prefix: '/dashboard/referral', feature: 'referrals', label: 'Referral Program' },
+  { prefix: '/dashboard/messages', feature: 'messages', label: 'Messages' },
+  { prefix: '/dashboard/opportunities', feature: 'opportunities', label: 'Opportunities' },
+];
+
+function FeatureUnavailable({ label }: { label: string }) {
+  return (
+    <div className="flex min-h-[60vh] items-center justify-center px-4">
+      <div className="max-w-md rounded-2xl border border-gray-200 bg-white p-10 text-center shadow-sm">
+        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50">
+          <Settings size={26} className="text-amber-600" />
+        </div>
+        <h2 className="text-lg font-bold text-gray-900">{label} is unavailable</h2>
+        <p className="mt-2 text-sm text-gray-500">
+          This feature is temporarily switched off. Please check back later.
+        </p>
+        <Link
+          href="/dashboard"
+          className="mt-6 inline-flex items-center justify-center rounded-xl bg-[#C9A84C] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#B8962E]"
+        >
+          Back to dashboard
+        </Link>
+      </div>
+    </div>
+  );
+}
 
 const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const pathname = usePathname();
@@ -41,6 +105,10 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const { user, logout } = useAuth();
   const { activeRole } = useAuthStore();
   const { sidebarOpen } = useUIStore();
+
+  const features = useFeatureStore((s) => s.features);
+  const featuresLoaded = useFeatureStore((s) => s.loaded);
+  const loadFeatures = useFeatureStore((s) => s.load);
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -72,8 +140,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
   }, [user, router, pathname]);
 
   // Close avatar menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+  useEffect(() => {    const handleClickOutside = (event: MouseEvent) => {
       if (avatarMenuRef.current && !avatarMenuRef.current.contains(event.target as Node)) {
         setShowAvatarMenu(false);
       }
@@ -110,7 +177,26 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
     { href: '/dashboard/opportunities', label: 'Opportunities', icon: Award },
   ];
 
+  useEffect(() => {
+    if (user) loadFeatures();
+  }, [user, loadFeatures]);
+
   const isActive = (href: string) => pathname === href;
+
+  const visibleNavItems = featuresLoaded
+    ? navItems.filter((item) => {
+        const feature = NAV_FEATURES[item.href];
+        return !feature || features[feature] !== false;
+      })
+    : navItems;
+
+  const activeFeature = featuresLoaded
+    ? FEATURE_ROUTE_PREFIXES.find(
+        ({ prefix }) => pathname === prefix || pathname?.startsWith(`${prefix}/`)
+      )
+    : undefined;
+
+  const featureBlocked = Boolean(activeFeature && features[activeFeature.feature] === false);
 
   const initials = user?.first_name
     ? user.first_name.slice(0, 1).toUpperCase() + (user?.last_name?.slice(0, 1).toUpperCase() ?? '')
@@ -143,7 +229,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
       {/* Nav */}
       <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
-        {navItems.map((item) => {
+              {visibleNavItems.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.href);
 
@@ -335,7 +421,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
             </div>
 
             <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
-              {navItems.map((item) => {
+        {visibleNavItems.map((item) => {
                 const Icon = item.icon;
                 const active = isActive(item.href);
                 return (
@@ -384,7 +470,11 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
           {/* Main content */}
           <main className="flex-1 overflow-y-auto bg-[#f8f8f8] p-4 sm:p-6">
-            {children}
+            {featureBlocked && activeFeature ? (
+              <FeatureUnavailable label={activeFeature.label} />
+            ) : (
+              children
+            )}
           </main>
         </div>
       </div>

@@ -32,6 +32,7 @@ import {
   KeyRound,
   Store,
   Star,
+  SlidersHorizontal,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -115,6 +116,7 @@ const navGroups: NavGroup[] = [
     label: 'System',
     items: [
       { label: 'Activity Log', href: '/admin/activity-log', icon: Activity },
+      { label: 'Features', href: '/admin/features', icon: SlidersHorizontal },
       { label: 'Settings', href: '/admin/settings', icon: Settings },
     ],
   },

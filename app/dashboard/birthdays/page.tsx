@@ -199,7 +199,7 @@ export default function BirthdaysPage() {
                     <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">
                       {reward.is_shoutout_only
                         ? 'Shoutout only this month'
-                        : `${reward.total_subscription_months} of 8 months subscribed`}
+                        : `${reward.total_subscription_months} of ${reward.eligibility_rule?.min_subscription_months ?? 8} months subscribed`}
                     </span>
                   )}
                   {reward.birthday_this_month && (
@@ -208,6 +208,12 @@ export default function BirthdaysPage() {
                     </span>
                   )}
                 </div>
+
+                {reward.is_eligible_for_reward && !reward.birthday_this_month && reward.birthday_month && (
+                  <p className="text-xs text-gray-400">
+                    Your birthday is in {reward.birthday_month}, when the gift is celebrated.
+                  </p>
+                )}
 
                 {reward.current_reward ? (
                   <div className="rounded-xl border border-[#e5e7eb] bg-[#FDFAF3]/60 p-4">
@@ -226,8 +232,8 @@ export default function BirthdaysPage() {
                 ) : (
                   !reward.is_eligible_for_reward && (
                     <p className="text-xs text-gray-400">
-                      Reach 8 months of active subscription to unlock a physical
-                      gift from the community.
+                      Reach {reward.eligibility_rule?.min_subscription_months ?? 8} months of
+                      active subscription to unlock a physical gift from the community.
                     </p>
                   )
                 )}
