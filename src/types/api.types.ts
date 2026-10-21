@@ -611,13 +611,8 @@ export interface Refund {
   created_at: string;
 }
 
-export interface GenerateReportRequest {
-  type: 'revenue' | 'users' | 'transactions' | 'agents' | 'activity';
-  start_date: string;
-  end_date: string;
-  format?: 'pdf' | 'csv' | 'json';
-  include_charts?: boolean;
-}
+// `GenerateReportRequest` was removed with the Insights section
+// (/admin/reports). Its only consumer was adminService.generateReport.
 
 export interface Agent extends User {
   status: 'active' | 'inactive' | 'suspended';
