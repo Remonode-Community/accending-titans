@@ -11,7 +11,6 @@ import {
   Gift,
   Lock,
   PartyPopper,
-  Send,
   Sparkles,
 } from 'lucide-react';
 import { resolveTarget } from '@/components/birthday/BirthdayCountdownCard';
@@ -27,7 +26,6 @@ interface Props {
   viewerRole: BirthdayViewerRole;
   wishesCount: number;
   surpriseInProgress: boolean;
-  planningOpen: boolean;
 }
 
 const CONFETTI = [
@@ -54,7 +52,6 @@ export function CelebrationHero({
   viewerRole,
   wishesCount,
   surpriseInProgress,
-  planningOpen,
 }: Props) {
   const [remaining, setRemaining] = useState<number | null>(null);
 
@@ -304,25 +301,29 @@ export function CelebrationHero({
           style={{ animationDelay: '240ms' }}
         >
           <a
-            href="#wishes"
+            href="#journey"
             className="group inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#FFF3CF] via-[#F3D27A] to-[#D9B96A] px-5 py-3 text-sm font-bold text-[#241410] shadow-[0_12px_30px_-12px_rgba(243,210,122,0.7)] transition hover:brightness-105"
           >
-            {isNetwork ? <Send size={15} /> : <Gift size={15} />}
-            {isNetwork ? 'Leave a wish' : wishesCount > 0 ? 'Read the wall' : 'Your wish wall'}
+            {isNetwork ? <Sparkles size={15} /> : <Gift size={15} />}
+            {isNetwork ? 'Join the celebration' : 'Open your celebration'}
             <ArrowRight
               size={15}
               className="transition-transform group-hover:translate-x-0.5"
             />
           </a>
 
-          {isNetwork && planningOpen && (
-            <a
-              href="#planning"
-              className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/[0.05] px-5 py-3 text-sm font-semibold text-white/85 transition hover:bg-white/10"
-            >
-              <Sparkles size={14} className="text-[#F3D27A]" />
-              Planning room
-            </a>
+          {isNetwork && (
+            <span className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.05] px-4 py-3 text-[11px] font-semibold text-white/50">
+              Wish
+              <span className="text-white/20">·</span>
+              Gift
+              <span className="text-white/20">·</span>
+              Plan
+              <span className="text-white/20">·</span>
+              Chip in
+              <span className="text-white/20">·</span>
+              Reveal
+            </span>
           )}
 
           {!isNetwork && surpriseInProgress && (

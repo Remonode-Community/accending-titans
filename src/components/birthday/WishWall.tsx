@@ -19,11 +19,12 @@ const ACCENTS = [
 ];
 
 interface Props {
-  celebrantId: number;
   celebrantName: string;
   wishes: BirthdayWish[];
   canPost: boolean;
   busy?: boolean;
+  /** Renders the wall without its own card shell, for use inside a stepper stage. */
+  embedded?: boolean;
   onPost: (message: string) => Promise<void>;
   onDelete: (wishId: number) => Promise<void>;
 }
@@ -41,6 +42,7 @@ export function WishWall({
   wishes,
   canPost,
   busy = false,
+  embedded = false,
   onPost,
   onDelete,
 }: Props) {
@@ -63,28 +65,36 @@ export function WishWall({
   };
 
   return (
-    <section className={CARD}>
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#f1ece2] px-5 py-4 sm:px-6">
-        <div className="flex items-center gap-3">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#FFF3CF] to-[#F3D27A]/70 text-[#8A6F1F]">
-            <Gift size={16} />
-          </span>
-          <div>
-            <h2 className="text-base font-black tracking-tight text-gray-900">Birthday wall</h2>
-            <p className="mt-0.5 text-xs text-gray-400">
-              {wishes.length === 0
-                ? 'Be the first to leave a message'
-                : `${wishes.length} ${wishes.length === 1 ? 'wish' : 'wishes'} for ${firstName}`}
-            </p>
+    <section
+      className={
+        embedded
+          ? 'overflow-hidden rounded-2xl border border-[#f1ece2] bg-white'
+          : CARD
+      }
+    >
+      {!embedded && (
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#f1ece2] px-5 py-4 sm:px-6">
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#FFF3CF] to-[#F3D27A]/70 text-[#8A6F1F]">
+              <Gift size={16} />
+            </span>
+            <div>
+              <h2 className="text-base font-black tracking-tight text-gray-900">Birthday wall</h2>
+              <p className="mt-0.5 text-xs text-gray-400">
+                {wishes.length === 0
+                  ? 'Be the first to leave a message'
+                  : `${wishes.length} ${wishes.length === 1 ? 'wish' : 'wishes'} for ${firstName}`}
+              </p>
+            </div>
           </div>
-        </div>
 
-        {wishes.length > 0 && (
-          <span className="rounded-full border border-[#C9A84C]/25 bg-[#FDFAF3] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-[#B8962E]">
-            {wishes.length} on the wall
-          </span>
-        )}
-      </div>
+          {wishes.length > 0 && (
+            <span className="rounded-full border border-[#C9A84C]/25 bg-[#FDFAF3] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-[#B8962E]">
+              {wishes.length} on the wall
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Composer */}
       {canPost && (
