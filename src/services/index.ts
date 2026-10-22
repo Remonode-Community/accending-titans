@@ -15,7 +15,6 @@ export { tierUpgradeService } from './tier-upgrade.service';
 export { transactionService } from './transaction.service';
 export { walletService } from './wallet.service';
 export { advertisementService } from './advertisement.service';
-export { promotionalEmailService } from './promotional-email.service';
 export { usdAccountService } from './usd-account.service';
 export { ledgerService } from './ledger.service';
 export { subscriptionService } from './subscription.service';

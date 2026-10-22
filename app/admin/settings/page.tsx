@@ -7,12 +7,7 @@ import {
   Shield,
   Bell,
   Globe,
-  Mail,
-  Users,
-  Database,
   RefreshCw,
-  Eye,
-  EyeOff,
   CheckCircle,
   AlertCircle,
   Settings,
@@ -21,9 +16,6 @@ import {
 import { useAuthStore } from '@/store/auth.store';
 import { Card, CardBody, CardHeader } from '@/components/shared/Card';
 import { Button } from '@/components/shared/Button';
-import { Badge } from '@/components/shared/Badge';
-import { Input } from '@/components/shared/Input';
-import { Select } from '@/components/shared/Select';
 import { Toast } from '@/utils/toast.utils';
 
 // ─── Types ──────────────────────────────────────────────────────────────
@@ -45,24 +37,12 @@ interface AdminSettings {
     two_factor_required: boolean;
     pin_required_for_transactions: boolean;
   };
-  transactions: {
-    min_transaction_amount: number;
-    max_transaction_amount: number;
-    transaction_fee_percentage: number;
-    referral_bonus_amount: number;
-  };
   notifications: {
     email_notifications: boolean;
     push_notifications: boolean;
     sms_notifications: boolean;
     admin_email_alerts: boolean;
     low_balance_threshold: number;
-  };
-  integrations: {
-    paystack_public_key: string;
-    paystack_secret_key: string;
-    maplerad_api_key: string;
-    telnyx_api_key: string;
   };
 }
 
@@ -85,24 +65,12 @@ const DEFAULT_SETTINGS: AdminSettings = {
     two_factor_required: false,
     pin_required_for_transactions: true,
   },
-  transactions: {
-    min_transaction_amount: 50,
-    max_transaction_amount: 1000000,
-    transaction_fee_percentage: 1.5,
-    referral_bonus_amount: 500,
-  },
   notifications: {
     email_notifications: true,
     push_notifications: true,
     sms_notifications: false,
     admin_email_alerts: true,
     low_balance_threshold: 10000,
-  },
-  integrations: {
-    paystack_public_key: 'pk_test_********************',
-    paystack_secret_key: 'sk_test_********************',
-    maplerad_api_key: 'map_********************',
-    telnyx_api_key: 'KEY********************',
   },
 };
 
@@ -120,9 +88,7 @@ interface SectionConfig {
 const SECTIONS: SectionConfig[] = [
   { id: 'general', label: 'General', description: 'Platform name, support info, and regional settings', icon: Globe, color: 'text-blue-600', bgColor: 'bg-blue-50' },
   { id: 'security', label: 'Security', description: 'Authentication, verification, and session policies', icon: Shield, color: 'text-emerald-600', bgColor: 'bg-emerald-50' },
-  { id: 'transactions', label: 'Transactions', description: 'Fees, limits, and commission rates', icon: Database, color: 'text-purple-600', bgColor: 'bg-purple-50' },
   { id: 'notifications', label: 'Notifications', description: 'Email, push, SMS, and admin alert preferences', icon: Bell, color: 'text-amber-600', bgColor: 'bg-amber-50' },
-  { id: 'integrations', label: 'Integrations', description: 'API keys for payment and service providers', icon: Mail, color: 'text-rose-600', bgColor: 'bg-rose-50' },
 ];
 
 // ─── Helper ─────────────────────────────────────────────────────────────
@@ -151,7 +117,6 @@ export default function AdminSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [activeSection, setActiveSection] = useState('general');
-  const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
   const [successMessage, setSuccessMessage] = useState('');
   const [error, setError] = useState('');
 
@@ -214,10 +179,6 @@ export default function AdminSettingsPage() {
     }
   };
 
-  const toggleSecretVisibility = (key: string) => {
-    setShowSecrets((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
-
   if (!isAdmin) return null;
 
   // ─── Render helpers ─────────────────────────────────────────────────
@@ -230,8 +191,6 @@ export default function AdminSettingsPage() {
     options?: { value: string; label: string }[]
   ) => {
     const value = getNestedValue(settings, path);
-    const isSecret = path.includes('secret') || path.includes('api_key') || path.includes('public_key');
-    const showSecret = showSecrets[path];
 
     if (options) {
       return (
@@ -272,24 +231,13 @@ export default function AdminSettingsPage() {
     return (
       <div className="space-y-1.5">
         <label className="block text-sm font-semibold text-gray-700">{label}</label>
-        <div className="relative">
-          <input
-            type={isSecret && !showSecret ? 'password' : type}
-            value={value}
-            onChange={(e) => handleChange(path, isSecret ? e.target.value : type === 'number' ? Number(e.target.value) : e.target.value)}
-            placeholder={placeholder}
-            className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 outline-none transition focus:border-[#C9A84C] focus:ring-4 focus:ring-[#C9A84C]/10"
-          />
-          {isSecret && (
-            <button
-              type="button"
-              onClick={() => toggleSecretVisibility(path)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-            >
-              {showSecret ? <EyeOff size={16} /> : <Eye size={16} />}
-            </button>
-          )}
-        </div>
+        <input
+          type={type}
+          value={value}
+          onChange={(e) => handleChange(path, type === 'number' ? Number(e.target.value) : e.target.value)}
+          placeholder={placeholder}
+          className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 outline-none transition focus:border-[#C9A84C] focus:ring-4 focus:ring-[#C9A84C]/10"
+        />
       </div>
     );
   };
@@ -361,20 +309,6 @@ export default function AdminSettingsPage() {
           </div>
         );
 
-      case 'transactions':
-        return (
-          <div className="space-y-5">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {renderNumberField('transactions.min_transaction_amount', 'Min Transaction Amount (₦)', '50', 0)}
-              {renderNumberField('transactions.max_transaction_amount', 'Max Transaction Amount (₦)', '1000000', 0)}
-            </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {renderNumberField('transactions.transaction_fee_percentage', 'Transaction Fee (%)', '1.5', 0, 100, 0.1)}
-              {renderNumberField('transactions.referral_bonus_amount', 'Referral Bonus (₦)', '500', 0)}
-            </div>
-          </div>
-        );
-
       case 'notifications':
         return (
           <div className="space-y-5">
@@ -389,61 +323,6 @@ export default function AdminSettingsPage() {
               </div>
             </div>
             {renderNumberField('notifications.low_balance_threshold', 'Low Balance Alert Threshold (₦)', '10000', 0)}
-          </div>
-        );
-
-      case 'integrations':
-        return (
-          <div className="space-y-5">
-            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
-                <div>
-                  <p className="text-sm font-bold text-amber-800">Sensitive Credentials</p>
-                  <p className="mt-1 text-xs text-amber-700">
-                    API keys and secrets are displayed as masked for security. Toggle visibility to view or edit.
-                    These values are never exposed to the client.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
-              <div className="mb-4 flex items-center gap-2">
-                <div className="rounded-lg bg-blue-100 p-1.5">
-                  <Globe size={14} className="text-blue-600" />
-                </div>
-                <span className="text-sm font-bold text-gray-700">Paystack</span>
-              </div>
-              <div className="space-y-4">
-                {renderTextField('integrations.paystack_public_key', 'Public Key', 'pk_test_...')}
-                {renderTextField('integrations.paystack_secret_key', 'Secret Key', 'sk_test_...')}
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
-              <div className="mb-4 flex items-center gap-2">
-                <div className="rounded-lg bg-pink-100 p-1.5">
-                  <Globe size={14} className="text-pink-600" />
-                </div>
-                <span className="text-sm font-bold text-gray-700">Maplerad</span>
-              </div>
-              <div className="space-y-4">
-                {renderTextField('integrations.maplerad_api_key', 'API Key', 'map_...')}
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
-              <div className="mb-4 flex items-center gap-2">
-                <div className="rounded-lg bg-cyan-100 p-1.5">
-                  <Globe size={14} className="text-cyan-600" />
-                </div>
-                <span className="text-sm font-bold text-gray-700">Telnyx</span>
-              </div>
-              <div className="space-y-4">
-                {renderTextField('integrations.telnyx_api_key', 'API Key', 'KEY...')}
-              </div>
-            </div>
           </div>
         );
 
@@ -488,8 +367,7 @@ export default function AdminSettingsPage() {
             Admin Settings
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-gray-500">
-            Configure platform settings, security policies, transaction parameters,
-            notification preferences, and third-party integrations.
+            Configure platform settings, security policies, and notification preferences.
           </p>
         </div>
 

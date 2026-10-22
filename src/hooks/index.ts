@@ -15,7 +15,7 @@ export { useRole } from './useRole';
 export { useTierUpgrade } from './useTierUpgrade';
 export { useTierUpgradeFlow } from './useTierUpgradeFlow';
 export { useUpdateCustomer } from './useUpdateCustomer';
-export { useAdvertisements, useAdvertisementsAdmin } from './useAdvertisements';
+export { useAdvertisements } from './useAdvertisements';
 export { useTransfer } from './useTransfer';
 export { useBankTransfer } from './useBankTransfer';
 export { useUsdAccount } from './useUsdAccount';

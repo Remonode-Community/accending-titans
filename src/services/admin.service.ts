@@ -158,7 +158,7 @@ class AdminService {
   }
 
   // TRANSACTIONS ENDPOINTS
-  async getAllTransactions(page = 1, per_page = 10, filters?: any): Promise<any> {
+  async getAllTransactions(page = 1, per_page = 20, filters?: any): Promise<any> {
     const params = new URLSearchParams();
     params.append('page', String(page));
     params.append('per_page', String(per_page));
@@ -169,7 +169,7 @@ class AdminService {
       });
     }
 
-    return apiClient.get(`/transactions/all?${params.toString()}`);
+    return apiClient.get(`/admin/transactions?${params.toString()}`);
   }
 
   async getTransactionDetails(transactionId: string): Promise<any> {
@@ -327,37 +327,6 @@ class AdminService {
    */
   async revokePermissionFromRole(data: RevokePermissionRequest): Promise<ApiResponse<AssignPermissionResponse>> {
     return apiClient.post('/role/role/permission/revoke', data);
-  }
-
-  // OFFER CODES
-  async getOfferCodes(page = 1, per_page = 20, filters?: any): Promise<any> {
-    const params = new URLSearchParams();
-    params.append('page', String(page));
-    params.append('per_page', String(per_page));
-
-    if (filters) {
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value) params.append(key, String(value));
-      });
-    }
-
-    return apiClient.get(`/admin/offer-codes?${params.toString()}`);
-  }
-
-  async getOfferCode(offerId: number): Promise<any> {
-    return apiClient.get(`/admin/offer-codes/${offerId}`);
-  }
-
-  async createOfferCode(data: any): Promise<any> {
-    return apiClient.post('/admin/offer-codes', data);
-  }
-
-  async updateOfferCode(offerId: number, data: any): Promise<any> {
-    return apiClient.put(`/admin/offer-codes/${offerId}`, data);
-  }
-
-  async deleteOfferCode(offerId: number): Promise<any> {
-    return apiClient.delete(`/admin/offer-codes/${offerId}`);
   }
 
   // WALLET

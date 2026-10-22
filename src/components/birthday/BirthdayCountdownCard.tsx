@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Cake, PartyPopper, Sparkles } from 'lucide-react';
+import Link from 'next/link';
+import { ArrowRight, Cake, PartyPopper, Sparkles } from 'lucide-react';
 import type { BirthdayCountdown } from '@/types/birthday.types';
 
 /**
@@ -27,10 +28,14 @@ interface Props {
   celebrantName: string;
   /** First name only reads better in "Happy birthday, Adaeze". */
   compact?: boolean;
+  /** Whether the viewer is the celebrant, so the wording stays second person. */
+  isCelebrant?: boolean;
+  /** Where the "today" state should send the celebrant. Omit when already there. */
+  href?: string;
 }
 
 /** Resolves "m-d" to the next local occurrence of that calendar day. */
-function resolveTarget(monthDay: string): Date | null {
+export function resolveTarget(monthDay: string): Date | null {
   const match = /^(\d{1,2})-(\d{1,2})$/.exec(monthDay);
   if (!match) return null;
 
@@ -48,7 +53,13 @@ function resolveTarget(monthDay: string): Date | null {
   return target;
 }
 
-export function BirthdayCountdownCard({ countdown, celebrantName, compact = false }: Props) {
+export function BirthdayCountdownCard({
+  countdown,
+  celebrantName,
+  compact = false,
+  isCelebrant = true,
+  href,
+}: Props) {
   const [remaining, setRemaining] = useState<number | null>(null);
 
   const firstName = useMemo(
@@ -98,9 +109,20 @@ export function BirthdayCountdownCard({ countdown, celebrantName, compact = fals
             🎉 It&rsquo;s {firstName}&rsquo;s birthday!
           </p>
           <p className="mx-auto mt-2 max-w-md text-sm text-gray-600">
-            Your network is celebrating you today. Open your page to see the wishes
-            they have left.
+            {isCelebrant
+              ? 'Your network is celebrating you today. Open your page to see the wishes they have left.'
+              : `${firstName}'s network is celebrating them today. Leave a wish below.`}
           </p>
+
+          {href && (
+            <Link
+              href={href}
+              className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#C9A84C] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#B8962E]"
+            >
+              See your wishes
+              <ArrowRight size={15} />
+            </Link>
+          )}
         </div>
       </div>
     );

@@ -145,6 +145,7 @@ export default function BirthdaysPage() {
                   countdown={mine.countdown}
                   celebrantName={celebrantName}
                   compact
+                  href={user?.id ? `/dashboard/birthdays/${user.id}` : undefined}
                 />
               ) : (
                 <div className={`${CARD} p-6 text-center`}>

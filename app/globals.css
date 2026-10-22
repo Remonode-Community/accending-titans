@@ -469,3 +469,109 @@ body {
     line-height: var(--line-height-normal);
   }
 }
+
+/* ==================== BIRTHDAY CELEBRATION ==================== */
+
+@keyframes birthday-fall {
+  0% {
+    transform: translate3d(0, -40px, 0) rotate(0deg);
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.9;
+  }
+  88% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate3d(40px, 820px, 0) rotate(620deg);
+    opacity: 0;
+  }
+}
+
+@keyframes birthday-float {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-14px) rotate(4deg);
+  }
+}
+
+@keyframes birthday-shimmer {
+  0% {
+    transform: translateX(-140%) skewX(-18deg);
+  }
+  100% {
+    transform: translateX(240%) skewX(-18deg);
+  }
+}
+
+@keyframes birthday-glow {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.75;
+    transform: scale(1.1);
+  }
+}
+
+@keyframes birthday-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes birthday-rise {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.birthday-confetti {
+  position: absolute;
+  top: -24px;
+  width: 8px;
+  height: 13px;
+  border-radius: 2px;
+  animation: birthday-fall 9s linear infinite;
+  will-change: transform, opacity;
+}
+
+.birthday-float {
+  animation: birthday-float 7s ease-in-out infinite;
+}
+
+.birthday-glow {
+  animation: birthday-glow 9s ease-in-out infinite;
+}
+
+.birthday-shimmer {
+  animation: birthday-shimmer 3.6s ease-in-out infinite;
+}
+
+.birthday-ring-spin {
+  animation: birthday-spin 16s linear infinite;
+}
+
+.birthday-rise {
+  animation: birthday-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .birthday-confetti,
+  .birthday-float,
+  .birthday-glow,
+  .birthday-shimmer,
+  .birthday-ring-spin,
+  .birthday-rise {
+    animation: none !important;
+  }
+}

@@ -14,37 +14,53 @@ import { FilterPanel, type FilterField } from '@/components/shared/FilterPanel';
 import { useFilters } from '@/hooks/useFilters';
 import { Button } from '@/components/shared/Button';
 import { useAuthStore } from '@/store/auth.store';
+import { useAlert } from '@/hooks/useAlert';
 import { adminService } from '@/services/admin.service';
 import { formatCurrency, formatDate } from '@/utils/format.utils';
 import { Modal } from '@/components/shared/Modal';
 
 interface Transaction {
   id: string | number;
-  user_id: number;
+  user_id: number | null;
+  user_name: string;
+  user_email: string | null;
   transaction_type: string;
-  amount: string | number;  // API returns as string
+  amount: string | number;
   status: string;
-  transaction_date: string;
-  reference: string;
-  metadata?: Record<string, any>;
+  transaction_date: string | null;
+  reference: string | null;
+  description: string | null;
+  metadata?: Record<string, unknown>;
 }
 
 interface TransactionStats {
-  total_transactions?: number;
-  total_amount?: number;
-  completed_count?: number;
-  failed_count?: number;
-  pending_count?: number;
+  total_transactions: number;
+  total_amount: number;
+  completed_count: number;
+  failed_count: number;
+  pending_count: number;
 }
+
+const EMPTY_STATS: TransactionStats = {
+  total_transactions: 0,
+  total_amount: 0,
+  completed_count: 0,
+  failed_count: 0,
+  pending_count: 0,
+};
+
+const PER_PAGE = 20;
 
 export default function AdminTransactionsPage() {
   const router = useRouter();
   const { user } = useAuthStore();
+  const { showAlert } = useAlert();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [stats, setStats] = useState<TransactionStats>({});
+  const [stats, setStats] = useState<TransactionStats>(EMPTY_STATS);
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [showDetails, setShowDetails] = useState(false);
 
@@ -64,17 +80,18 @@ export default function AdminTransactionsPage() {
       id: 'search',
       label: 'Search',
       type: 'text',
-      placeholder: 'Reference, user ID...',
-      helpText: 'Search by transaction reference or user ID',
+      placeholder: 'Reference, member name, email...',
+      helpText: 'Search by reference, description, member name, or email',
     },
     {
       id: 'status',
       label: 'Status',
       type: 'select',
       options: [
-        { value: 'completed', label: 'Completed' },
+        { value: 'success', label: 'Successful' },
         { value: 'pending', label: 'Pending' },
         { value: 'failed', label: 'Failed' },
+        { value: 'reversed', label: 'Reversed' },
       ],
     },
     {
@@ -82,9 +99,10 @@ export default function AdminTransactionsPage() {
       label: 'Transaction Type',
       type: 'select',
       options: [
-        { value: 'bill_payment', label: 'Bill Payment' },
-        { value: 'wallet_topup', label: 'Wallet Top Up' },
-        { value: 'wallet_withdrawal', label: 'Wallet Withdrawal' },
+        { value: 'Subscription Payment', label: 'Subscription Payment' },
+        { value: 'Wallet Funding', label: 'Wallet Funding' },
+        { value: 'Withdrawal', label: 'Withdrawal' },
+        { value: 'Transfer', label: 'Transfer' },
       ],
     },
     {
@@ -120,72 +138,33 @@ export default function AdminTransactionsPage() {
     },
   });
 
-  const fetchTransactions = async (page = 1, filterValues?: Record<string, any>) => {
+  const fetchTransactions = async (page = 1, filterValues?: Record<string, unknown>) => {
     try {
       setIsLoading(true);
       const filtersToUse = filterValues || filters;
-      
-      const response = await adminService.getAllTransactions(page, 10, filtersToUse);
 
-      // The API returns data directly in response.data, not response.data.data
-      const transactionsData = response?.data?.transactions;
-      const paginationData = response?.data?.pagination;
+      const response = await adminService.getAllTransactions(page, PER_PAGE, filtersToUse);
+      const payload = response?.data;
 
-      if (!response?.data) {
+      if (!payload) {
         setTransactions([]);
-        setStats({});
+        setStats(EMPTY_STATS);
+        setTotalCount(0);
+        setTotalPages(1);
         return;
       }
 
-      // Set transactions
-      if (Array.isArray(transactionsData)) {
-        setTransactions(transactionsData);
-      } else {
-        setTransactions([]);
-      }
-
-      // Set pagination
-      if (paginationData) {
-        setTotalPages(paginationData.last_page || 1);
-      }
-
-      // Calculate stats
-      if (Array.isArray(transactionsData) && transactionsData.length > 0) {
-        const total = transactionsData.length;
-        const completed = transactionsData.filter(
-          (t: Transaction) => t.status === 'completed'
-        ).length;
-        const failed = transactionsData.filter(
-          (t: Transaction) => t.status === 'failed'
-        ).length;
-        const pending = transactionsData.filter(
-          (t: Transaction) => t.status === 'pending'
-        ).length;
-        const totalAmount = transactionsData.reduce(
-          (sum: number, t: Transaction) => sum + Number(t.amount),
-          0
-        );
-
-        setStats({
-          total_transactions: total,
-          total_amount: totalAmount,
-          completed_count: completed,
-          failed_count: failed,
-          pending_count: pending,
-        });
-      } else {
-        setStats({
-          total_transactions: 0,
-          total_amount: 0,
-          completed_count: 0,
-          failed_count: 0,
-          pending_count: 0,
-        });
-      }
+      setTransactions(Array.isArray(payload.transactions) ? payload.transactions : []);
+      setStats({ ...EMPTY_STATS, ...(payload.stats ?? {}) });
+      setTotalCount(payload.pagination?.total ?? 0);
+      setTotalPages(payload.pagination?.last_page || 1);
     } catch (error) {
       console.error('[AdminTransactions] Error fetching transactions:', error);
       setTransactions([]);
-      setStats({});
+      setStats(EMPTY_STATS);
+      setTotalCount(0);
+      setTotalPages(1);
+      showAlert('Failed to load transactions', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -197,44 +176,52 @@ export default function AdminTransactionsPage() {
 
   const getStatusBadge = (status: string) => {
     const statusStyles: Record<string, { bg: string; text: string }> = {
+      success: { bg: 'bg-green-100', text: 'text-green-800' },
       completed: { bg: 'bg-green-100', text: 'text-green-800' },
       failed: { bg: 'bg-red-100', text: 'text-red-800' },
       pending: { bg: 'bg-yellow-100', text: 'text-yellow-800' },
-      success: { bg: 'bg-[#f0f2ff]', text: 'text-[#8a96ff]' },
+      reversed: { bg: 'bg-purple-100', text: 'text-purple-800' },
       delivered: { bg: 'bg-blue-100', text: 'text-blue-800' },
     };
     
     const style = statusStyles[status] || { bg: 'bg-gray-100', text: 'text-gray-800' };
     return (
-      <span className={`inline-block font-medium rounded-full ${style.bg} ${style.text} px-3 py-1 caption`}>
+      <span className={`inline-block font-medium rounded-full ${style.bg} ${style.text} px-3 py-1 caption capitalize`}>
         {status}
       </span>
     );
   };
 
+  const successRate = stats.total_transactions
+    ? Math.round((stats.completed_count / stats.total_transactions) * 100)
+    : 0;
+
   const statsItems = [
     {
       title: 'Total Transactions',
-      value: stats.total_transactions || 0,
-      change: { value: 'Last 24h', direction: 'neutral' as const },
+      value: stats.total_transactions,
+      change: { value: 'All time', direction: 'neutral' as const },
     },
     {
       title: 'Total Volume',
-      value: formatCurrency(stats.total_amount || 0),
-      change: { value: '+5.2%', direction: 'up' as const },
-    },
-    {
-      title: 'Successful',
-      value: stats.completed_count || 0,
+      value: formatCurrency(stats.total_amount),
       change: {
-        value: `${stats.total_transactions ? Math.round((stats.completed_count || 0) / stats.total_transactions * 100) : 0}%`,
-        direction: 'up' as const,
+        value: `${stats.completed_count} successful`,
+        direction: 'neutral' as const,
       },
     },
     {
+      title: 'Successful',
+      value: stats.completed_count,
+      change: { value: `${successRate}%`, direction: 'up' as const },
+    },
+    {
       title: 'Failed',
-      value: stats.failed_count || 0,
-      change: { value: '-2.1%', direction: 'down' as const },
+      value: stats.failed_count,
+      change: {
+        value: `${stats.pending_count} pending`,
+        direction: 'neutral' as const,
+      },
     },
   ];
 
@@ -242,17 +229,26 @@ export default function AdminTransactionsPage() {
     {
       key: 'reference',
       label: 'Reference',
-      width: '120px',
+      width: '150px',
+      render: (value: string | null) => value || '—',
     },
     {
-      key: 'user_id',
-      label: 'User ID',
-      width: '100px',
+      key: 'user_name',
+      label: 'Member',
+      width: '200px',
+      render: (value: string, row: Transaction) => (
+        <div>
+          <div className="font-medium text-slate-900 dark:text-white">{value || 'Unknown member'}</div>
+          {row.user_email && (
+            <div className="caption text-slate-500 dark:text-slate-400">{row.user_email}</div>
+          )}
+        </div>
+      ),
     },
     {
       key: 'transaction_type',
       label: 'Type',
-      width: '150px',
+      width: '160px',
     },
     {
       key: 'amount',
@@ -270,7 +266,7 @@ export default function AdminTransactionsPage() {
       key: 'transaction_date',
       label: 'Date',
       width: '150px',
-      render: (value: string) => formatDate(value),
+      render: (value: string | null) => (value ? formatDate(value) : '—'),
     },
     {
       key: 'id',
@@ -344,10 +340,10 @@ export default function AdminTransactionsPage() {
         loading={isLoading}
         currentPage={currentPage}
         totalPages={totalPages}
-        total={stats.total_transactions}
+        total={totalCount}
         onPageChange={setCurrentPage}
         title="All Transactions"
-        perPage={50}
+        perPage={PER_PAGE}
       />
 
       {showDetails && selectedTransaction && (
@@ -371,10 +367,13 @@ export default function AdminTransactionsPage() {
                 </p>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-600">User ID</p>
+                <p className="text-sm font-medium text-gray-600">Member</p>
                 <p className="mt-1 text-base font-semibold text-gray-900">
-                  {selectedTransaction.user_id}
+                  {selectedTransaction.user_name || 'Unknown member'}
                 </p>
+                {selectedTransaction.user_email && (
+                  <p className="text-sm text-gray-500">{selectedTransaction.user_email}</p>
+                )}
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-600">Type</p>
@@ -391,9 +390,19 @@ export default function AdminTransactionsPage() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Date</p>
                 <p className="mt-1 text-base font-semibold text-gray-900">
-                  {formatDate(selectedTransaction.transaction_date)}
+                  {selectedTransaction.transaction_date
+                    ? formatDate(selectedTransaction.transaction_date)
+                    : '—'}
                 </p>
               </div>
+              {selectedTransaction.description && (
+                <div className="col-span-2">
+                  <p className="text-sm font-medium text-gray-600">Description</p>
+                  <p className="mt-1 text-base font-semibold text-gray-900">
+                    {selectedTransaction.description}
+                  </p>
+                </div>
+              )}
             </div>
 
             {selectedTransaction.metadata && (
