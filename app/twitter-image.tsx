@@ -2,9 +2,9 @@ import { BRAND } from '@/lib/seo/config';
 import { OG_SIZE } from '@/lib/seo/og';
 import { renderBrandCard } from './opengraph-image';
 
-/**
+/** 
  * Twitter / X card image — /twitter-image
- *
+ * test
  * X does not reliably fall back to `og:image`, and it applies its own crop on
  * top of the 1.91:1 OG image. Reusing the same generated card keeps the
  * branding identical across X, WhatsApp, Facebook and LinkedIn instead of
