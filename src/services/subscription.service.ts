@@ -2,7 +2,6 @@ import { apiClient } from './api-client';
 import type { ApiResponse } from '@/types/api.types';
 import type {
   SubscriptionPlan,
-  ActiveSubscription,
   PlansResponse,
   InitializeSubscriptionResponse,
   SubscriptionInitializeRequest,
@@ -13,7 +12,6 @@ import type {
   EnableDisableResponse,
   EnableDisableRequest,
   ManageLinkResponse,
-  RemainingHoursResponse,
   CancelAutoRenewResponse,
   PaginationInfo,
   AdminSubscriptionPlan,
@@ -24,10 +22,11 @@ import type {
 
 class SubscriptionService {
   /**
-   * Normalize a plan's features field from any shape to string[].
-   * The backend may return features as a JSON-encoded string, a plain string,
-   * an array, null, or even a double-encoded string. This ensures it is
-   * always a proper string[] before components consume it.
+   * Normalize a plan's `features` field to string[].
+   *
+   * The API returns registry keys as an array, but an older record (or a
+   * double-encoded value) can still arrive as JSON text. Normalising here keeps
+   * every consumer working with a plain array.
    */
   private normalizeFeatures(features: unknown): string[] {
     if (!features) return [];
@@ -54,7 +53,7 @@ class SubscriptionService {
   }
 
   /** Normalise a single SubscriptionPlan so `features` is always string[] */
-  private normalizePlan(plan: any): SubscriptionPlan {
+  private normalizePlan(plan: SubscriptionPlan): SubscriptionPlan {
     return {
       ...plan,
       features: this.normalizeFeatures(plan?.features),
@@ -154,12 +153,8 @@ class SubscriptionService {
     );
   }
 
-  /** GET /v1/subscriptions/remaining-hours — Get remaining hours for today */
-  async getRemainingHours(): Promise<ApiResponse<RemainingHoursResponse>> {
-    return apiClient.get<RemainingHoursResponse>(
-      '/subscriptions/remaining-hours'
-    );
-  }
+  /** GET /v1/subscriptions/remaining-hours — legacy endpoint, no longer used */
+  // Timing access was removed from plans; the client no longer requests it.
 
   // ── Admin Endpoints ─────────────────────────────────────────────
 

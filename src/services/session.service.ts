@@ -4,7 +4,6 @@ import type {
   SessionStartResponse,
   SessionEndResponse,
   TodaySession,
-  RemainingHours,
 } from '@/types/session.types';
 
 class SessionService {
@@ -21,11 +20,6 @@ class SessionService {
   /** GET /sessions/today */
   async getToday(): Promise<ApiResponse<TodaySession>> {
     return apiClient.get('/sessions/today');
-  }
-
-  /** GET /sessions/remaining */
-  async getRemaining(): Promise<ApiResponse<RemainingHours>> {
-    return apiClient.get('/sessions/remaining');
   }
 }
 

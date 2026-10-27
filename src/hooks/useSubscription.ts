@@ -3,12 +3,12 @@
 import { useCallback, useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useAlert } from '@/hooks/useAlert';
+import { useFeatureStore } from '@/store/feature.store';
 import { subscriptionService } from '@/services/subscription.service';
 import type {
   SubscriptionPlan,
   ActiveSubscription,
   SubscriptionHistoryItem,
-  DailyHoursInfo,
   InitializeSubscriptionResponse,
 } from '@/types/subscription.types';
 
@@ -23,11 +23,6 @@ interface UseSubscriptionReturn {
   hasActiveSubscription: boolean;
   subscriptionLoading: boolean;
   fetchSubscription: () => Promise<void>;
-
-  // Daily hours
-  dailyHours: DailyHoursInfo | null;
-  hoursLoading: boolean;
-  fetchRemainingHours: () => Promise<void>;
 
   // History
   history: SubscriptionHistoryItem[];
@@ -59,6 +54,7 @@ interface UseSubscriptionReturn {
 export function useSubscription(): UseSubscriptionReturn {
   const { user } = useAuth();
   const { showAlert } = useAlert();
+  const refreshEntitlements = useFeatureStore((s) => s.load);
 
   // Plans
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
@@ -68,10 +64,6 @@ export function useSubscription(): UseSubscriptionReturn {
   const [subscription, setSubscription] = useState<ActiveSubscription | null>(null);
   const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
   const [subscriptionLoading, setSubscriptionLoading] = useState(false);
-
-  // Daily hours
-  const [dailyHours, setDailyHours] = useState<DailyHoursInfo | null>(null);
-  const [hoursLoading, setHoursLoading] = useState(false);
 
   // History
   const [history, setHistory] = useState<SubscriptionHistoryItem[]>([]);
@@ -126,22 +118,6 @@ export function useSubscription(): UseSubscriptionReturn {
       setSubscription(null);
     } finally {
       setSubscriptionLoading(false);
-    }
-  }, []);
-
-  // ── Fetch Remaining Hours ───────────────────────────────────────
-
-  const fetchRemainingHours = useCallback(async () => {
-    setHoursLoading(true);
-    try {
-      const res = await subscriptionService.getRemainingHours();
-      if (res.success && res.data?.daily_hours) {
-        setDailyHours(res.data.daily_hours);
-      }
-    } catch {
-      // Silently fail — hours are non-critical
-    } finally {
-      setHoursLoading(false);
     }
   }, []);
 
@@ -203,8 +179,10 @@ export function useSubscription(): UseSubscriptionReturn {
         });
         if (res.success) {
           showAlert('Subscription activated successfully!', 'success');
-          // Refresh subscription data
+          // Refresh subscription data and the feature map: activating a plan
+          // unlocks its features immediately.
           await fetchSubscription();
+          await refreshEntitlements(true);
           return true;
         }
         setError(res.message || 'Failed to verify payment');
@@ -219,7 +197,7 @@ export function useSubscription(): UseSubscriptionReturn {
         setActionLoading(false);
       }
     },
-    [fetchSubscription, showAlert]
+    [fetchSubscription, refreshEntitlements, showAlert]
   );
 
   // ── Enable Subscription ─────────────────────────────────────────
@@ -238,6 +216,7 @@ export function useSubscription(): UseSubscriptionReturn {
         if (res.success) {
           showAlert('Subscription enabled successfully', 'success');
           await fetchSubscription();
+          await refreshEntitlements(true);
           return true;
         }
         showAlert(res.message || 'Failed to enable subscription', 'error');
@@ -249,7 +228,7 @@ export function useSubscription(): UseSubscriptionReturn {
         setActionLoading(false);
       }
     },
-    [fetchSubscription, showAlert]
+    [fetchSubscription, refreshEntitlements, showAlert]
   );
 
   // ── Disable Subscription ────────────────────────────────────────
@@ -268,6 +247,7 @@ export function useSubscription(): UseSubscriptionReturn {
         if (res.success) {
           showAlert('Subscription disabled successfully', 'success');
           await fetchSubscription();
+          await refreshEntitlements(true);
           return true;
         }
         showAlert(res.message || 'Failed to disable subscription', 'error');
@@ -279,7 +259,7 @@ export function useSubscription(): UseSubscriptionReturn {
         setActionLoading(false);
       }
     },
-    [fetchSubscription, showAlert]
+    [fetchSubscription, refreshEntitlements, showAlert]
   );
 
   // ── Cancel Auto-Renew ───────────────────────────────────────────
@@ -291,6 +271,7 @@ export function useSubscription(): UseSubscriptionReturn {
       if (res.success) {
         showAlert('Auto-renewal cancelled successfully', 'success');
         await fetchSubscription();
+        await refreshEntitlements(true);
         return true;
       }
       showAlert(res.message || 'Failed to cancel auto-renewal', 'error');
@@ -301,7 +282,7 @@ export function useSubscription(): UseSubscriptionReturn {
     } finally {
       setActionLoading(false);
     }
-  }, [fetchSubscription, showAlert]);
+  }, [fetchSubscription, refreshEntitlements, showAlert]);
 
   // ── Get Card Update Link ────────────────────────────────────────
 
@@ -380,11 +361,6 @@ export function useSubscription(): UseSubscriptionReturn {
     hasActiveSubscription,
     subscriptionLoading,
     fetchSubscription,
-
-    // Daily hours
-    dailyHours,
-    hoursLoading,
-    fetchRemainingHours,
 
     // History
     history,

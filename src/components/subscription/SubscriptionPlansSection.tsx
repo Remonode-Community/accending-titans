@@ -1,27 +1,20 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   CheckCircle2,
   BadgeCheck,
   Sparkles,
   Star,
-  Zap,
   ArrowRight,
   Loader2,
   Crown,
-  Clock,
-  Infinity,
-  Headphones,
-  TrendingUp,
-  Briefcase,
-  Video,
-  BarChart3,
-  Palette,
-  Gem,
+  Layers,
 } from 'lucide-react';
 import { subscriptionService } from '@/services/subscription.service';
+import { useFeatureStore } from '@/store/feature.store';
 import type { SubscriptionPlan } from '@/types/subscription.types';
 
 /** Map plan slugs to relevant icon components */
@@ -31,93 +24,91 @@ const PLAN_ICONS: Record<string, React.ElementType> = {
   premium: Crown,
 };
 
-/** Map plan slugs to gradient styles for card headers */
-const PLAN_GRADIENTS: Record<
-  string,
-  { from: string; to: string; badge: string }
-> = {
-  basic: {
-    from: 'from-gray-50',
-    to: 'to-white',
-    badge: 'bg-gray-100 text-gray-700 border-gray-200',
-  },
-  standard: {
-    from: 'from-amber-50',
-    to: 'to-white',
-    badge: 'bg-[#C9A84C]/10 text-[#C9A84C] border-[#C9A84C]/20',
-  },
-  premium: {
-    from: 'from-yellow-50',
-    to: 'to-white',
-    badge: 'bg-[#C9A84C]/15 text-[#C9A84C] border-[#C9A84C]/30',
-  },
+/**
+ * Registry labels mirrored from `config/features.php`.
+ *
+ * The home page is public, so an anonymous visitor cannot read `/v1/features`
+ * and the catalogue is empty. These labels keep the pricing cards readable in
+ * that case; a signed-in catalogue entry always wins.
+ */
+const FEATURE_LABELS: Record<string, string> = {
+  catalogue: 'Business Catalogue',
+  wallet: 'Wallet',
+  birthdays: 'Birthdays',
+  network: 'Member Network',
+  content: 'Submit Content',
+  rankings: 'Rankings',
+  referrals: 'Referral Program',
+  messages: 'Messages',
+  opportunities: 'Opportunities',
 };
-
-/** Feature icon map for additional detail */
-const FEATURE_ICONS: Record<string, React.ElementType> = {
-  'Unlimited': Infinity,
-  'unlimited': Infinity,
-  'hours': Clock,
-  'access': Zap,
-  'support': Headphones,
-  'Support': Headphones,
-  'portfolio': Briefcase,
-  'Portfolio': Briefcase,
-  'Priority': TrendingUp,
-  'priority': TrendingUp,
-  'VIP': Gem,
-  'VIP ': Gem,
-  'Birthday': Star,
-  'birthday': Star,
-  'Video': Video,
-  'video': Video,
-  'Premium': Crown,
-  'premium': Crown,
-  'analytics': BarChart3,
-  'Analytics': BarChart3,
-  'design': Palette,
-  'Design': Palette,
-};
-
-function getFeatureIcon(feature: string): React.ElementType {
-  const matchedKey = Object.keys(FEATURE_ICONS).find((key) =>
-    feature.toLowerCase().includes(key.toLowerCase())
-  );
-  return matchedKey ? FEATURE_ICONS[matchedKey] : CheckCircle2;
-}
 
 function parseFeatures(features: unknown): string[] {
   if (!features) return [];
-  if (Array.isArray(features)) return features.filter((f): f is string => typeof f === 'string');
+  if (Array.isArray(features)) {
+    return features.filter((f): f is string => typeof f === 'string');
+  }
   if (typeof features === 'string') {
-    // Try unwrapping JSON-encoded strings (including deeply nested ones)
-    let current: string = features;
-    for (let i = 0; i < 3; i++) {
-      const trimmed = current.trim();
-      if (trimmed.startsWith('[') || trimmed.startsWith('{') || trimmed.startsWith('"')) {
-        try {
-          const parsed = JSON.parse(current);
-          return parseFeatures(parsed);
-        } catch {
-          break;
-        }
-      } else {
-        break;
+    const trimmed = features.trim();
+    if (!trimmed) return [];
+    if (
+      trimmed.startsWith('[') ||
+      trimmed.startsWith('{') ||
+      trimmed.startsWith('"')
+    ) {
+      try {
+        return parseFeatures(JSON.parse(trimmed));
+      } catch {
+        // Not valid JSON — treat it as a single label below.
       }
     }
-    // Plain string — treat as a single feature if non-empty
-    return features.trim() ? [features.trim()] : [];
+    return [trimmed];
   }
   return [];
 }
 
-function formatPrice(price: number | null | undefined): string {
-  return `₦${(price ?? 0).toLocaleString()}`;
+const INTERVAL_LABELS: Record<string, string> = {
+  daily: 'day',
+  weekly: 'week',
+  monthly: 'month',
+  quarterly: 'quarter',
+  biannually: '6 months',
+  yearly: 'year',
+  annually: 'year',
+};
+
+function intervalSuffix(interval?: string | null, durationDays?: number | null): string {
+  if (interval && INTERVAL_LABELS[interval]) {
+    return `/${INTERVAL_LABELS[interval]}`;
+  }
+  if (durationDays) {
+    return `/${durationDays} days`;
+  }
+  return '/month';
 }
 
-function getDailyAccessText(hoursLimit: number): string {
-  if (hoursLimit === 0) return 'Unlimited daily access';
-  return `${hoursLimit}h daily access`;
+function humanizeFeature(key: string): string {
+  return key
+    .split(/[_-]/)
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  NGN: '₦',
+  USD: '$',
+  GBP: '£',
+  EUR: '€',
+};
+
+function formatPrice(
+  price: number | null | undefined,
+  currency?: string | null
+): string {
+  const code = (currency || 'NGN').toUpperCase();
+  const symbol = CURRENCY_SYMBOLS[code] ?? `${code} `;
+  return `${symbol}${(price ?? 0).toLocaleString()}`;
 }
 
 function getPlanDescription(slug: string): string {
@@ -140,14 +131,12 @@ export function SubscriptionPlansSection({
   onSelectPlan,
   showViewAll = true,
 }: SubscriptionPlansSectionProps) {
+  const router = useRouter();
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [loading, setLoading] = useState(true);
+  const catalogue = useFeatureStore((state) => state.catalogue);
 
-  useEffect(() => {
-    loadPlans();
-  }, []);
-
-  const loadPlans = async () => {
+  const loadPlans = useCallback(async () => {
     try {
       setLoading(true);
       const res = await subscriptionService.getPlans();
@@ -159,7 +148,11 @@ export function SubscriptionPlansSection({
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadPlans();
+  }, [loadPlans]);
 
   // Determine which plan is the "recommended" one (middle tier or standard)
   const getRecommendedSlug = (): string => {
@@ -210,9 +203,8 @@ export function SubscriptionPlansSection({
 
         {/* Plans grid */}
         <div className="grid md:grid-cols-3 gap-6 md:gap-8 items-stretch max-w-5xl mx-auto">
-          {plans.map((plan, idx) => {
+          {plans.map((plan) => {
             const Icon = PLAN_ICONS[plan.slug] || Star;
-            const gradient = PLAN_GRADIENTS[plan.slug] || PLAN_GRADIENTS.basic;
             const isRecommended = plan.slug === recommendedSlug;
             const isPremium = plan.slug === 'premium';
 
@@ -280,24 +272,34 @@ export function SubscriptionPlansSection({
                   {/* Price */}
                   <div className="mb-2">
                     <span className="text-3xl sm:text-4xl font-bold text-gray-900">
-                      {formatPrice(plan.price)}
+                      {formatPrice(plan.price, plan.currency)}
                     </span>
                     <span className="text-sm text-gray-500 ml-1.5">
-                      /month
+                      {intervalSuffix(plan.interval, plan.duration_days)}
                     </span>
                   </div>
 
-                  {/* Daily access highlight */}
-                  <div className="flex items-center gap-2 mb-6 py-2.5 px-3.5 rounded-lg bg-gray-50 border border-gray-100">
-                    <Clock size={15} className="text-[#C9A84C] flex-shrink-0" />
+                  {/* Included feature count */}
+                  <div className="flex items-center gap-2 mb-6 py-2.5 px-3.5 rounded-lg bg-[#FDFAF3] border border-[#C9A84C]/15">
+                    <Layers size={15} className="text-[#C9A84C] flex-shrink-0" />
                     <span className="text-sm font-medium text-gray-700">
-                      {getDailyAccessText(plan.daily_hours_limit)}
+                      {(plan.features?.length ?? 0)} feature
+                      {(plan.features?.length ?? 0) === 1 ? '' : 's'} included
                     </span>
                   </div>
 
                   {/* CTA Button */}
                   <button
-                    onClick={() => onSelectPlan?.(plan)}
+                    onClick={() => {
+                      if (onSelectPlan) {
+                        onSelectPlan(plan);
+                      } else {
+                        // On the public site there is no checkout handler, so
+                        // send the visitor to the plan page. Auth protection
+                        // routes anonymous visitors through sign-in first.
+                        router.push('/dashboard/subscriptions');
+                      }
+                    }}
                     className={`w-full py-3 px-4 rounded-xl text-sm font-bold transition-all duration-200 mb-6 inline-flex items-center justify-center gap-2 ${
                       isRecommended
                         ? 'bg-gradient-to-r from-[#C9A84C] to-[#B8962E] text-white shadow-lg shadow-[#C9A84C]/25 hover:shadow-xl hover:shadow-[#C9A84C]/30 hover:scale-[1.02]'
@@ -311,43 +313,33 @@ export function SubscriptionPlansSection({
                   {/* Features */}
                   <div className="space-y-3 flex-1">
                     <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                      What's included
+                      What&apos;s included
                     </p>
-                    {parseFeatures(plan.features).map((feature, i) => {
-                      const FeatureIcon = getFeatureIcon(feature);
+                    {parseFeatures(plan.features).map((key) => {
+                      const entry = catalogue.find((item) => item.key === key);
+
                       return (
-                        <div key={i} className="flex items-start gap-2.5">
-                          <FeatureIcon
+                        <div key={key} className="flex items-start gap-2.5">
+                          <CheckCircle2
                             size={16}
                             className="text-[#C9A84C] flex-shrink-0 mt-0.5"
                           />
                           <span className="text-sm text-gray-700">
-                            {feature}
+                            {entry?.label ?? FEATURE_LABELS[key] ?? humanizeFeature(key)}
                           </span>
                         </div>
                       );
                     })}
                     {parseFeatures(plan.features).length === 0 && (
-                      <>
-                        <div className="flex items-start gap-2.5">
-                          <CheckCircle2
-                            size={16}
-                            className="text-[#C9A84C] flex-shrink-0 mt-0.5"
-                          />
-                          <span className="text-sm text-gray-700">
-                            {getDailyAccessText(plan.daily_hours_limit)}
-                          </span>
-                        </div>
-                        <div className="flex items-start gap-2.5">
-                          <CheckCircle2
-                            size={16}
-                            className="text-[#C9A84C] flex-shrink-0 mt-0.5"
-                          />
-                          <span className="text-sm text-gray-700">
-                            {plan.duration_days}-day subscription cycle
-                          </span>
-                        </div>
-                      </>
+                      <div className="flex items-start gap-2.5">
+                        <CheckCircle2
+                          size={16}
+                          className="text-[#C9A84C] flex-shrink-0 mt-0.5"
+                        />
+                        <span className="text-sm text-gray-700">
+                          {plan.duration_days}-day subscription cycle
+                        </span>
+                      </div>
                     )}
                   </div>
                 </div>

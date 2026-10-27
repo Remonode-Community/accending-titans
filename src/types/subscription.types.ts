@@ -1,7 +1,12 @@
 /**
  * Subscription Types
  * Based on Paystack Subscription API — Business & Birthdays Backend
- * 
+ *
+ * A plan's `features` are keys from `config/features.php` (for example
+ * `network`, `birthdays`, `catalogue`). They are the entitlements that decide
+ * which parts of the app a subscriber may use. Timing access is no longer part
+ * of a plan.
+ *
  * @see plans/business-birthdays-implementation-plan.md
  */
 
@@ -13,19 +18,11 @@ export interface SubscriptionPlan {
   name: string;
   slug: string;
   price: number;
-  daily_hours_limit: number; // 0 = unlimited
   duration_days: number;
+  interval: string | null;
+  currency: string | null;
+  /** Registry keys this plan includes. */
   features: string[] | null;
-}
-
-// ──────────────────────────────────────────────
-// Daily Hours Info
-// ──────────────────────────────────────────────
-export interface DailyHoursInfo {
-  limit: number;              // Daily limit in hours (0 = unlimited)
-  limit_minutes: number;      // Daily limit in minutes
-  used_minutes: number;       // Minutes used today
-  remaining_minutes: number;   // Minutes remaining (-1 = unlimited)
 }
 
 // ──────────────────────────────────────────────
@@ -33,6 +30,7 @@ export interface DailyHoursInfo {
 // ──────────────────────────────────────────────
 export interface ActiveSubscription {
   id: number;
+  plan_id: number;
   plan_name: string;
   plan_slug: string;
   price: number;
@@ -41,9 +39,12 @@ export interface ActiveSubscription {
   days_remaining: number;
   payment_status: 'pending' | 'paid' | 'failed' | 'refunded';
   auto_renew: boolean;
+  /** Registry keys this subscription's plan unlocks. */
+  plan_features: string[];
+  interval: string | null;
+  currency: string | null;
   paystack_subscription_code: string | null;
   next_payment_date: string | null; // YYYY-MM-DD
-  daily_hours: DailyHoursInfo;
 }
 
 // ──────────────────────────────────────────────
@@ -122,10 +123,6 @@ export interface ManageLinkResponse {
   subscription_code: string;
 }
 
-export interface RemainingHoursResponse {
-  daily_hours: DailyHoursInfo;
-}
-
 export interface CancelAutoRenewResponse {
   subscription_id: number;
   auto_renew: boolean;
@@ -164,10 +161,17 @@ export interface AdminSubscriptionPlan {
   name: string;
   slug: string;
   price: number;
-  daily_hours_limit: number;
   duration_days: number;
+  interval: string;
+  currency: string;
+  /** Registry keys this plan includes. */
   features: string[] | null;
   is_active: boolean;
+  description?: string | null;
+  send_invoices?: boolean;
+  send_sms?: boolean;
+  invoice_limit?: number;
+  paystack_plan_code?: string | null;
   subscribers_count?: number;
   total_revenue?: number;
 }
@@ -176,7 +180,6 @@ export interface CreatePlanRequest {
   name: string;
   slug: string;
   price: number;
-  daily_hours_limit: number;
   duration_days: number;
   interval?: string;
   currency?: string;
@@ -185,13 +188,13 @@ export interface CreatePlanRequest {
   send_sms?: boolean;
   invoice_limit?: number;
   features?: string[];
+  is_active?: boolean;
 }
 
 export interface UpdatePlanRequest {
   name?: string;
   slug?: string;
   price?: number;
-  daily_hours_limit?: number;
   duration_days?: number;
   interval?: string;
   currency?: string;

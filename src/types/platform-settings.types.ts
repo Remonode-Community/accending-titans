@@ -17,6 +17,41 @@ export interface FeatureFlag {
   group: string;
   path: string | null;
   enabled: boolean;
+  /** Whether an active subscription plan also controls this feature. */
+  plan_gated: boolean;
+}
+
+/**
+ * Why a feature the member cannot use is unavailable.
+ *
+ * `disabled` — an administrator switched it off platform-wide.
+ * `plan` — the member has no plan, or their plan does not include it.
+ */
+export type FeatureUnavailableReason = 'plan' | 'disabled';
+
+/** Display metadata for one plan-gated feature key. */
+export interface FeatureCatalogueEntry {
+  key: FeatureKey;
+  label: string;
+  description: string;
+  group: string;
+  path: string | null;
+}
+
+/** The member's active plan entitlement, as returned by `/v1/features`. */
+export interface MemberPlanEntitlement {
+  has_active_subscription: boolean;
+  id: number | null;
+  name: string | null;
+  slug: string | null;
+  price: number | null;
+  start_date: string | null;
+  end_date: string | null;
+  days_remaining: number | null;
+  payment_status: string | null;
+  auto_renew: boolean | null;
+  /** Plan-gated feature keys the plan includes, in registry order. */
+  features: FeatureKey[];
 }
 
 export interface BirthdayEligibilityRule {
@@ -51,4 +86,13 @@ export interface AdminPlatformSettings {
 
 export interface FeatureMapResponse {
   features: Record<string, boolean>;
+  /**
+   * The reason each unavailable feature is unavailable. Absent on older
+   * backends; treat a missing entry as "unavailable for an unknown reason".
+   */
+  unavailable?: Record<string, FeatureUnavailableReason>;
+  /** The member's plan entitlement, used by the billing page. */
+  plan?: MemberPlanEntitlement;
+  /** Labels and grouping for every plan-gated feature key. */
+  catalogue?: FeatureCatalogueEntry[];
 }

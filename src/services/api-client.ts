@@ -284,15 +284,19 @@ class ApiClient {
         if (error.response?.status === 403) {
           const formattedError = this.formatError(error);
 
-          // A switched-off feature also answers 403, but it is not a permission
-          // problem: the member may use everything else. Only a genuine denial
-          // should raise the app-wide blocking modal.
-          const featureDisabled =
+          // An unavailable feature also answers 403, but it is not a permission
+          // problem: the member may use everything else. A feature is
+          // unavailable either because an administrator switched it off
+          // (`FEATURE_DISABLED`) or because the member's plan does not include
+          // it (`PLAN_REQUIRED`). Only a genuine denial should raise the
+          // app-wide blocking modal.
+          const featureUnavailable =
             formattedError.error_code === 'FEATURE_DISABLED' ||
+            formattedError.error_code === 'PLAN_REQUIRED' ||
             typeof formattedError.feature === 'string';
 
-          if (featureDisabled) {
-            debug.warn('[ApiClient] 403 for a disabled feature - not blocking the app');
+          if (featureUnavailable) {
+            debug.warn('[ApiClient] 403 for an unavailable feature - not blocking the app');
             return Promise.reject(formattedError);
           }
 
@@ -337,9 +341,10 @@ class ApiClient {
       message: response?.message || error.message || 'An error occurred',
       error_code: response?.error_code || 'UNKNOWN_ERROR',
       // Preserve the application code and the feature marker: callers branch on
-      // both to tell "feature switched off" apart from "not allowed".
+      // both to tell "feature unavailable" apart from "not allowed".
       code: response?.code,
       feature: response?.feature,
+      required: response?.required,
       errors: response?.errors,
     };
   }

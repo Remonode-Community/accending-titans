@@ -20,10 +20,15 @@ export interface ApiResponse<T = any> {
   code?: number;
   error_code?: string;
   /**
-   * Set when the failure is an administratively disabled feature rather than a
-   * permission problem. The client hides that feature and keeps working.
+   * Set when the failure is an unavailable feature rather than a permission
+   * problem. The client hides that feature and keeps working.
    */
   feature?: string;
+  /**
+   * For `PLAN_REQUIRED` failures: whether the member needs any plan at all
+   * (`subscription`) or a plan that includes the feature (`upgrade`).
+   */
+  required?: 'subscription' | 'upgrade';
   errors?: Record<string, string[]>;
   pagination?: PaginationMeta;
   stats?: Record<string, any>; // Optional stats object for endpoints that return aggregated data

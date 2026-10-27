@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import {
   CreditCard,
   Users,
@@ -11,9 +11,10 @@ import {
   Trash2,
   Loader2,
   Star,
-  Clock,
-  Infinity,
-  Crown,
+  ChevronDown,
+  Check,
+  Layers,
+  X,
 } from 'lucide-react';
 import { AdminHeader } from '@/components/admin/AdminHeader';
 import { AdminTable } from '@/components/admin/AdminTable';
@@ -23,8 +24,10 @@ import { Button } from '@/components/shared/Button';
 import { Badge } from '@/components/shared/Badge';
 import { useAlert } from '@/hooks/useAlert';
 import { subscriptionService } from '@/services/subscription.service';
+import { platformSettingsService } from '@/services/platform-settings.service';
 import { formatDate } from '@/utils/format.utils';
-import type { SubscriptionPlan, AdminSubscriptionPlan, AdminSubscriptionList } from '@/types/subscription.types';
+import type { AdminSubscriptionPlan, AdminSubscriptionList } from '@/types/subscription.types';
+import type { FeatureCatalogueEntry } from '@/types/platform-settings.types';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 
@@ -46,7 +49,6 @@ interface PlanFormData {
   name: string;
   slug: string;
   price: number;
-  daily_hours_limit: number;
   duration_days: number;
   interval: BillingInterval;
   currency: string;
@@ -54,7 +56,8 @@ interface PlanFormData {
   send_invoices: boolean;
   send_sms: boolean;
   invoice_limit: number;
-  features: string;
+  /** Registry keys from the platform feature catalogue. */
+  features: string[];
 }
 
 interface SubscriptionStats {
@@ -77,36 +80,63 @@ function getPaymentBadgeVariant(status: string): 'success' | 'danger' | 'warning
   return map[status?.toLowerCase()] ?? 'info';
 }
 
-function formatPrice(price: number | null | undefined): string {
-  return `₦${(price ?? 0).toLocaleString()}`;
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  NGN: '₦',
+  USD: '$',
+  GBP: '£',
+  EUR: '€',
+};
+
+function formatPrice(
+  price: number | null | undefined,
+  currency?: string | null
+): string {
+  const code = (currency || 'NGN').toUpperCase();
+  const symbol = CURRENCY_SYMBOLS[code] ?? `${code} `;
+  return `${symbol}${(price ?? 0).toLocaleString()}`;
+}
+
+function computeStats(data: AdminSubscriptionList[]): SubscriptionStats {
+  const active = data.filter(
+    (s) => s.payment_status === 'paid' || s.payment_status === 'active'
+  ).length;
+  const cancelled = data.filter(
+    (s) => s.payment_status === 'cancelled'
+  ).length;
+  const revenue = data.reduce((sum, s) => sum + (s.price || 0), 0);
+
+  return {
+    total: data.length,
+    active,
+    cancelled,
+    totalRevenue: revenue,
+  };
 }
 
 function parseFeatures(features: unknown): string[] {
   if (!features) return [];
-  if (Array.isArray(features)) return features.filter((f): f is string => typeof f === 'string');
+  if (Array.isArray(features)) {
+    return features.filter((f): f is string => typeof f === 'string');
+  }
   if (typeof features === 'string') {
-    for (let i = 0; i < 3; i++) {
-      const trimmed = features.trim();
-      if (trimmed.startsWith('[') || trimmed.startsWith('{') || trimmed.startsWith('"')) {
-        try {
-          const parsed = JSON.parse(features);
-          return parseFeatures(parsed);
-        } catch {
-          break;
-        }
-      } else {
-        break;
+    const trimmed = features.trim();
+    if (!trimmed) return [];
+    if (
+      trimmed.startsWith('[') ||
+      trimmed.startsWith('{') ||
+      trimmed.startsWith('"')
+    ) {
+      try {
+        return parseFeatures(JSON.parse(trimmed));
+      } catch {
+        // A legacy plan may still hold prose rather than JSON. Show it as one
+        // label; saving will replace it with registry keys.
       }
     }
-    return features.trim() ? [features.trim()] : [];
+    return [trimmed];
   }
   return [];
 }
-
-const FEATURES_PLACEHOLDER = `One per line, e.g.:
-6 hours daily access
-Portfolio creation
-Email support`;
 
 // ─── Default Plan Form ──────────────────────────────────────────────────
 
@@ -114,7 +144,6 @@ const EMPTY_PLAN_FORM: PlanFormData = {
   name: '',
   slug: '',
   price: 2000,
-  daily_hours_limit: 6,
   duration_days: 30,
   interval: 'monthly',
   currency: 'NGN',
@@ -122,7 +151,7 @@ const EMPTY_PLAN_FORM: PlanFormData = {
   send_invoices: true,
   send_sms: true,
   invoice_limit: 12,
-  features: '',
+  features: [],
 };
 
 // ─── Page Component ─────────────────────────────────────────────────────
@@ -149,6 +178,11 @@ export default function AdminSubscriptionsPage() {
   // Plans state
   const [plans, setPlans] = useState<AdminSubscriptionPlan[]>([]);
   const [plansLoading, setPlansLoading] = useState(true);
+
+  // Plan feature catalogue
+  const [featureOptions, setFeatureOptions] = useState<FeatureCatalogueEntry[]>([]);
+  const [featurePickerOpen, setFeaturePickerOpen] = useState(false);
+  const featurePickerRef = useRef<HTMLDivElement>(null);
 
   // Detail modal state
   const [selectedSub, setSelectedSub] = useState<AdminSubscriptionList | null>(null);
@@ -179,7 +213,7 @@ export default function AdminSubscriptionsPage() {
         setSubscriptions(subs);
         setSubsTotalPages(pagination?.last_page || 1);
         setSubsTotal(pagination?.total || 0);
-        computeStats(subs);
+        setStats(computeStats(subs));
       }
     } catch {
       showAlert('Failed to load subscriptions', 'error');
@@ -208,26 +242,79 @@ export default function AdminSubscriptionsPage() {
     }
   }, []);
 
-  const computeStats = (data: AdminSubscriptionList[]) => {
-    const active = data.filter(
-      (s) => s.payment_status === 'paid' || s.payment_status === 'active'
-    ).length;
-    const cancelled = data.filter(
-      (s) => s.payment_status === 'cancelled'
-    ).length;
-    const revenue = data.reduce((sum, s) => sum + (s.price || 0), 0);
-    setStats({
-      total: data.length,
-      active,
-      cancelled,
-      totalRevenue: revenue,
-    });
-  };
+  /**
+   * The catalogue is the authoritative list of plan-gated features. It comes
+   * from `/v1/features`, which every signed-in member can read, so a
+   * subscription manager without platform-settings permission can still
+   * configure a plan.
+   */
+  const loadFeatureOptions = useCallback(async () => {
+    try {
+      const res = await platformSettingsService.getFeatures();
+      if (res.success && res.data?.catalogue) {
+        setFeatureOptions(res.data.catalogue);
+      }
+    } catch {
+      // Without the catalogue the selector stays empty; saving is blocked by
+      // the "at least one feature" validation rather than silently creating a
+      // plan that unlocks nothing.
+    }
+  }, []);
 
   useEffect(() => {
     loadSubscriptions(1);
     loadPlans();
-  }, [loadSubscriptions, loadPlans]);
+    loadFeatureOptions();
+  }, [loadSubscriptions, loadPlans, loadFeatureOptions]);
+
+  // Close the feature picker when clicking outside it.
+  useEffect(() => {
+    if (!featurePickerOpen) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        featurePickerRef.current &&
+        !featurePickerRef.current.contains(event.target as Node)
+      ) {
+        setFeaturePickerOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [featurePickerOpen]);
+
+  const groupedFeatureOptions = useMemo(() => {
+    const groups = new Map<string, FeatureCatalogueEntry[]>();
+
+    for (const option of featureOptions) {
+      const list = groups.get(option.group) ?? [];
+      list.push(option);
+      groups.set(option.group, list);
+    }
+
+    return Array.from(groups.entries());
+  }, [featureOptions]);
+
+  const featureLabel = useCallback(
+    (key: string) =>
+      featureOptions.find((option) => option.key === key)?.label ??
+      key
+        .split(/[_-]/)
+        .filter(Boolean)
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' '),
+    [featureOptions]
+  );
+
+  const togglePlanFeature = (key: string) => {
+    setPlanForm((prev) => ({
+      ...prev,
+      features: prev.features.includes(key)
+        ? prev.features.filter((item) => item !== key)
+        : [...prev.features, key],
+    }));
+  };
 
   // ── Handlers ────────────────────────────────────────────────────────
 
@@ -239,26 +326,26 @@ export default function AdminSubscriptionsPage() {
   const handleCreatePlan = () => {
     setEditingPlan(null);
     setPlanForm(EMPTY_PLAN_FORM);
+    setFeaturePickerOpen(false);
     setShowPlanForm(true);
   };
 
   const handleEditPlan = (plan: AdminSubscriptionPlan) => {
-    const p = plan as any;
     setEditingPlan(plan);
     setPlanForm({
       name: plan.name,
       slug: plan.slug,
       price: plan.price,
-      daily_hours_limit: plan.daily_hours_limit,
       duration_days: plan.duration_days,
-      interval: p.interval || 'monthly',
-      currency: p.currency || 'NGN',
-      description: p.description || '',
-      send_invoices: p.send_invoices ?? true,
-      send_sms: p.send_sms ?? true,
-      invoice_limit: p.invoice_limit ?? 12,
-      features: parseFeatures(plan.features).join('\n'),
+      interval: (plan.interval || 'monthly') as BillingInterval,
+      currency: plan.currency || 'NGN',
+      description: plan.description || '',
+      send_invoices: plan.send_invoices ?? true,
+      send_sms: plan.send_sms ?? true,
+      invoice_limit: plan.invoice_limit ?? 12,
+      features: parseFeatures(plan.features),
     });
+    setFeaturePickerOpen(false);
     setShowPlanForm(true);
   };
 
@@ -276,20 +363,20 @@ export default function AdminSubscriptionsPage() {
       showAlert('Price must be greater than 0', 'error');
       return;
     }
+    if (planForm.features.length === 0) {
+      showAlert('Select at least one feature for this plan', 'error');
+      return;
+    }
 
     setPlanFormSaving(true);
     try {
-      const features = planForm.features
-        .split('\n')
-        .map((f) => f.trim())
-        .filter(Boolean);
+      const features = planForm.features;
 
       if (editingPlan) {
         const res = await subscriptionService.adminUpdatePlan(editingPlan.id, {
           name: planForm.name,
           slug: planForm.slug,
           price: planForm.price,
-          daily_hours_limit: planForm.daily_hours_limit,
           duration_days: planForm.duration_days,
           interval: planForm.interval,
           currency: planForm.currency,
@@ -311,7 +398,6 @@ export default function AdminSubscriptionsPage() {
           name: planForm.name,
           slug: planForm.slug,
           price: planForm.price,
-          daily_hours_limit: planForm.daily_hours_limit,
           duration_days: planForm.duration_days,
           interval: planForm.interval,
           currency: planForm.currency,
@@ -362,7 +448,7 @@ export default function AdminSubscriptionsPage() {
     {
       key: 'user_name',
       label: 'User',
-      render: (_: any, row: AdminSubscriptionList) => (
+      render: (_: unknown, row: AdminSubscriptionList) => (
         <div>
           <p className="font-medium text-gray-900">{row.user_name}</p>
           <p className="text-xs text-gray-500">{row.user_email}</p>
@@ -424,10 +510,10 @@ export default function AdminSubscriptionsPage() {
       ),
     },
     {
-      key: 'actions' as any,
+      key: 'actions',
       label: '',
       width: '60px',
-      render: (_: any, row: AdminSubscriptionList) => (
+      render: (_: unknown, row: AdminSubscriptionList) => (
         <button
           onClick={() => handleViewSubscription(row)}
           className="p-1.5 rounded-lg text-gray-400 hover:text-[#C9A84C] hover:bg-[#C9A84C]/10 transition-colors"
@@ -446,28 +532,19 @@ export default function AdminSubscriptionsPage() {
     {
       key: 'price',
       label: 'Price',
-      render: (v: number) => (
-        <span className="font-semibold">{formatPrice(v)}</span>
+      render: (v: number, row: AdminSubscriptionPlan) => (
+        <span className="font-semibold">{formatPrice(v, row.currency)}</span>
       ),
     },
     {
-      key: 'daily_hours_limit',
-      label: 'Daily Limit',
-      render: (v: number) => (
-        <span className="inline-flex items-center gap-1">
-          {v === 0 ? (
-            <><Infinity size={14} className="text-[#C9A84C]" /> Unlimited</>
-          ) : (
-            <><Clock size={14} className="text-gray-400" /> {v}h</>
-          )}
-        </span>
-      ),
+      key: 'duration_days',
+      label: 'Duration',
+      render: (v: number) => `${v}d`,
     },
-    { key: 'duration_days', label: 'Duration', render: (v: number) => `${v}d` },
     {
-      key: 'interval' as any,
+      key: 'interval',
       label: 'Interval',
-      render: (v: any, row: any) => {
+      render: (_: unknown, row: AdminSubscriptionPlan) => {
         const interval = row.interval || 'monthly';
         return (
           <span className="capitalize text-sm text-gray-700">{interval}</span>
@@ -476,13 +553,32 @@ export default function AdminSubscriptionsPage() {
     },
     {
       key: 'features',
-      label: 'Features',
-      render: (v: any) => {
-        const list = parseFeatures(v);
+      label: 'Included features',
+      render: (v: string[] | null) => {
+        const keys = parseFeatures(v);
+
+        if (keys.length === 0) {
+          return <span className="text-xs text-gray-400">None</span>;
+        }
+
+        const visible = keys.slice(0, 2);
+
         return (
-          <span className="text-sm text-gray-500">
-            {list.length} feature{list.length !== 1 ? 's' : ''}
-          </span>
+          <div className="flex max-w-[260px] flex-wrap items-center gap-1">
+            {visible.map((key) => (
+              <span
+                key={key}
+                className="inline-flex items-center rounded-full bg-[#FDFAF3] px-2 py-0.5 text-[11px] font-semibold text-[#8F7220] ring-1 ring-inset ring-[#C9A84C]/20"
+              >
+                {featureLabel(key)}
+              </span>
+            ))}
+            {keys.length > visible.length && (
+              <span className="text-[11px] font-semibold text-gray-400">
+                +{keys.length - visible.length} more
+              </span>
+            )}
+          </div>
         );
       },
     },
@@ -496,10 +592,10 @@ export default function AdminSubscriptionsPage() {
       ),
     },
     {
-      key: 'actions' as any,
+      key: 'actions',
       label: '',
       width: '100px',
-      render: (_: any, row: AdminSubscriptionPlan) => (
+      render: (_: unknown, row: AdminSubscriptionPlan) => (
         <div className="flex items-center gap-1">
           <button
             onClick={() => handleEditPlan(row)}
@@ -527,7 +623,7 @@ export default function AdminSubscriptionsPage() {
       {/* Header */}
       <AdminHeader
         title="Subscriptions"
-        description="Manage subscription plans and view all user subscriptions"
+        description="Manage plans, the features each one includes, and member subscriptions"
         action={{
           label: 'Create Plan',
           onClick: handleCreatePlan,
@@ -696,14 +792,23 @@ export default function AdminSubscriptionsPage() {
       {/* ── Plan Form Modal ── */}
       <AdminModal
         isOpen={showPlanForm}
-        onClose={() => setShowPlanForm(false)}
+        onClose={() => {
+          setShowPlanForm(false);
+          setFeaturePickerOpen(false);
+        }}
         title={editingPlan ? 'Edit Plan' : 'Create Plan'}
         subtitle={editingPlan ? `Editing "${editingPlan.name}"` : 'Define a new subscription tier'}
         icon={editingPlan ? undefined : Plus}
         size="lg"
         footer={
           <div className="flex justify-end gap-3">
-            <Button variant="secondary" onClick={() => setShowPlanForm(false)}>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setShowPlanForm(false);
+                setFeaturePickerOpen(false);
+              }}
+            >
               Cancel
             </Button>
             <Button
@@ -762,7 +867,7 @@ export default function AdminSubscriptionsPage() {
           <div className="grid grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                Price (₦) <span className="text-red-500">*</span>
+                Price ({planForm.currency}) <span className="text-red-500">*</span>
               </label>
               <input
                 type="number"
@@ -854,7 +959,7 @@ export default function AdminSubscriptionsPage() {
                 setPlanForm((prev) => ({ ...prev, description: e.target.value }))
               }
               className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-900 focus:ring-2 focus:ring-[#C9A84C]/20 focus:border-[#C9A84C] outline-none placeholder-gray-500"
-              placeholder="e.g. 6 hours daily access for 30 days"
+              placeholder="e.g. Network and catalogue access for 30 days"
             />
           </div>
 
@@ -890,42 +995,133 @@ export default function AdminSubscriptionsPage() {
             </label>
           </div>
 
-          {/* Daily Hours Limit */}
+          {/* Included features */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-              Daily Hours Limit <span className="text-gray-400 font-normal">(0 = unlimited)</span>
-            </label>
-            <input
-              type="number"
-              value={planForm.daily_hours_limit}
-              onChange={(e) =>
-                setPlanForm((prev) => ({
-                  ...prev,
-                  daily_hours_limit: Number(e.target.value),
-                }))
-              }
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-900 focus:ring-2 focus:ring-[#C9A84C]/20 focus:border-[#C9A84C] outline-none"
-              min={0}
-            />
-          </div>
-
-          {/* Features */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-              Features
-            </label>
-            <textarea
-              value={planForm.features}
-              onChange={(e) =>
-                setPlanForm((prev) => ({ ...prev, features: e.target.value }))
-              }
-              rows={5}
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-900 focus:ring-2 focus:ring-[#C9A84C]/20 focus:border-[#C9A84C] outline-none resize-y placeholder-gray-500"
-              placeholder={FEATURES_PLACEHOLDER}
-            />
-            <p className="mt-1 text-xs text-gray-400">
-              Enter one feature per line
+            <div className="mb-1.5 flex items-baseline justify-between">
+              <label className="block text-sm font-semibold text-gray-700">
+                Included features <span className="text-red-500">*</span>
+              </label>
+              <span className="text-xs font-medium text-gray-400">
+                {planForm.features.length} selected
+              </span>
+            </div>
+            <p className="mb-2 text-xs text-gray-400">
+              Members on this plan can use only the features selected here.
             </p>
+
+            <div className="relative" ref={featurePickerRef}>
+              <button
+                type="button"
+                onClick={() => setFeaturePickerOpen((open) => !open)}
+                className="flex w-full items-center justify-between rounded-lg border border-gray-200 bg-white px-3 py-2 text-left text-sm text-gray-900 outline-none transition-colors hover:border-[#C9A84C]/40 focus:border-[#C9A84C] focus:ring-2 focus:ring-[#C9A84C]/20"
+              >
+                <span className="inline-flex items-center gap-2">
+                  <Layers size={15} className="text-[#C9A84C]" />
+                  {planForm.features.length === 0
+                    ? 'Select features'
+                    : `${planForm.features.length} feature${
+                        planForm.features.length === 1 ? '' : 's'
+                      } selected`}
+                </span>
+                <ChevronDown
+                  size={16}
+                  className={`text-gray-400 transition-transform ${
+                    featurePickerOpen ? 'rotate-180' : ''
+                  }`}
+                />
+              </button>
+
+              {featurePickerOpen && (
+                <div className="mt-2 max-h-80 w-full overflow-y-auto rounded-xl border border-gray-200 bg-white p-2 shadow-sm">
+                  {groupedFeatureOptions.length === 0 ? (
+                    <p className="px-2 py-4 text-sm text-gray-500">
+                      Feature catalogue unavailable. Refresh the page to try
+                      again.
+                    </p>
+                  ) : (
+                    groupedFeatureOptions.map(([group, options]) => (
+                      <div key={group} className="py-1">
+                        <p className="px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
+                          {group}
+                        </p>
+                        {options.map((option) => {
+                          const checked = planForm.features.includes(option.key);
+
+                          return (
+                            <label
+                              key={option.key}
+                              className="flex cursor-pointer items-start gap-2.5 rounded-lg px-2 py-2 transition-colors hover:bg-gray-50"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => togglePlanFeature(option.key)}
+                                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-[#C9A84C] focus:ring-[#C9A84C]"
+                              />
+                              <span>
+                                <span className="block text-sm font-medium text-gray-900">
+                                  {option.label}
+                                </span>
+                                <span className="block text-xs text-gray-500">
+                                  {option.description}
+                                </span>
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    ))
+                  )}
+
+                  <div className="sticky bottom-0 -mx-2 mt-1 flex items-center justify-between border-t border-gray-100 bg-white px-2 py-2">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setPlanForm((prev) => ({
+                          ...prev,
+                          features: featureOptions.map((option) => option.key),
+                        }))
+                      }
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-[#B8962E] hover:text-[#8F7220]"
+                    >
+                      <Check size={13} />
+                      Select all
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setPlanForm((prev) => ({ ...prev, features: [] }))
+                      }
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-gray-500 hover:text-gray-700"
+                    >
+                      <X size={13} />
+                      Clear
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {planForm.features.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {planForm.features.map((key) => (
+                  <span
+                    key={key}
+                    className="inline-flex items-center gap-1 rounded-full bg-[#FDFAF3] px-2.5 py-1 text-xs font-semibold text-[#8F7220] ring-1 ring-inset ring-[#C9A84C]/20"
+                  >
+                    {featureLabel(key)}
+                    <button
+                      type="button"
+                      onClick={() => togglePlanFeature(key)}
+                      className="text-[#C9A84C] transition-colors hover:text-[#8F7220]"
+                      aria-label={`Remove ${featureLabel(key)}`}
+                    >
+                      <X size={12} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </AdminModal>

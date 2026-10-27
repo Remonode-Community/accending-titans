@@ -10,6 +10,7 @@ import {
   FileText,
   Home,
   Layers,
+  Lock,
   LogOut,
   Menu,
   Send,
@@ -34,7 +35,10 @@ import { AuthProtected } from '@/components/AuthProtected';
 import { NotificationBell } from '@/components/dashboard/NotificationBell';
 import { RoleSwitcher } from '@/components/shared/RoleSwitcher';
 import { useFeatureStore } from '@/store/feature.store';
-import type { FeatureKey } from '@/types/platform-settings.types';
+import type {
+  FeatureKey,
+  FeatureUnavailableReason,
+} from '@/types/platform-settings.types';
 
 /**
  * Sidebar items that an administrator can switch off.
@@ -76,23 +80,70 @@ const FEATURE_ROUTE_PREFIXES: Array<{
   { prefix: '/dashboard/opportunities', feature: 'opportunities', label: 'Opportunities' },
 ];
 
-function FeatureUnavailable({ label }: { label: string }) {
+function FeatureUnavailable({
+  label,
+  reason,
+  hasPlan,
+}: {
+  label: string;
+  reason: FeatureUnavailableReason;
+  hasPlan: boolean;
+}) {
+  const needsPlan = reason === 'plan';
+
   return (
     <div className="flex min-h-[60vh] items-center justify-center px-4">
-      <div className="max-w-md rounded-2xl border border-gray-200 bg-white p-10 text-center shadow-sm">
-        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50">
-          <Settings size={26} className="text-amber-600" />
-        </div>
-        <h2 className="text-lg font-bold text-gray-900">{label} is unavailable</h2>
-        <p className="mt-2 text-sm text-gray-500">
-          This feature is temporarily switched off. Please check back later.
-        </p>
-        <Link
-          href="/dashboard"
-          className="mt-6 inline-flex items-center justify-center rounded-xl bg-[#C9A84C] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#B8962E]"
+      <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-sm sm:p-10">
+        <div
+          className={clsx(
+            'mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl',
+            needsPlan ? 'bg-[#FDFAF3]' : 'bg-amber-50'
+          )}
         >
-          Back to dashboard
-        </Link>
+          {needsPlan ? (
+            <Lock size={24} className="text-[#B8962E]" />
+          ) : (
+            <Settings size={26} className="text-amber-600" />
+          )}
+        </div>
+
+        <h2 className="text-lg font-bold text-gray-900">
+          {needsPlan
+            ? hasPlan
+              ? `${label} is not in your plan`
+              : `Unlock ${label}`
+            : `${label} is unavailable`}
+        </h2>
+
+        <p className="mt-2 text-sm leading-relaxed text-gray-500">
+          {needsPlan
+            ? hasPlan
+              ? 'Your current plan does not include this feature. You can switch to a plan that includes it when your current term ends.'
+              : 'This feature is included in a membership plan. Choose a plan to get started.'
+            : 'This feature is temporarily switched off. Please check back later.'}
+        </p>
+
+        <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
+          {needsPlan && (
+            <Link
+              href="/dashboard/subscriptions"
+              className="inline-flex items-center justify-center rounded-xl bg-[#C9A84C] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#B8962E]"
+            >
+              {hasPlan ? 'View your plan' : 'View plans'}
+            </Link>
+          )}
+          <Link
+            href="/dashboard"
+            className={clsx(
+              'inline-flex items-center justify-center rounded-xl px-5 py-2.5 text-sm font-semibold transition-colors',
+              needsPlan
+                ? 'border border-gray-200 text-gray-600 hover:bg-gray-50'
+                : 'bg-[#C9A84C] text-white hover:bg-[#B8962E]'
+            )}
+          >
+            Back to dashboard
+          </Link>
+        </div>
       </div>
     </div>
   );
@@ -107,6 +158,8 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const { sidebarOpen } = useUIStore();
 
   const features = useFeatureStore((s) => s.features);
+  const unavailable = useFeatureStore((s) => s.unavailable);
+  const plan = useFeatureStore((s) => s.plan);
   const featuresLoaded = useFeatureStore((s) => s.loaded);
   const loadFeatures = useFeatureStore((s) => s.load);
 
@@ -166,9 +219,9 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
   // (the cashback/referral transaction ledger) is a different feature and
   // still exists.
   { href: '/dashboard/birthdays', label: 'Birthdays', icon: Cake },
-    // The member network: circles, the ask board, and the impact ledger. Reading
-    // it is never paywalled — only posting an ask requires an active
-    // subscription, which is enforced server-side.
+    // The member network: circles, the ask board, and the impact ledger. It is
+    // a plan feature, so the whole network requires a plan that includes it —
+    // enforced server-side, not merely hidden here.
     { href: '/dashboard/network', label: 'Member Network', icon: Layers },
     { href: '/dashboard/content', label: 'Submit Content', icon: Upload },
     { href: '/dashboard/rankings', label: 'Rankings', icon: TrendingUp },
@@ -197,6 +250,10 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
     : undefined;
 
   const featureBlocked = Boolean(activeFeature && features[activeFeature.feature] === false);
+
+  const featureUnavailableReason: FeatureUnavailableReason = activeFeature
+    ? unavailable[activeFeature.feature] ?? 'disabled'
+    : 'disabled';
 
   const initials = user?.first_name
     ? user.first_name.slice(0, 1).toUpperCase() + (user?.last_name?.slice(0, 1).toUpperCase() ?? '')
@@ -471,7 +528,11 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
           {/* Main content */}
           <main className="flex-1 overflow-y-auto bg-[#f8f8f8] p-4 sm:p-6">
             {featureBlocked && activeFeature ? (
-              <FeatureUnavailable label={activeFeature.label} />
+              <FeatureUnavailable
+                label={activeFeature.label}
+                reason={featureUnavailableReason}
+                hasPlan={Boolean(plan?.has_active_subscription)}
+              />
             ) : (
               children
             )}

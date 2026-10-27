@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
+import { useFeatureStore } from '@/store/feature.store';
 import type { SubscriptionPlan } from '@/types/subscription.types';
 
 interface PaystackCheckoutModalProps {
@@ -49,7 +50,7 @@ export function PaystackCheckoutModal({
     actionLoading,
     error,
   } = useSubscription();
-
+  const catalogue = useFeatureStore((state) => state.catalogue);
   const [step, setStep] = useState<CheckoutStep>('confirm');
   const [initData, setInitData] = useState<{ reference: string; authorization_url: string } | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -118,7 +119,7 @@ export function PaystackCheckoutModal({
         key: publicKey,
         email: user.email,
         amount: plan.price * 100,
-        currency: 'NGN',
+        currency: (plan.currency || 'NGN').toUpperCase(),
         ref: result.reference,
         onClose: () => {
           setStep('error');
@@ -192,17 +193,26 @@ export function PaystackCheckoutModal({
 
   if (!plan) return null;
 
-  const formatPrice = (price: number | null | undefined) => `₦${(price ?? 0).toLocaleString()}`;
+  const CURRENCY_SYMBOLS: Record<string, string> = {
+    NGN: '₦',
+    USD: '$',
+    GBP: '£',
+    EUR: '€',
+  };
+  const currencyCode = (plan.currency || 'NGN').toUpperCase();
+  const currencySymbol = CURRENCY_SYMBOLS[currencyCode] ?? `${currencyCode} `;
+  const formatPrice = (price: number | null | undefined) =>
+    `${currencySymbol}${(price ?? 0).toLocaleString()}`;
 
   /**
-   * Safely parse plan.features into a string[]
+   * Safely parse plan.features into the list of registry keys it includes.
    */
-  const getFeatures = (): string[] => {
+  const getFeatureKeys = (): string[] => {
     const normalize = (value: unknown): string[] => {
       if (!value) return [];
       if (Array.isArray(value)) return value.filter((f): f is string => typeof f === 'string');
       if (typeof value === 'string') {
-        let current: string = value;
+        const current: string = value;
         for (let i = 0; i < 3; i++) {
           const trimmed = current.trim();
           if (trimmed.startsWith('[') || trimmed.startsWith('{') || trimmed.startsWith('"')) {
@@ -222,6 +232,17 @@ export function PaystackCheckoutModal({
     };
     return normalize(plan?.features);
   };
+
+  const featureKeys = getFeatureKeys();
+  const featureLabels = featureKeys.map(
+    (key) =>
+      catalogue.find((entry) => entry.key === key)?.label ??
+      key
+        .split(/[_-]/)
+        .filter(Boolean)
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ')
+  );
 
   return (
     <Transition appear show={isOpen} as={Fragment}>
@@ -301,20 +322,20 @@ export function PaystackCheckoutModal({
                         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
                           What you get
                         </p>
-                        {getFeatures().slice(0, 4).map((feature, i) => (
+                        {featureLabels.slice(0, 4).map((label, i) => (
                           <div key={i} className="flex items-start gap-2.5">
                             <CheckCircle2
                               size={15}
                               className="text-green-500 flex-shrink-0 mt-0.5"
                             />
                             <span className="text-sm text-gray-700">
-                              {feature}
+                              {label}
                             </span>
                           </div>
                         ))}
-                        {getFeatures().length > 4 && (
+                        {featureLabels.length > 4 && (
                           <p className="text-xs text-gray-400 pl-6">
-                            +{getFeatures().length - 4} more features
+                            +{featureLabels.length - 4} more features
                           </p>
                         )}
                       </div>
@@ -412,7 +433,7 @@ export function PaystackCheckoutModal({
                             </>
                           ) : (
                             <>
-                              I've Completed Payment
+                              I&apos;ve Completed Payment
                               <CheckCircle2 size={16} />
                             </>
                           )}
@@ -478,7 +499,7 @@ export function PaystackCheckoutModal({
                       </div>
 
                       <p className="text-xs text-gray-400">
-                        Redirecting to dashboard in {countdown}s...
+                        Redirecting to your plan in {countdown}s...
                       </p>
 
                       <button
@@ -489,7 +510,7 @@ export function PaystackCheckoutModal({
                         }}
                         className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-[#C9A84C] to-[#B8962E] text-white text-sm font-bold hover:shadow-lg transition-all inline-flex items-center justify-center gap-2"
                       >
-                        Go to Dashboard
+                        View my subscription
                         <ArrowRight size={16} />
                       </button>
                     </div>

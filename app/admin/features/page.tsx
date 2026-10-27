@@ -153,7 +153,11 @@ export default function AdminFeaturesPage() {
       <Card className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
         <p className="text-sm text-amber-700">
           A disabled feature is removed from every member&apos;s sidebar and its API
-          routes refuse requests. Admin screens stay reachable.
+          routes refuse requests. Admin screens stay reachable. Features marked
+          <span className="mx-1 rounded-full bg-white px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#B8962E] ring-1 ring-inset ring-[#C9A84C]/20">
+            Plan
+          </span>
+          are also limited to the subscription plans that include them.
         </p>
       </Card>
 
@@ -192,6 +196,11 @@ export default function AdminFeaturesPage() {
                         >
                           {feature.enabled ? 'On' : 'Off'}
                         </span>
+                        {feature.plan_gated && (
+                          <span className="rounded-full bg-[#FDFAF3] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#B8962E] ring-1 ring-inset ring-[#C9A84C]/20">
+                            Plan
+                          </span>
+                        )}
                       </div>
                       <p className="mt-0.5 text-xs text-gray-500">{feature.description}</p>
                       {feature.path && (

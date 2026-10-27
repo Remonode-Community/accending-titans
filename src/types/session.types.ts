@@ -17,11 +17,3 @@ export interface TodaySession {
   total_minutes: number;
   sessions_count: number;
 }
-
-export interface RemainingHours {
-  limit: number;
-  limit_minutes: number;
-  used_minutes: number;
-  remaining_minutes: number;
-  is_unlimited: boolean;
-}
