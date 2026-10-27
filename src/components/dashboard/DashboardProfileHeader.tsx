@@ -57,10 +57,17 @@ export function DashboardProfileHeader({
   user,
   profile,
   dateLabel,
+  catalogueEnabled = true,
 }: {
   user: AuthUser | null;
   profile: DashboardProfile;
   dateLabel?: string;
+  /**
+   * When an administrator switches the catalogue off, the public business page
+   * and its management route no longer exist for members. The header keeps
+   * showing who they are without offering a dead link.
+   */
+  catalogueEnabled?: boolean;
 }) {
   /*
    * Two identities, one header.
@@ -209,7 +216,7 @@ export function DashboardProfileHeader({
                     <Store size={12} className="text-[#C9A84C]" />
                     Business
                   </span>
-                  {profile ? (
+                  {profile && catalogueEnabled ? (
                     <Link
                       href={`/catalogue/${profile.id}`}
                       target="_blank"
@@ -235,7 +242,7 @@ export function DashboardProfileHeader({
                 Edit profile
               </Link>
 
-              {profile && (
+              {profile && catalogueEnabled && (
                 <Link
                   href={`/catalogue/${profile.id}`}
                   target="_blank"
@@ -316,8 +323,10 @@ export function DashboardProfileHeader({
           </div>
 
           {/* Members with no catalogue get a route to fix that, instead of an
-              empty meta line that reads as a broken profile. */}
-          {!profile && (
+              empty meta line that reads as a broken profile. The invitation is
+              withheld while the feature is switched off — there is nowhere to
+              send them. */}
+          {!profile && catalogueEnabled && (
             <div className="mt-4 flex flex-col gap-3 rounded-xl border border-dashed border-[#C9A84C]/40 bg-[#FDFAF3] p-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm font-bold text-gray-900">

@@ -19,6 +19,11 @@ export interface ApiResponse<T = any> {
    */
   code?: number;
   error_code?: string;
+  /**
+   * Set when the failure is an administratively disabled feature rather than a
+   * permission problem. The client hides that feature and keeps working.
+   */
+  feature?: string;
   errors?: Record<string, string[]>;
   pagination?: PaginationMeta;
   stats?: Record<string, any>; // Optional stats object for endpoints that return aggregated data

@@ -282,8 +282,21 @@ class ApiClient {
 
         // Handle 403 - Forbidden access
         if (error.response?.status === 403) {
-          debug.error('[ApiClient] Got 403 - access forbidden');
           const formattedError = this.formatError(error);
+
+          // A switched-off feature also answers 403, but it is not a permission
+          // problem: the member may use everything else. Only a genuine denial
+          // should raise the app-wide blocking modal.
+          const featureDisabled =
+            formattedError.error_code === 'FEATURE_DISABLED' ||
+            typeof formattedError.feature === 'string';
+
+          if (featureDisabled) {
+            debug.warn('[ApiClient] 403 for a disabled feature - not blocking the app');
+            return Promise.reject(formattedError);
+          }
+
+          debug.error('[ApiClient] Got 403 - access forbidden');
           // Store 403 error in session for error modal to display
           if (typeof window !== 'undefined') {
             sessionStorage.setItem('error_403', JSON.stringify({
@@ -323,6 +336,10 @@ class ApiClient {
       success: false,
       message: response?.message || error.message || 'An error occurred',
       error_code: response?.error_code || 'UNKNOWN_ERROR',
+      // Preserve the application code and the feature marker: callers branch on
+      // both to tell "feature switched off" apart from "not allowed".
+      code: response?.code,
+      feature: response?.feature,
       errors: response?.errors,
     };
   }

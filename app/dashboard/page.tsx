@@ -33,6 +33,8 @@ import { transactionService } from '@/services/transaction.service';
 import { customerService, DedicatedAccount } from '@/services/customer.service';
 import { portfolioService } from '@/services/portfolio.service';
 import { useAuth } from '@/hooks/useAuth';
+import { useFeatureStore } from '@/store/feature.store';
+import type { FeatureKey } from '@/types/platform-settings.types';
 import { formatCurrency, formatDate } from '@/utils/format.utils';
 import { TRANSACTION_STATUSES } from '@/utils/constants';
 
@@ -54,30 +56,44 @@ type TransactionData = {
 const CARD =
   'rounded-2xl border border-[#e5e7eb] bg-white shadow-[0_10px_35px_rgba(0,0,0,0.04)]';
 
-const quickActions = [
+/**
+ * Each shortcut belongs to a switchable feature. When an administrator turns
+ * one off the tile disappears rather than leading to a refused route.
+ */
+const quickActions: Array<{
+  href: string;
+  label: string;
+  description: string;
+  icon: typeof FileText;
+  feature: FeatureKey;
+}> = [
   {
     href: '/dashboard/catalogue',
     label: 'My Business Catalogue',
     description: 'Showcase your products and services',
     icon: FileText,
+    feature: 'catalogue',
   },
   {
     href: '/dashboard/messages',
     label: 'Direct Messages',
     description: 'Connect with community members',
     icon: Send,
+    feature: 'messages',
   },
   {
     href: '/dashboard/referral',
     label: 'Referral Program',
     description: 'Earn rewards by sharing',
     icon: TrendingUp,
+    feature: 'referrals',
   },
   {
     href: '/dashboard/opportunities',
     label: 'Opportunities',
     description: 'Find jobs and partnerships',
     icon: Award,
+    feature: 'opportunities',
   },
 ];
 
@@ -91,6 +107,22 @@ const getTransactionStatusIcon = (status: string) => {
 
 export default function DashboardPage() {
   const { user, isAuthenticated } = useAuth();
+
+  /*
+   * Feature switches decide what this page may call and show.
+   *
+   * `featuresLoaded` matters: before the map arrives every entry looks enabled,
+   * so firing the catalogue request immediately would produce the very refusal
+   * we are avoiding. A missing key is still treated as enabled, matching the
+   * store and the server defaults.
+   */
+  const features = useFeatureStore((state) => state.features);
+  const featuresLoaded = useFeatureStore((state) => state.loaded);
+  const loadFeatures = useFeatureStore((state) => state.load);
+
+  const catalogueEnabled = features.catalogue !== false;
+  const walletEnabled = features.wallet !== false;
+  const rankingsEnabled = features.rankings !== false;
 
   const [transactions, setTransactions] = useState<TransactionData[]>([]);
   const [dedicatedAccount, setDedicatedAccount] = useState<DedicatedAccount | null>(null);
@@ -115,8 +147,20 @@ export default function DashboardPage() {
   // client and trip React's hydration check.
   const [today, setToday] = useState('');
 
+  // The dashboard layout normally loads the feature map, but this page must not
+  // depend on render order: it needs the switches before it can safely call a
+  // feature-gated endpoint.
+  useEffect(() => {
+    if (isAuthenticated) void loadFeatures();
+  }, [isAuthenticated, loadFeatures]);
+
   useEffect(() => {
     if (!isAuthenticated) return;
+
+    // Wait for the map before calling the catalogue: until it arrives every
+    // feature looks enabled, which is exactly how a disabled catalogue used to
+    // be requested and refused.
+    if (!featuresLoaded || !catalogueEnabled) return;
 
     let cancelled = false;
 
@@ -145,7 +189,7 @@ export default function DashboardPage() {
     return () => {
       cancelled = true;
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, featuresLoaded, catalogueEnabled]);
 
   useEffect(() => {
     setToday(
@@ -215,6 +259,13 @@ export default function DashboardPage() {
     [transactions],
   );
 
+  // Only shortcuts whose feature is live. A missing key means enabled, which is
+  // the same rule the store and the server use.
+  const visibleActions = useMemo(
+    () => quickActions.filter((action) => features[action.feature] !== false),
+    [features],
+  );
+
   const getTransactionTimestamp = (t: TransactionData) =>
     t.created_at || t.transaction_date || 'Unknown';
 
@@ -257,49 +308,58 @@ export default function DashboardPage() {
         The balance is still reachable via the Wallet nav item and
         /dashboard/wallet.
       */}
-      <DashboardProfileHeader user={user} profile={catalogue} dateLabel={today} />
+      <DashboardProfileHeader
+        user={user}
+        profile={catalogueEnabled ? catalogue : null}
+        dateLabel={today}
+        // Also wait for the map before advertising the feature: otherwise a
+        // disabled catalogue flickers a "set it up" invitation on first paint.
+        catalogueEnabled={featuresLoaded && catalogueEnabled}
+      />
 
       {/* ── Body: main column + rail ── */}
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_336px]">
         <div className="min-w-0 space-y-6">
-          {/* Quick actions */}
-          <section className={CARD}>
-            <div className="border-b border-[#e5e7eb] px-5 py-4 sm:px-6">
-              <h2 className="text-base font-black tracking-tight text-gray-900">
-                Quick actions
-              </h2>
-              <p className="mt-0.5 text-xs text-gray-400">
-                Your most-used shortcuts, one tap away.
-              </p>
-            </div>
+          {/* Quick actions. Hidden entirely when every shortcut's feature is off. */}
+          {visibleActions.length > 0 && (
+            <section className={CARD}>
+              <div className="border-b border-[#e5e7eb] px-5 py-4 sm:px-6">
+                <h2 className="text-base font-black tracking-tight text-gray-900">
+                  Quick actions
+                </h2>
+                <p className="mt-0.5 text-xs text-gray-400">
+                  Your most-used shortcuts, one tap away.
+                </p>
+              </div>
 
-            {/* Two across at every width: once the rail appears the main column
-                is only ~640px, so four tiles would crush the labels. */}
-            <div className="grid grid-cols-1 gap-1 p-3 sm:grid-cols-2 sm:gap-1.5 sm:p-4">
-              {quickActions.map((action) => {
-                const Icon = action.icon;
-                return (
-                  <Link
-                    key={action.href}
-                    href={action.href}
-                    className="group flex items-start gap-3.5 rounded-xl p-3 transition hover:bg-[#FDFAF3] sm:p-3.5"
-                  >
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#C9A84C]/20 bg-[#FDFAF3] text-[#C9A84C] transition group-hover:border-[#C9A84C] group-hover:bg-[#C9A84C] group-hover:text-white">
-                      <Icon size={17} />
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block text-sm font-bold leading-snug text-gray-900">
-                        {action.label}
+              {/* Two across at every width: once the rail appears the main column
+                  is only ~640px, so four tiles would crush the labels. */}
+              <div className="grid grid-cols-1 gap-1 p-3 sm:grid-cols-2 sm:gap-1.5 sm:p-4">
+                {visibleActions.map((action) => {
+                  const Icon = action.icon;
+                  return (
+                    <Link
+                      key={action.href}
+                      href={action.href}
+                      className="group flex items-start gap-3.5 rounded-xl p-3 transition hover:bg-[#FDFAF3] sm:p-3.5"
+                    >
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#C9A84C]/20 bg-[#FDFAF3] text-[#C9A84C] transition group-hover:border-[#C9A84C] group-hover:bg-[#C9A84C] group-hover:text-white">
+                        <Icon size={17} />
                       </span>
-                      <span className="mt-1 block text-xs leading-relaxed text-gray-400">
-                        {action.description}
+                      <span className="min-w-0">
+                        <span className="block text-sm font-bold leading-snug text-gray-900">
+                          {action.label}
+                        </span>
+                        <span className="mt-1 block text-xs leading-relaxed text-gray-400">
+                          {action.description}
+                        </span>
                       </span>
-                    </span>
-                  </Link>
-                );
-              })}
-            </div>
-          </section>
+                    </Link>
+                  );
+                })}
+              </div>
+            </section>
+          )}
 
           {/* Transactions */}
           <section className={CARD}>
@@ -312,13 +372,15 @@ export default function DashboardPage() {
                   Your latest Acceding Titans activities and payment records.
                 </p>
               </div>
-              <Link
-                href="/dashboard/wallet"
-                className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border border-[#C9A84C]/25 bg-[#FDFAF3] px-4 py-2 text-xs font-semibold text-[#B8962E] transition hover:bg-[#C9A84C]/10"
-              >
-                View all
-                <ArrowRight size={13} />
-              </Link>
+              {walletEnabled && (
+                <Link
+                  href="/dashboard/wallet"
+                  className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border border-[#C9A84C]/25 bg-[#FDFAF3] px-4 py-2 text-xs font-semibold text-[#B8962E] transition hover:bg-[#C9A84C]/10"
+                >
+                  View all
+                  <ArrowRight size={13} />
+                </Link>
+              )}
             </div>
 
             {error ? (
@@ -582,20 +644,24 @@ export default function DashboardPage() {
                 value={successfulOnPage}
                 sub="On this page"
               />
-              <StatRow
-                icon={Layers}
-                label="Catalogue listings"
-                value={catalogue?.items_count ?? 0}
-                sub={catalogue ? 'Live on your page' : 'Not set up yet'}
-                toHref={catalogue ? '/dashboard/catalogue' : undefined}
-              />
-              <StatRow
-                icon={Eye}
-                label="Public page views"
-                value={catalogue?.views_count ?? 0}
-                sub={catalogue ? 'All time' : '—'}
-                toHref={catalogue ? `/catalogue/${catalogue.id}` : undefined}
-              />
+              {catalogueEnabled && (
+                <>
+                  <StatRow
+                    icon={Layers}
+                    label="Catalogue listings"
+                    value={catalogue?.items_count ?? 0}
+                    sub={catalogue ? 'Live on your page' : 'Not set up yet'}
+                    toHref={catalogue ? '/dashboard/catalogue' : undefined}
+                  />
+                  <StatRow
+                    icon={Eye}
+                    label="Public page views"
+                    value={catalogue?.views_count ?? 0}
+                    sub={catalogue ? 'All time' : '—'}
+                    toHref={catalogue ? `/catalogue/${catalogue.id}` : undefined}
+                  />
+                </>
+              )}
             </dl>
           </section>
 
@@ -651,13 +717,15 @@ export default function DashboardPage() {
               <p className="mt-1 text-xs text-gray-400">
                 {user?.membership_id ? `ID ${user.membership_id}` : 'Acceding Titans member'}
               </p>
-              <Link
-                href="/dashboard/rankings"
-                className="mt-4 inline-flex items-center gap-1.5 text-xs font-bold text-[#C9A84C] transition hover:text-[#B8962E]"
-              >
-                View leaderboard
-                <ArrowRight size={12} />
-              </Link>
+              {rankingsEnabled && (
+                <Link
+                  href="/dashboard/rankings"
+                  className="mt-4 inline-flex items-center gap-1.5 text-xs font-bold text-[#C9A84C] transition hover:text-[#B8962E]"
+                >
+                  View leaderboard
+                  <ArrowRight size={12} />
+                </Link>
+              )}
             </div>
           </section>
         </aside>
