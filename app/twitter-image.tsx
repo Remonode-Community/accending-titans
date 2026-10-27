@@ -14,6 +14,7 @@ import { renderBrandCard } from './opengraph-image';
  * `runtime`, `size`, `contentType` and `alt` on the convention file itself, and
  * re-exporting them from another module fails the build.
  */
+
 export const runtime = 'nodejs';
 export const alt = `${BRAND.name} — ${BRAND.tagline}`;
 export const size = OG_SIZE;
