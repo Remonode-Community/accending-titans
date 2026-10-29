@@ -6,7 +6,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Check, AlertCircle, Bell, CheckCircle, Gift, Info, Trash2, Zap } from 'lucide-react';
+import { Check, AlertCircle, Bell, Cake, CheckCircle, Gift, Info, Trash2, Zap } from 'lucide-react';
 import { formatRelativeTime } from '@/utils/format.utils';
 import { Notification, NotificationType } from '@/types/notification.types';
 
@@ -26,6 +26,7 @@ const getNotificationIcon = (type: NotificationType) => {
     promotion: <Gift className={`${iconProps} text-purple-500`} />,
     update: <Info className={`${iconProps} text-cyan-500`} />,
     alert: <AlertCircle className={`${iconProps} text-red-500`} />,
+    birthday: <Cake className={`${iconProps} text-[#C9A84C]`} />,
   };
 
   return typeIcons[type] || <Bell className={`${iconProps} text-gray-500`} />;
@@ -38,6 +39,7 @@ const getTypeBadgeStyles = (type: NotificationType) => {
     promotion: 'bg-purple-100 text-purple-700',
     update: 'bg-cyan-100 text-cyan-700',
     alert: 'bg-red-100 text-red-700',
+    birthday: 'bg-[#FDFAF3] text-[#9A7B2E]',
   };
   return styles[type] || styles.system;
 };
@@ -130,7 +132,7 @@ export const NotificationCard: React.FC<NotificationCardProps> = ({
           {/* Footer */}
           <div className="flex items-center gap-3 mt-3 pt-3 border-t border-gray-200">
             <div
-              className={`inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium ${getTypeBadgeStyles(
+              className={`inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium capitalize ${getTypeBadgeStyles(
                 notification.type
               )}`}
             >

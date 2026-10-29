@@ -15,6 +15,7 @@ export const getNotificationTypeColor = (type: NotificationType): string => {
     promotion: 'amber',
     update: 'cyan',
     alert: 'red',
+    birthday: 'amber',
   };
   return colors[type] || 'gray';
 };
@@ -29,6 +30,7 @@ export const getNotificationTypeLabel = (type: NotificationType): string => {
     promotion: 'Promotion',
     update: 'Update',
     alert: 'Alert',
+    birthday: 'Birthday',
   };
   return labels[type] || type;
 };

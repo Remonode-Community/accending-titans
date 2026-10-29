@@ -51,6 +51,7 @@ export default function AdminBirthdaysPage() {
     reminders_enabled: true,
     reminder_days_before: 7,
     wishes_enabled: true,
+    community_enabled: true,
     email_enabled: true,
     push_enabled: true,
     admin_digest_enabled: true,
@@ -327,7 +328,10 @@ export default function AdminBirthdaysPage() {
                   : 'No advance reminder.'}{' '}
                 {notifications.wishes_enabled
                   ? 'Wish sent on the day.'
-                  : 'No birthday-day wish.'}
+                  : 'No birthday-day wish.'}{' '}
+                {notifications.community_enabled
+                  ? 'Every member is told about the day\'s celebrants.'
+                  : 'No community announcement.'}
               </p>
               <p className="mt-1 text-xs text-gray-500">
                 Channels:{' '}
@@ -643,6 +647,27 @@ export default function AdminBirthdaysPage() {
                   className="mt-0.5 h-4 w-4 flex-shrink-0 accent-[#C9A84C]"
                 />
               </label>
+
+              <label className="flex cursor-pointer items-start justify-between gap-4 rounded-xl border border-gray-200 p-4 transition hover:bg-gray-50">
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">Community announcement</p>
+                  <p className="mt-0.5 text-xs text-gray-500">
+                    Tell every other member who is celebrating today. Members without the
+                    Birthdays feature receive a notice that points them to plans.
+                  </p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={notifForm.community_enabled}
+                  onChange={(e) =>
+                    setNotifForm((prev) => ({
+                      ...prev,
+                      community_enabled: e.target.checked,
+                    }))
+                  }
+                  className="mt-0.5 h-4 w-4 flex-shrink-0 accent-[#C9A84C]"
+                />
+              </label>
             </div>
           </div>
 
@@ -653,7 +678,8 @@ export default function AdminBirthdaysPage() {
                 <div>
                   <p className="text-sm font-semibold text-gray-900">Email</p>
                   <p className="mt-0.5 text-xs text-gray-500">
-                    Send birthday messages and the admin digest by email.
+                    Send the celebrant&apos;s own birthday message and the admin digest by
+                    email. The community announcement stays in-app and on push.
                   </p>
                 </div>
                 <input

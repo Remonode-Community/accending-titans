@@ -68,6 +68,8 @@ export interface BirthdayNotificationSettings {
   reminder_days_before: number;
   /** Send a wish on the birthday itself. */
   wishes_enabled: boolean;
+  /** Tell every member about the day's celebrants, not only the celebrant. */
+  community_enabled: boolean;
   /** Email channel for birthday messages. */
   email_enabled: boolean;
   /** Device push channel for birthday messages. */

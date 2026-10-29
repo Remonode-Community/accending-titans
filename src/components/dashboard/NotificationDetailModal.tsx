@@ -3,7 +3,9 @@
 import React from 'react';
 import {
   AlertCircle,
+  ArrowRight,
   Bell,
+  Cake,
   Check,
   CheckCircle,
   Gift,
@@ -54,6 +56,12 @@ const TYPE_CONFIG: Record<NotificationType, { icon: React.ElementType; label: st
     badgeBg: 'bg-red-50 border-red-100',
     badgeText: 'text-red-700',
   },
+  birthday: {
+    icon: Cake,
+    label: 'Birthday',
+    badgeBg: 'bg-[#FDFAF3] border-[#C9A84C]/20',
+    badgeText: 'text-[#9A7B2E]',
+  },
 };
 
 const PRIORITY_CONFIG: Record<string, { dot: string; label: string }> = {
@@ -83,6 +91,12 @@ export const NotificationDetailModal: React.FC<NotificationDetailModalProps> = (
   const priorityConfig =
     PRIORITY_CONFIG[notification.priority] ?? PRIORITY_CONFIG.normal;
   const TypeIcon = typeConfig.icon;
+  const actionUrl =
+    typeof notification.data?.url === 'string' ? notification.data.url : null;
+  const showRawData =
+    Boolean(notification.data) &&
+    notification.data?.type !== 'birthday_community' &&
+    Object.keys(notification.data ?? {}).length > 0;
 
   const handleMarkAsRead = async () => {
     if (isUnread && onMarkAsRead) await onMarkAsRead(notification.id);
@@ -214,7 +228,7 @@ export const NotificationDetailModal: React.FC<NotificationDetailModalProps> = (
             </div>
 
             {/* Additional data */}
-            {notification.data && Object.keys(notification.data).length > 0 && (
+            {showRawData && (
               <div>
                 <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
                   Additional data
@@ -230,10 +244,24 @@ export const NotificationDetailModal: React.FC<NotificationDetailModalProps> = (
 
           {/* Actions */}
           <div className="flex-shrink-0 space-y-2 border-t border-gray-100 p-5">
+            {actionUrl && (
+              <a
+                href={actionUrl}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#C9A84C] py-2.5 text-sm font-semibold text-white shadow-sm shadow-[#C9A84C]/20 transition hover:bg-[#B8962E]"
+              >
+                Open
+                <ArrowRight size={15} />
+              </a>
+            )}
+
             {isUnread && (
               <button
                 onClick={handleMarkAsRead}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#C9A84C] py-2.5 text-sm font-semibold text-white shadow-sm shadow-[#C9A84C]/20 transition hover:bg-[#B8962E]"
+                className={
+                  actionUrl
+                    ? 'flex w-full items-center justify-center gap-2 rounded-xl border border-[#C9A84C]/25 bg-white py-2.5 text-sm font-semibold text-[#C9A84C] transition hover:bg-[#FDFAF3]'
+                    : 'flex w-full items-center justify-center gap-2 rounded-xl bg-[#C9A84C] py-2.5 text-sm font-semibold text-white shadow-sm shadow-[#C9A84C]/20 transition hover:bg-[#B8962E]'
+                }
               >
                 <Check size={15} />
                 Mark as read
