@@ -35,15 +35,21 @@ export const RoleSwitcher: React.FC = () => {
     }
   }, [isMounted]);
 
-  // Show if user has multiple roles OR if user is admin (can switch to user view)
+  // Only worth showing when there is something to switch between. A member
+  // with a single role has no alternatives, so the button is just noise.
   if (!user || !user.roles || user.roles.length === 0) {
     return null;
   }
 
   // Get displayable roles: actual roles + admin override to see user view
+  // (a lone admin also gets the member view, which is what makes two options).
   const displayRoles = user.roles.includes('admin') && user.roles.length === 1
     ? [...user.roles, 'user'] // Admin with single role can see "user" view too
     : user.roles;
+
+  if (displayRoles.length < 2) {
+    return null;
+  }
 
   const getRoleColor = (role: string) => {
     switch (role.toLowerCase()) {

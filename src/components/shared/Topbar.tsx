@@ -1,3 +1,7 @@
+/* ──────────────────────────────────────────────────────────────────────
+  Topbar Component
+  ── Application header with navigation, user menu, and theme switcher
+  ────────────────────────────────────────────────────────────────────── */
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -8,11 +12,16 @@ import {
   Menu,
   X,
   ChevronDown,
+  Moon,
+  Sun,
+  Moon as MoonIcon,
+  Sun as SunIcon,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useAuthStore } from '@/store/auth.store';
-import { RoleSwitcher } from './RoleSwitcher';
+import { useUIStore } from '@/store/ui.store';
 import { NotificationBell } from '@/components/dashboard/NotificationBell';
+import { RoleSwitcher } from './RoleSwitcher';
 
 interface TopbarProps {
   onMenuToggle?: () => void;
@@ -59,8 +68,20 @@ export const Topbar: React.FC<TopbarProps> = ({
     await logout();
   };
 
+  // Theme state from UI store
+  const { theme, setTheme } = useUIStore();
+
+  // Toggle theme between light and dark
+  const toggleTheme = () => {
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(newTheme);
+  };
+
   return (
-    <header className="border-b border-gray-200 bg-white sticky top-0 z-40">
+    <header
+      className="border-b border-gray-200/50 bg-white/90 sticky top-0 z-40 dark:border-gray-600/80 dark:bg-gray-900/90"
+      style={{ backgroundColor: theme === 'dark' ? '#1a1a1a' : '#fafafa' }}
+    >
       <div className="px-4 sm:px-6 lg:px-8 py-4">
         <div className="flex items-center justify-between">
           {/* Left section - Menu toggle */}
@@ -81,6 +102,20 @@ export const Topbar: React.FC<TopbarProps> = ({
 
           {/* Notification Bell */}
           <NotificationBell className="mr-2" />
+
+          {/* Theme Switcher */}
+          <button
+            onClick={toggleTheme}
+            className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+            title={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} mode`}
+          >
+            {theme === 'light' ? (
+              <MoonIcon size={16} className="text-yellow-500" />
+            ) : (
+              <SunIcon size={16} className="text-yellow-500" />
+            )}
+            <span className="hidden sm:inline">{theme}</span>
+          </button>
 
           {/* User Profile Menu */}
           {user && isMounted ? (
@@ -118,26 +153,16 @@ export const Topbar: React.FC<TopbarProps> = ({
                       {/* Email Status */}
                       <div className="flex flex-col items-start">
                         <span
-                          className={`text-xs font-semibold mb-1 ${
-                            user.email_verified_at
-                              ? 'text-green-600'
-                              : 'text-amber-600'
-                          }`}
-                        >
+                          className={`text-xs font-semibold mb-1 ${user.email_verified_at ? 'text-green-600' : 'text-amber-600'}`}>
                           {user.email_verified_at ? '✓ Verified' : '⚠ Pending'}
                         </span>
                         <span className="text-xs text-gray-700 truncate">{user.email}</span>
                       </div>
-                      
+
                       {/* Phone Status */}
                       <div className="flex flex-col items-start">
                         <span
-                          className={`text-xs font-semibold mb-1 ${
-                            user.phone_verified_at
-                              ? 'text-green-600'
-                              : 'text-amber-600'
-                          }`}
-                        >
+                          className={`text-xs font-semibold mb-1 ${user.phone_verified_at ? 'text-green-600' : 'text-amber-600'}`}>
                           {user.phone_verified_at ? '✓ Verified' : '⚠ Pending'}
                         </span>
                         <span className="text-xs text-gray-700">Phone</span>
@@ -151,8 +176,7 @@ export const Topbar: React.FC<TopbarProps> = ({
                     className="flex items-center gap-3 px-4 py-3 text-sm font-semibold text-gray-900 hover:bg-gray-50 transition"
                     onClick={() => setShowUserMenu(false)}
                   >
-                    <Settings size={16} />
-                    Settings
+                    <Settings size={16} /> Settings
                   </Link>
 
                   {/* Divider */}
@@ -164,8 +188,7 @@ export const Topbar: React.FC<TopbarProps> = ({
                     disabled={isLoading}
                     className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-red-600 hover:bg-red-50 transition disabled:opacity-50"
                   >
-                    <LogOut size={16} />
-                    {isLoading ? 'Logging out...' : 'Logout'}
+                    <LogOut size={16} /> {isLoading ? 'Logging out...' : 'Logout'}
                   </button>
                 </div>
               )}

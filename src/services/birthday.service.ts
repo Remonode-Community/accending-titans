@@ -15,7 +15,9 @@ import type {
   BirthdayActivity,
   BirthdayContributions,
   BirthdayContribution,
+  MyBirthdayProfile,
   UpdateMyBirthdayRequest,
+  UpdateBirthdayPreferencesRequest,
   CreateSuggestionRequest,
   CreateActivityRequest,
   CreateContributionRequest,
@@ -23,6 +25,7 @@ import type {
   BirthdayActivityStatus,
   AdminCelebration,
   AdminWish,
+  AdminBirthdayPlan,
 } from '@/types/birthday.types';
 
 class BirthdayService {
@@ -44,6 +47,13 @@ class BirthdayService {
     data: UpdateMyBirthdayRequest
   ): Promise<ApiResponse<MyBirthday>> {
     return apiClient.put('/birthdays/me', data);
+  }
+
+  /** PUT /birthdays/me/preferences — the compulsory planning form. */
+  async updatePreferences(
+    data: UpdateBirthdayPreferencesRequest
+  ): Promise<ApiResponse<{ profile: MyBirthdayProfile }>> {
+    return apiClient.put('/birthdays/me/preferences', data);
   }
 
   /** GET /birthdays/network — birthdays coming up. */
@@ -191,6 +201,14 @@ class BirthdayService {
     celebrationId: number
   ): Promise<ApiResponse<{ wishes: AdminWish[] }>> {
     return apiClient.get(`/admin/birthday-celebrations/${celebrationId}/wishes`);
+  }
+
+  /** GET /admin/birthday-celebrations/preferences — completed planning forms. */
+  async adminGetPlans(
+    search?: string
+  ): Promise<ApiResponse<{ plans: AdminBirthdayPlan[] }>> {
+    const qs = search?.trim() ? `?search=${encodeURIComponent(search.trim())}` : '';
+    return apiClient.get(`/admin/birthday-celebrations/preferences${qs}`);
   }
 
   // ────────────────────────────────────────────

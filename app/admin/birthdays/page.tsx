@@ -1,8 +1,20 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { Gift, Cake, CheckCircle, Loader2, SlidersHorizontal, Bell } from 'lucide-react';
+import {
+  Cake,
+  CheckCircle,
+  Gift,
+  Loader2,
+  MapPin,
+  Palette,
+  Search,
+  SlidersHorizontal,
+  Sparkles,
+  Bell,
+} from 'lucide-react';
 
 import { Button } from '@/components/shared/Button';
 import { Badge } from '@/components/shared/Badge';
@@ -14,7 +26,8 @@ import { useAlert } from '@/hooks/useAlert';
 import { birthdayService } from '@/services/birthday.service';
 import { portfolioService } from '@/services/portfolio.service';
 import { platformSettingsService } from '@/services/platform-settings.service';
-import type { AdminBirthdayMember } from '@/types/birthday.types';
+import { birthdayColorHex } from '@/utils/birthday.utils';
+import type { AdminBirthdayMember, AdminBirthdayPlan } from '@/types/birthday.types';
 import type { BirthdayEligibilityRule, BirthdayNotificationSettings } from '@/types/platform-settings.types';
 import type { PortfolioItem } from '@/types/portfolio.types';
 
@@ -27,6 +40,13 @@ export default function AdminBirthdaysPage() {
   const [scope, setScope] = useState<'all' | 'month'>('all');
   const [loading, setLoading] = useState(true);
   const [loadingAction, setLoadingAction] = useState(false);
+
+  // Birthday plans submitted through the member-facing multi-step form
+  const [plans, setPlans] = useState<AdminBirthdayPlan[]>([]);
+  const [plansLoading, setPlansLoading] = useState(true);
+  const [plansError, setPlansError] = useState<string | null>(null);
+  const [planSearch, setPlanSearch] = useState('');
+  const [selectedPlan, setSelectedPlan] = useState<AdminBirthdayPlan | null>(null);
 
   // Assign gift modal
   const [assignModalOpen, setAssignModalOpen] = useState(false);
@@ -152,6 +172,46 @@ export default function AdminBirthdaysPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchRule();
   }, []);
+
+  // Plans are loaded separately from the eligible-member list: they are about
+  // every member who filled the form, not only the ones over the gift
+  // threshold, and a plan search must not blank the whole page.
+  useEffect(() => {
+    let cancelled = false;
+
+    const timer = setTimeout(() => {
+      void (async () => {
+        try {
+          setPlansLoading(true);
+          const res = await birthdayService.adminGetPlans(planSearch);
+          if (cancelled) return;
+
+          if (res.success && res.data) {
+            setPlans(res.data.plans ?? []);
+            setPlansError(null);
+          } else {
+            setPlans([]);
+            setPlansError(res.message || 'Failed to load birthday plans.');
+          }
+        } catch (err) {
+          if (cancelled) return;
+          setPlans([]);
+          setPlansError(
+            err instanceof Error && err.message
+              ? err.message
+              : 'Failed to load birthday plans.'
+          );
+        } finally {
+          if (!cancelled) setPlansLoading(false);
+        }
+      })();
+    }, 350);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [planSearch]);
 
   const handleOpenAssign = async (member: AdminBirthdayMember) => {
     setSelectedMember(member);
@@ -356,6 +416,107 @@ export default function AdminBirthdaysPage() {
         </Card>
       )}
 
+      {/* Birthday plans submitted by members */}
+      <Card className="rounded-2xl border border-[#e5e7eb] bg-white shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#e5e7eb] px-5 py-4 sm:px-6">
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#FDFAF3] text-[#C9A84C]">
+              <Sparkles size={16} />
+            </span>
+            <div>
+              <h2 className="text-sm font-bold text-gray-900">Birthday plans</h2>
+              <p className="mt-0.5 text-xs text-gray-500">
+                Colour, delivery address, wish list and gift style members submitted
+              </p>
+            </div>
+          </div>
+
+          <div className="relative w-full sm:w-60">
+            <Search
+              size={13}
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            />
+            <input
+              value={planSearch}
+              onChange={(event) => setPlanSearch(event.target.value)}
+              placeholder="Search member"
+              aria-label="Search birthday plans"
+              className="w-full rounded-lg border border-[#e5e7eb] bg-white py-2 pl-8 pr-3 text-xs text-gray-700 outline-none transition placeholder:text-gray-300 focus:border-[#C9A84C]"
+            />
+          </div>
+        </div>
+
+        {plansLoading ? (
+          <div className="space-y-2 p-4">
+            {[0, 1, 2].map((row) => (
+              <div key={row} className="h-14 animate-pulse rounded-xl bg-gray-50" />
+            ))}
+          </div>
+        ) : plansError ? (
+          // Loading failures were previously silent and looked identical to
+          // "nobody has submitted yet", which hid real problems such as a
+          // permission gap or a backend error.
+          <div className="px-5 py-6 text-center sm:px-6">
+            <p className="text-sm font-bold text-gray-900">Birthday plans could not load</p>
+            <p className="mx-auto mt-1 max-w-sm text-xs text-red-600">{plansError}</p>
+          </div>
+        ) : plans.length === 0 ? (
+          <div className="px-5 py-8 text-center sm:px-6">
+            <Sparkles className="mx-auto h-8 w-8 text-gray-200" />
+            <p className="mt-3 text-sm font-bold text-gray-900">
+              {planSearch.trim() ? 'No matching plans' : 'No birthday plans submitted yet'}
+            </p>
+            <p className="mx-auto mt-1 max-w-sm text-xs text-gray-500">
+              {planSearch.trim()
+                ? 'Try a different name or email.'
+                : 'Members with the Birthdays feature see the planning form the first time they open the feature.'}
+            </p>
+          </div>
+        ) : (
+          <ul className="divide-y divide-[#e5e7eb]">
+            {plans.map((plan) => (
+              <li
+                key={plan.user_id}
+                className="flex flex-wrap items-center gap-3 px-5 py-3.5 sm:px-6"
+              >
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-pink-100 text-sm font-bold text-pink-600">
+                  {plan.name.charAt(0).toUpperCase()}
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-bold text-gray-900">{plan.name}</p>
+                  <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-gray-500">
+                    <span>{plan.birth_date ?? 'Birthday not set'}</span>
+                    <span className="text-gray-300">·</span>
+                    <span>{plan.preferences.gift_preference_label ?? 'No gift style chosen'}</span>
+                  </p>
+                </div>
+
+                {plan.preferences.completed_at && (
+                  <span className="hidden text-[11px] text-gray-400 sm:block">
+                    Updated{' '}
+                    {new Date(plan.preferences.completed_at).toLocaleDateString(undefined, {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric',
+                    })}
+                  </span>
+                )}
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setSelectedPlan(plan)}
+                  className="rounded-lg border-[#C9A84C]/30 text-xs font-bold text-[#C9A84C] hover:bg-[#C9A84C]/5"
+                >
+                  View plan
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
       {members.length === 0 ? (
         <Card className="rounded-2xl border border-[#e5e7eb] bg-white p-12 text-center shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
           <Gift className="mx-auto h-12 w-12 text-gray-300" />
@@ -398,6 +559,11 @@ export default function AdminBirthdaysPage() {
                     ) : member.birthday_month ? (
                       <Badge variant="info" size="sm">Birthday in {member.birthday_month}</Badge>
                     ) : null}
+                    {member.preferences_complete ? (
+                      <Badge variant="success" size="sm">Plan complete</Badge>
+                    ) : (
+                      <Badge variant="warning" size="sm">Plan missing</Badge>
+                    )}
                     {getRewardStatusBadge(member.reward?.status || null)}
                   </div>
                 </div>
@@ -786,6 +952,144 @@ export default function AdminBirthdaysPage() {
           </div>
         </div>
       </AdminModal>
+
+      {/* Birthday plan detail */}
+      <AdminModal
+        isOpen={Boolean(selectedPlan)}
+        onClose={() => setSelectedPlan(null)}
+        title={selectedPlan?.name ?? 'Birthday plan'}
+        subtitle={
+          selectedPlan
+            ? [selectedPlan.birth_date, selectedPlan.email].filter(Boolean).join(' · ')
+            : undefined
+        }
+        icon={Sparkles}
+        size="lg"
+        footer={
+          <div className="flex justify-end">
+            <Button variant="outline" onClick={() => setSelectedPlan(null)}>
+              Close
+            </Button>
+          </div>
+        }
+      >
+        {selectedPlan && (
+          <div className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <PlanBlock label="Favourite colour" icon={Palette}>
+                <span className="inline-flex items-center gap-2">
+                  {birthdayColorHex(selectedPlan.preferences.favorite_color) && (
+                    <span
+                      className="h-3.5 w-3.5 rounded-full border border-black/10"
+                      style={{
+                        backgroundColor:
+                          birthdayColorHex(selectedPlan.preferences.favorite_color) ?? undefined,
+                      }}
+                    />
+                  )}
+                  {selectedPlan.preferences.favorite_color ?? 'Not provided'}
+                </span>
+              </PlanBlock>
+
+              <PlanBlock label="Gender">
+                <span className="capitalize">
+                  {selectedPlan.preferences.gender ?? 'Not provided'}
+                </span>
+              </PlanBlock>
+            </div>
+
+            <PlanBlock label="Delivery address" icon={MapPin}>
+              {selectedPlan.preferences.address ? (
+                <span className="block leading-relaxed">
+                  {[
+                    selectedPlan.preferences.address.line1,
+                    selectedPlan.preferences.address.line2,
+                    selectedPlan.preferences.address.city,
+                    selectedPlan.preferences.address.state,
+                    selectedPlan.preferences.address.postal_code,
+                    selectedPlan.preferences.address.country,
+                  ]
+                    .filter(Boolean)
+                    .join(', ')}
+                </span>
+              ) : (
+                'Not provided'
+              )}
+            </PlanBlock>
+
+            <PlanBlock label="Wish list">
+              {selectedPlan.preferences.wish_list.length > 0 ? (
+                <span className="flex flex-wrap gap-1.5">
+                  {selectedPlan.preferences.wish_list.map((item) => (
+                    <span
+                      key={item}
+                      className="rounded-full border border-[#e5e7eb] bg-white px-2.5 py-1 text-[11px] font-medium text-gray-600"
+                    >
+                      {item}
+                    </span>
+                  ))}
+                </span>
+              ) : (
+                'Not provided'
+              )}
+            </PlanBlock>
+
+            <PlanBlock label="Gift style">
+              <span className="block">
+                {selectedPlan.preferences.gift_preference_label ?? 'Not provided'}
+              </span>
+              {selectedPlan.preferences.gift_preference_notes && (
+                <span className="mt-1 block text-xs font-normal leading-relaxed text-gray-500">
+                  {selectedPlan.preferences.gift_preference_notes}
+                </span>
+              )}
+            </PlanBlock>
+
+            <PlanBlock label="Contact">
+              <span className="block text-sm font-semibold text-gray-900">
+                {selectedPlan.email}
+              </span>
+              {selectedPlan.phone && (
+                <span className="mt-0.5 block text-xs font-normal text-gray-500">
+                  {selectedPlan.phone}
+                </span>
+              )}
+            </PlanBlock>
+
+            {selectedPlan.preferences.completed_at && (
+              <p className="text-[11px] text-gray-400">
+                Submitted{' '}
+                {new Date(selectedPlan.preferences.completed_at).toLocaleDateString(undefined, {
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric',
+                })}
+              </p>
+            )}
+          </div>
+        )}
+      </AdminModal>
+    </div>
+  );
+}
+
+/** One labelled block in the birthday-plan detail modal. */
+function PlanBlock({
+  label,
+  icon: Icon,
+  children,
+}: {
+  label: string;
+  icon?: typeof Sparkles;
+  children: ReactNode;
+}) {
+  return (
+    <div className="rounded-xl border border-[#e5e7eb] bg-white p-3.5">
+      <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-gray-400">
+        {Icon && <Icon size={11} className="text-[#C9A84C]" />}
+        {label}
+      </p>
+      <div className="mt-1.5 text-sm font-semibold text-gray-900">{children}</div>
     </div>
   );
 }

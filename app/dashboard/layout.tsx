@@ -344,7 +344,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
   return (
     <AuthProtected requireAuth>
-      <div className="flex h-screen overflow-hidden bg-[#f8f8f8] text-gray-900">
+      <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
 
         {/* Desktop Sidebar */}
         <aside
@@ -358,7 +358,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
         <div className="flex min-w-0 flex-1 flex-col">
           {/* Topbar */}
-          <header className="flex h-14 items-center justify-between border-b border-gray-100 bg-white px-4 sm:px-6">
+          <header className="flex h-14 items-center justify-between border-b border-gray-100/50 bg-white/90 dark:border-gray-600/80 dark:bg-gray-900/90 px-4 sm:px-6">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setMobileMenuOpen((open) => !open)}
@@ -526,7 +526,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
           </aside>
 
           {/* Main content */}
-          <main className="flex-1 overflow-y-auto bg-[#f8f8f8] p-4 sm:p-6">
+          <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900 p-4 sm:p-6">
             {featureBlocked && activeFeature ? (
               <FeatureUnavailable
                 label={activeFeature.label}

@@ -177,6 +177,69 @@ export interface MyBirthdayProfile {
   preferences_note: string | null;
   has_date_of_birth: boolean;
   birthday_month_day: string | null;
+  /** The planning form answers the member can edit. */
+  preferences: BirthdayPreferences;
+  /** False until the compulsory form has been submitted at least once. */
+  preferences_complete: boolean;
+}
+
+/* ──────────────────────────────────────────────
+ * Birthday planning form
+ *
+ * Collected once, editable afterwards, and shown only to the member and to
+ * administrators. The network never receives the address, gender or gift
+ * preference — see `publicCelebrant` on the API.
+ * ────────────────────────────────────────────── */
+
+export type BirthdayGiftPreference = 'consumable' | 'appliance' | 'service' | 'surprise';
+
+export type BirthdayGender = 'male' | 'female' | 'other';
+
+export interface BirthdayAddress {
+  line1: string | null;
+  line2: string | null;
+  city: string | null;
+  state: string | null;
+  postal_code: string | null;
+  country: string | null;
+}
+
+export interface BirthdayPreferences {
+  favorite_color: string | null;
+  gender: BirthdayGender | null;
+  address: BirthdayAddress | null;
+  wish_list: string[];
+  gift_preference: BirthdayGiftPreference | null;
+  gift_preference_label: string | null;
+  gift_preference_notes: string | null;
+  /** ISO timestamp of the last submission. */
+  completed_at: string | null;
+}
+
+export interface UpdateBirthdayPreferencesRequest {
+  favorite_color: string;
+  gender: BirthdayGender;
+  address_line1: string;
+  address_line2?: string | null;
+  city: string;
+  state: string;
+  postal_code?: string | null;
+  country: string;
+  wish_list: string[];
+  gift_preference: BirthdayGiftPreference;
+  gift_preference_notes?: string | null;
+}
+
+/** A completed plan as seen by the administrator arranging the gift. */
+export interface AdminBirthdayPlan {
+  user_id: number;
+  name: string;
+  email: string;
+  phone: string | null;
+  profile_photo_url: string | null;
+  rank: string | null;
+  birth_date: string | null;
+  preferences: BirthdayPreferences;
 }
 
 export interface MyBirthday {
@@ -330,6 +393,8 @@ export interface AdminBirthdayMember {
     total_subscription_months: number;
     is_eligible: boolean;
     is_shoutout_only: boolean;
+    /** Whether the compulsory birthday planning form has been submitted. */
+    preferences_complete?: boolean;
     reward: BirthdayReward | null;
     business?: string | null;
 }

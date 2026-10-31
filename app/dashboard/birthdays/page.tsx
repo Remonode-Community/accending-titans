@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
@@ -9,18 +10,22 @@ import {
   Check,
   ChevronRight,
   Gift,
-  PartyPopper,
+  MapPin,
+  Palette,
+  Pencil,
   Save,
   Settings2,
+  Sparkles,
   Users,
 } from 'lucide-react';
 import { Button } from '@/components/shared/Button';
-import { Card } from '@/components/shared/Card';
 import { EmptyState } from '@/components/shared/EmptyState';
+import { Modal } from '@/components/shared/Modal';
 import { BirthdayCountdownCard } from '@/components/birthday/BirthdayCountdownCard';
+import { BirthdayPreferencesWizard } from '@/components/birthday/BirthdayPreferencesWizard';
 import { birthdayService } from '@/services/birthday.service';
 import { useAuth } from '@/hooks/useAuth';
-import { formatDate } from '@/utils/format.utils';
+import { birthdayColorHex } from '@/utils/birthday.utils';
 import type {
   BirthdayEligibility,
   MyBirthday,
@@ -54,6 +59,7 @@ export default function BirthdaysPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [showPlanEditor, setShowPlanEditor] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -87,6 +93,40 @@ export default function BirthdaysPage() {
   }, [load]);
 
   const celebrantName = `${user?.first_name ?? ''} ${user?.last_name ?? ''}`.trim() || 'You';
+  const plan = mine?.profile.preferences ?? null;
+
+  /**
+   * The planning form is compulsory for members whose plan includes birthdays.
+   * Until it is saved, the hub is replaced by the wizard rather than shown
+   * behind it: the details are what makes a gift possible, so skipping them
+   * would silently leave the member with a half-working feature.
+   */
+  if (!loading && mine && mine.profile.preferences_complete === false) {
+    return (
+      <div className="space-y-6">
+        <header>
+          <h1 className="text-2xl font-black tracking-tight text-gray-900">Birthdays</h1>
+          <p className="mt-1 text-sm text-gray-500">
+            Your network is coming together to celebrate.
+          </p>
+        </header>
+
+        <div className="rounded-2xl border border-[#C9A84C]/25 bg-[#FDFAF3]/60 px-5 py-4">
+          <p className="text-sm font-black text-gray-900">Set up your birthday plan</p>
+          <p className="mt-1 text-xs leading-relaxed text-gray-500">
+            Tell us your favourite colour, where a gift should go, what you would love to receive
+            and how you would like to be celebrated. It takes about a minute, and only you and the
+            birthday team can see it.
+          </p>
+        </div>
+
+        <BirthdayPreferencesWizard
+          initial={mine.profile.preferences}
+          onCompleted={() => void load()}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -171,6 +211,88 @@ export default function BirthdaysPage() {
               )}
             </div>
           </section>
+
+          {/* ── My birthday plan ── */}
+          {plan && (
+            <section className={CARD}>
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#e5e7eb] px-5 py-4 sm:px-6">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#FDFAF3] text-[#C9A84C]">
+                    <Sparkles size={17} />
+                  </span>
+                  <div>
+                    <h2 className="text-base font-black tracking-tight text-gray-900">
+                      Your birthday plan
+                    </h2>
+                    <p className="mt-0.5 text-xs text-gray-400">
+                      Shared only with the birthday team, never with your network
+                    </p>
+                  </div>
+                </div>
+
+                <Button size="sm" variant="outline" onClick={() => setShowPlanEditor(true)}>
+                  <Pencil size={13} />
+                  Update plan
+                </Button>
+              </div>
+
+              <div className="grid gap-4 p-5 sm:grid-cols-2 sm:p-6">
+                <PlanFact
+                  icon={<Palette size={13} />}
+                  label="Favourite colour"
+                >
+                  <span className="inline-flex items-center gap-1.5">
+                    {birthdayColorHex(plan.favorite_color) && (
+                      <span
+                        className="h-3 w-3 rounded-full border border-black/10"
+                        style={{ backgroundColor: birthdayColorHex(plan.favorite_color) ?? undefined }}
+                      />
+                    )}
+                    {plan.favorite_color ?? 'Not set'}
+                  </span>
+                </PlanFact>
+
+                <PlanFact icon={<Gift size={13} />} label="Gift style">
+                  {plan.gift_preference_label ?? 'Not set'}
+                  {plan.gift_preference === 'service' && plan.gift_preference_notes && (
+                    <span className="mt-0.5 block text-[11px] font-normal text-gray-400">
+                      {plan.gift_preference_notes}
+                    </span>
+                  )}
+                </PlanFact>
+
+                <PlanFact icon={<MapPin size={13} />} label="Delivery address">
+                  {plan.address
+                    ? [plan.address.line1, plan.address.line2, plan.address.city, plan.address.state]
+                        .filter(Boolean)
+                        .join(', ')
+                    : 'Not set'}
+                </PlanFact>
+
+                <PlanFact icon={<Gift size={13} />} label="Wish list">
+                  {plan.wish_list.length > 0 ? (
+                    <span className="flex flex-wrap gap-1">
+                      {plan.wish_list.slice(0, 4).map((item) => (
+                        <span
+                          key={item}
+                          className="rounded-full border border-[#e5e7eb] bg-white px-2 py-0.5 text-[10px] font-semibold text-gray-600"
+                        >
+                          {item}
+                        </span>
+                      ))}
+                      {plan.wish_list.length > 4 && (
+                        <span className="rounded-full bg-[#FDFAF3] px-2 py-0.5 text-[10px] font-bold text-[#B8962E]">
+                          +{plan.wish_list.length - 4} more
+                        </span>
+                      )}
+                    </span>
+                  ) : (
+                    'Not set'
+                  )}
+                </PlanFact>
+              </div>
+            </section>
+          )}
 
           {/* ── My birthday reward (platform loyalty scheme) ── */}
           {reward && (
@@ -332,6 +454,47 @@ export default function BirthdaysPage() {
           </section>
         </>
       )}
+
+      <Modal
+        isOpen={showPlanEditor}
+        onClose={() => setShowPlanEditor(false)}
+        title="Update your birthday plan"
+        subtitle="Only you and the birthday team can see these details."
+        icon={Sparkles}
+        size="lg"
+      >
+        <BirthdayPreferencesWizard
+          initial={plan}
+          mode="edit"
+          embedded
+          onCompleted={() => {
+            setShowPlanEditor(false);
+            void load();
+          }}
+          onCancel={() => setShowPlanEditor(false)}
+        />
+      </Modal>
+    </div>
+  );
+}
+
+/** One fact from the member's saved birthday plan. */
+function PlanFact({
+  icon,
+  label,
+  children,
+}: {
+  icon: ReactNode;
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="rounded-xl border border-[#e5e7eb] bg-white p-3.5">
+      <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-gray-400">
+        <span className="text-[#C9A84C]">{icon}</span>
+        {label}
+      </p>
+      <div className="mt-1.5 text-sm font-semibold text-gray-900">{children}</div>
     </div>
   );
 }

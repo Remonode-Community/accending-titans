@@ -7,6 +7,7 @@ import {
   ArrowRight,
   Award,
   Building2,
+  Cake,
   Check,
   CheckCircle,
   ChevronLeft,
@@ -32,6 +33,7 @@ import {
 import { transactionService } from '@/services/transaction.service';
 import { customerService, DedicatedAccount } from '@/services/customer.service';
 import { portfolioService } from '@/services/portfolio.service';
+import { birthdayService } from '@/services/birthday.service';
 import { useAuth } from '@/hooks/useAuth';
 import { useFeatureStore } from '@/store/feature.store';
 import type { FeatureKey } from '@/types/platform-settings.types';
@@ -123,6 +125,12 @@ export default function DashboardPage() {
   const catalogueEnabled = features.catalogue !== false;
   const walletEnabled = features.wallet !== false;
   const rankingsEnabled = features.rankings !== false;
+  const birthdaysEnabled = features.birthdays !== false;
+
+  // True when the member has the Birthdays feature but has not finished the
+  // compulsory planning form. Drives a single prompt; the form itself lives on
+  // the Birthdays page so it is filled in one focused place.
+  const [birthdayPlanDue, setBirthdayPlanDue] = useState(false);
 
   const [transactions, setTransactions] = useState<TransactionData[]>([]);
   const [dedicatedAccount, setDedicatedAccount] = useState<DedicatedAccount | null>(null);
@@ -161,7 +169,6 @@ export default function DashboardPage() {
     // feature looks enabled, which is exactly how a disabled catalogue used to
     // be requested and refused.
     if (!featuresLoaded || !catalogueEnabled) return;
-
     let cancelled = false;
 
     portfolioService
@@ -190,6 +197,36 @@ export default function DashboardPage() {
       cancelled = true;
     };
   }, [isAuthenticated, featuresLoaded, catalogueEnabled]);
+
+  /**
+   * Birthday plan prompt.
+   *
+   * Only asked for once the feature map says the member has Birthdays: calling
+   * the endpoint before that would be refused, and asking a member without the
+   * feature would be noise. A failure is silent — the prompt is a convenience,
+   * and the Birthdays page still enforces the form.
+   */
+  useEffect(() => {
+    if (!isAuthenticated || !featuresLoaded || !birthdaysEnabled) return;
+
+    let cancelled = false;
+
+    birthdayService
+      .getMine()
+      .then((res) => {
+        if (cancelled || !res.success || !res.data) return;
+        // Strictly `false`: an API that predates the form omits the flag, and
+        // an undefined value must not be read as "the member has not done it".
+        setBirthdayPlanDue(res.data.profile.preferences_complete === false);
+      })
+      .catch(() => {
+        // Leave the prompt hidden.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, featuresLoaded, birthdaysEnabled]);
 
   useEffect(() => {
     setToday(
@@ -316,6 +353,29 @@ export default function DashboardPage() {
         // disabled catalogue flickers a "set it up" invitation on first paint.
         catalogueEnabled={featuresLoaded && catalogueEnabled}
       />
+
+      {birthdayPlanDue && (
+        <Link
+          href="/dashboard/birthdays"
+          className="flex items-center gap-3 rounded-2xl border border-[#C9A84C]/30 bg-[#FDFAF3] px-5 py-3.5 transition hover:border-[#C9A84C]/60"
+        >
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-[#C9A84C] shadow-sm">
+            <Cake size={16} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-bold text-gray-900">
+              Finish your birthday plan
+            </span>
+            <span className="mt-0.5 block text-xs text-gray-500">
+              Add your favourite colour, delivery details and wish list so the team can plan your
+              birthday.
+            </span>
+          </span>
+          <span className="flex shrink-0 items-center gap-1 text-xs font-bold text-[#B8962E]">
+            Set up <ArrowRight size={13} />
+          </span>
+        </Link>
+      )}
 
       {/* ── Body: main column + rail ── */}
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_336px]">
