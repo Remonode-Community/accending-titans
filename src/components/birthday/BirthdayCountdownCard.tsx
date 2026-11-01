@@ -21,7 +21,7 @@ import type { BirthdayCountdown } from '@/types/birthday.types';
  */
 
 const CARD =
-  'rounded-2xl border border-[#e5e7eb] bg-white shadow-[0_10px_35px_rgba(0,0,0,0.04)]';
+  'birthday-countdown-card rounded-2xl border border-[#e5e7eb] bg-white shadow-[0_10px_35px_rgba(0,0,0,0.04)] dark:border-[#28251e] dark:bg-[#1b1a16]';
 
 interface Props {
   countdown: BirthdayCountdown;
@@ -102,7 +102,7 @@ export function BirthdayCountdownCard({
   // ── Today ──
   if (countdown.state === 'today') {
     return (
-      <div className="overflow-hidden rounded-2xl border border-[#C9A84C]/40 bg-gradient-to-br from-[#FDFAF3] to-[#C9A84C]/15 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
+      <div className="birthday-countdown-card overflow-hidden rounded-2xl border border-[#C9A84C]/40 bg-gradient-to-br from-[#FDFAF3] to-[#C9A84C]/15 shadow-[0_10px_35px_rgba(0,0,0,0.04)] dark:border-[#302b20] dark:from-[#1b1a16] dark:to-[#1b1a16]">
         <div className="p-6 text-center sm:p-8">
           <PartyPopper size={34} className="mx-auto text-[#B8962E]" />
           <p className="mt-3 text-2xl font-black tracking-tight text-gray-900 sm:text-3xl">
@@ -151,7 +151,7 @@ export function BirthdayCountdownCard({
     <div
       className={
         isImminent
-          ? 'overflow-hidden rounded-2xl border border-[#C9A84C]/40 bg-gradient-to-br from-[#FDFAF3] to-[#C9A84C]/10 shadow-[0_10px_35px_rgba(0,0,0,0.04)]'
+          ? 'birthday-countdown-card overflow-hidden rounded-2xl border border-[#C9A84C]/40 bg-gradient-to-br from-[#FDFAF3] to-[#C9A84C]/10 shadow-[0_10px_35px_rgba(0,0,0,0.04)] dark:border-[#302b20] dark:from-[#1b1a16] dark:to-[#1b1a16]'
           : `${CARD} p-5 sm:p-6`
       }
     >
@@ -180,12 +180,12 @@ export function BirthdayCountdownCard({
           {units.map((unit) => (
             <div
               key={unit.label}
-              className="min-w-[62px] rounded-xl border border-[#C9A84C]/20 bg-[#FDFAF3] px-2 py-2.5 text-center sm:min-w-[76px] sm:px-3"
+              className="birthday-countdown-unit min-w-[62px] rounded-xl border border-[#C9A84C]/20 bg-[#FDFAF3] px-2 py-2.5 text-center dark:border-[#d4af37]/35 dark:bg-[#1b1a16] sm:min-w-[76px] sm:px-3"
             >
-              <p className="text-xl font-black leading-none text-gray-900 tabular-nums sm:text-2xl">
+              <p className="text-xl font-black leading-none text-gray-900 tabular-nums dark:text-[#e8d18a] sm:text-2xl">
                 {String(unit.value).padStart(2, '0')}
               </p>
-              <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-gray-500">
+              <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-[#b6b09f]">
                 {unit.label}
               </p>
             </div>

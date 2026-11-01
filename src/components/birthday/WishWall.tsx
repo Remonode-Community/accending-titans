@@ -9,7 +9,7 @@ import { formatDateTime } from '@/utils/format.utils';
 import type { BirthdayWish } from '@/types/birthday.types';
 
 const CARD =
-  'rounded-[1.75rem] border border-[#ece7dd] bg-white shadow-[0_18px_40px_-28px_rgba(26,15,11,0.25)]';
+  'rounded-[1.75rem] border border-[#ece7dd] bg-white shadow-[0_18px_40px_-28px_rgba(26,15,11,0.25)] dark:border-[#28251e] dark:bg-[#1b1a16]';
 
 const ACCENTS = [
   'from-[#F3D27A]/60',
@@ -68,12 +68,12 @@ export function WishWall({
     <section
       className={
         embedded
-          ? 'overflow-hidden rounded-2xl border border-[#f1ece2] bg-white'
+          ? 'overflow-hidden rounded-2xl border border-[#f1ece2] bg-white dark:border-[#28251e] dark:bg-[#1b1a16]'
           : CARD
       }
     >
       {!embedded && (
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#f1ece2] px-5 py-4 sm:px-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#f1ece2] px-5 py-4 dark:border-[#28251e] sm:px-6">
           <div className="flex items-center gap-3">
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#FFF3CF] to-[#F3D27A]/70 text-[#8A6F1F]">
               <Gift size={16} />
@@ -98,11 +98,11 @@ export function WishWall({
 
       {/* Composer */}
       {canPost && (
-        <div className="border-b border-[#f1ece2] bg-gradient-to-br from-[#FFF8E8]/70 via-white to-[#FDFAF3] p-4 sm:p-5">
+        <div className="border-b border-[#f1ece2] bg-gradient-to-br from-[#FFF8E8]/70 via-white to-[#FDFAF3] p-4 dark:border-[#28251e] dark:from-[#1b1a16] dark:via-[#1b1a16] dark:to-[#1b1a16] sm:p-5">
           <label htmlFor="wish-message" className="sr-only">
             Your birthday message
           </label>
-          <div className="rounded-[1.35rem] border border-[#C9A84C]/25 bg-white p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
+          <div className="rounded-[1.35rem] border border-[#C9A84C]/25 bg-white p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] dark:border-[#302b20] dark:bg-[#24221c]">
             <textarea
               id="wish-message"
               value={message}
@@ -110,9 +110,9 @@ export function WishWall({
               rows={3}
               maxLength={500}
               placeholder={`Write something ${firstName} will love to read…`}
-              className="w-full resize-none rounded-xl border-0 bg-transparent px-2 py-1.5 text-sm leading-relaxed text-gray-800 outline-none placeholder:text-gray-300"
+              className="w-full resize-none rounded-xl border-0 bg-transparent px-2 py-1.5 text-sm leading-relaxed text-gray-800 outline-none placeholder:text-gray-300 dark:text-gray-100"
             />
-            <div className="mt-2 flex flex-wrap items-center justify-between gap-3 border-t border-[#f1ece2] pt-2.5">
+            <div className="mt-2 flex flex-wrap items-center justify-between gap-3 border-t border-[#f1ece2] pt-2.5 dark:border-[#28251e]">
               <p className="pl-2 text-[11px] text-gray-400">
                 {message.length}/500
                 {error && <span className="ml-2 font-semibold text-red-600">{error}</span>}
@@ -149,7 +149,7 @@ export function WishWall({
           {wishes.map((wish, index) => (
             <li
               key={wish.id}
-              className="group relative flex flex-col overflow-hidden rounded-2xl border border-[#f1ece2] bg-white p-4 transition duration-300 hover:-translate-y-0.5 hover:border-[#C9A84C]/35 hover:shadow-[0_18px_34px_-24px_rgba(26,15,11,0.4)]"
+              className="group relative flex flex-col overflow-hidden rounded-2xl border border-[#f1ece2] bg-white p-4 transition duration-300 hover:-translate-y-0.5 hover:border-[#C9A84C]/35 hover:shadow-[0_18px_34px_-24px_rgba(26,15,11,0.4)] dark:border-[#28251e] dark:bg-[#1b1a16]"
             >
               <div
                 aria-hidden
@@ -161,8 +161,8 @@ export function WishWall({
                 {wish.message}
               </p>
 
-              <div className="mt-4 flex items-center gap-2.5 border-t border-[#f6f1e8] pt-3">
-                <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full border border-[#f1ece2] bg-[#FDFAF3]">
+              <div className="mt-4 flex items-center gap-2.5 border-t border-[#f6f1e8] pt-3 dark:border-[#28251e]">
+                <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full border border-[#f1ece2] bg-[#FDFAF3] dark:border-[#28251e] dark:bg-[#24221c]">
                   {wish.author.profile_photo_url ? (
                     <Image
                       src={wish.author.profile_photo_url}

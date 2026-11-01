@@ -252,6 +252,8 @@ class ApiClient {
         if (error.response?.status === 401) {
           this.log('[ApiClient] Got 401 - session expired or invalid token, performing full logout');
           if (typeof window !== 'undefined') {
+            const hadSession = Boolean(this.getToken());
+
             // Clear token and auth store immediately
             this.clearToken();
             try {
@@ -260,8 +262,12 @@ class ApiClient {
             } catch (e) {
               debug.warn('[ApiClient] Error clearing auth store');
             }
-            // Redirect to landing page
-            window.location.href = '/';
+
+            // Public requests can also return 401; only redirect once for an
+            // expired session, and never reload the page we're already on.
+            if (hadSession && window.location.pathname !== '/auth/login') {
+              window.location.replace('/auth/login');
+            }
           }
           return Promise.reject('Session expired - please login again');
         }

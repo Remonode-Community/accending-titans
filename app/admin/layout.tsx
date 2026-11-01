@@ -243,7 +243,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         className={clsx(
                           'group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition-all',
                           active
-                            ? 'bg-[#C9A84C] text-white shadow-lg shadow-[#C9A84C]/25'
+                            ? 'admin-nav-active bg-[#C9A84C] text-white shadow-lg shadow-[#C9A84C]/25'
                             : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                         )}
                         title={!sidebarOpen && !mobile ? item.label : undefined}
@@ -253,7 +253,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                           className={clsx(
                             'flex-shrink-0',
                             active
-                              ? 'text-white'
+                              ? 'admin-nav-icon-active text-white'
                               : 'text-gray-400 group-hover:text-gray-600'
                           )}
                         />
@@ -316,7 +316,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   );
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50 text-gray-900">
+    <div id="admin-shell" className="flex h-screen overflow-hidden bg-gray-50 text-gray-900">
       {/* Desktop Sidebar */}
       <aside
         className={clsx(
@@ -377,7 +377,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </aside>
 
         {/* Content */}
-        <main className="flex-1 overflow-y-auto bg-[radial-gradient(circle_at_top_right,rgba(215,25,39,0.12),transparent_32%),#f8f8f8] px-4 py-6 text-[#111]">
+        <main className="admin-content-canvas flex-1 overflow-y-auto px-4 py-6">
           {children}
         </main>
       </div>

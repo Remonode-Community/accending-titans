@@ -8,7 +8,7 @@ import type { User as AuthUser } from '@/types/api.types';
 import type { Portfolio } from '@/types/portfolio.types';
 
 const CARD =
-  'rounded-2xl border border-[#e5e7eb] bg-white shadow-[0_10px_35px_rgba(0,0,0,0.04)]';
+  'dashboard-card rounded-2xl border border-[#e5e7eb] bg-white shadow-[0_10px_35px_rgba(0,0,0,0.04)]';
 
 /** The member's own catalogue, or null when they have not created one. */
 export type DashboardProfile = Pick<

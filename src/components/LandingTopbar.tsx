@@ -6,6 +6,7 @@ import { ChevronDown, LogOut, LayoutDashboard, UserPlus } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
 import { useAuth } from '@/hooks/useAuth';
 import { useState } from 'react';
+import { ThemeToggle } from '@/components/shared/ThemeToggle';
 
 /**
  * LandingTopbar Component
@@ -41,6 +42,7 @@ export function LandingTopbar() {
         </div>
 
         <div className="flex items-center gap-3">
+          <ThemeToggle compact />
           {isAuthenticated && user ? (
             // Authenticated user menu
             <div className="relative">

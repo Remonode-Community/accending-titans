@@ -11,7 +11,6 @@ import {
   ArrowRight,
   Loader2,
   Crown,
-  Layers,
 } from 'lucide-react';
 import { subscriptionService } from '@/services/subscription.service';
 import { useFeatureStore } from '@/store/feature.store';
@@ -167,7 +166,7 @@ export function SubscriptionPlansSection({
 
   if (loading) {
     return (
-      <section className="bg-gradient-to-b from-gray-50 to-white py-20 sm:py-28 md:py-40 px-4 sm:px-6 lg:px-8">
+      <section id="membership-plans" className="bg-gradient-to-b from-gray-50 to-white dark:!bg-none dark:!bg-[#11100d] py-20 sm:py-28 md:py-40 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="flex justify-center items-center py-20">
             <Loader2 className="h-8 w-8 animate-spin text-[#C9A84C]" />
@@ -180,7 +179,7 @@ export function SubscriptionPlansSection({
   if (plans.length === 0) return null;
 
   return (
-    <section className="bg-gradient-to-b from-gray-50 to-white py-20 sm:py-28 md:py-40 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+    <section id="membership-plans" className="bg-gradient-to-b from-gray-50 to-white dark:!bg-none dark:!bg-[#11100d] py-20 sm:py-28 md:py-40 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
       {/* Background decorative elements */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] rounded-full bg-[#C9A84C]/3 blur-3xl pointer-events-none" />
       <div className="absolute bottom-0 right-0 w-96 h-96 rounded-full bg-[#C9A84C]/5 blur-3xl pointer-events-none" />
@@ -276,15 +275,6 @@ export function SubscriptionPlansSection({
                     </span>
                     <span className="text-sm text-gray-500 ml-1.5">
                       {intervalSuffix(plan.interval, plan.duration_days)}
-                    </span>
-                  </div>
-
-                  {/* Included feature count */}
-                  <div className="flex items-center gap-2 mb-6 py-2.5 px-3.5 rounded-lg bg-[#FDFAF3] border border-[#C9A84C]/15">
-                    <Layers size={15} className="text-[#C9A84C] flex-shrink-0" />
-                    <span className="text-sm font-medium text-gray-700">
-                      {(plan.features?.length ?? 0)} feature
-                      {(plan.features?.length ?? 0) === 1 ? '' : 's'} included
                     </span>
                   </div>
 

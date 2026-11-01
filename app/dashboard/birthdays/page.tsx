@@ -33,7 +33,7 @@ import type {
 } from '@/types/birthday.types';
 
 const CARD =
-  'rounded-2xl border border-[#e5e7eb] bg-white shadow-[0_10px_35px_rgba(0,0,0,0.04)]';
+  'birthday-card rounded-2xl border border-[#e5e7eb] bg-white shadow-[0_10px_35px_rgba(0,0,0,0.04)] dark:border-[#28251e] dark:bg-[#1b1a16]';
 
 /** Circle keys from the member network, in the order worth showing them. */
 const CONNECTION_LABELS: { key: string; label: string }[] = [
@@ -156,7 +156,7 @@ export default function BirthdaysPage() {
         <>
           {/* ── My birthday ── */}
           <section className={CARD}>
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#e5e7eb] px-5 py-4 sm:px-6">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#e5e7eb] px-5 py-4 dark:border-[#28251e] sm:px-6">
               <div className="flex items-center gap-3">
                 <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#FDFAF3] text-[#C9A84C]">
                   <Cake size={17} />
@@ -215,7 +215,7 @@ export default function BirthdaysPage() {
           {/* ── My birthday plan ── */}
           {plan && (
             <section className={CARD}>
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#e5e7eb] px-5 py-4 sm:px-6">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#e5e7eb] px-5 py-4 dark:border-[#28251e] sm:px-6">
                 <div className="flex items-center gap-3">
                   <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#FDFAF3] text-[#C9A84C]">
                     <Sparkles size={17} />
@@ -275,7 +275,7 @@ export default function BirthdaysPage() {
                       {plan.wish_list.slice(0, 4).map((item) => (
                         <span
                           key={item}
-                          className="rounded-full border border-[#e5e7eb] bg-white px-2 py-0.5 text-[10px] font-semibold text-gray-600"
+                          className="rounded-full border border-[#e5e7eb] bg-white px-2 py-0.5 text-[10px] font-semibold text-gray-600 dark:border-[#28251e] dark:bg-[#24221c] dark:text-gray-300"
                         >
                           {item}
                         </span>
@@ -297,7 +297,7 @@ export default function BirthdaysPage() {
           {/* ── My birthday reward (platform loyalty scheme) ── */}
           {reward && (
             <section className={CARD}>
-              <div className="flex items-center gap-3 border-b border-[#e5e7eb] px-5 py-4 sm:px-6">
+              <div className="flex items-center gap-3 border-b border-[#e5e7eb] px-5 py-4 dark:border-[#28251e] sm:px-6">
                 <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#FDFAF3] text-[#C9A84C]">
                   <Gift size={17} />
                 </span>
@@ -489,7 +489,7 @@ function PlanFact({
   children: ReactNode;
 }) {
   return (
-    <div className="rounded-xl border border-[#e5e7eb] bg-white p-3.5">
+    <div className="rounded-xl border border-[#e5e7eb] bg-white p-3.5 dark:border-[#28251e] dark:bg-[#1b1a16]">
       <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-gray-400">
         <span className="text-[#C9A84C]">{icon}</span>
         {label}
@@ -501,7 +501,7 @@ function PlanFact({
 
 function Avatar({ person }: { person: { name: string; profile_photo_url: string | null } }) {
   return (
-    <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full border border-[#e5e7eb] bg-[#FDFAF3]">
+    <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full border border-[#e5e7eb] bg-[#FDFAF3] dark:border-[#28251e] dark:bg-[#24221c]">
       {person.profile_photo_url ? (
         <Image
           src={person.profile_photo_url}
@@ -563,7 +563,7 @@ function MyBirthdaySettings({
   };
 
   return (
-    <div className="mt-4 space-y-3.5 rounded-xl border border-[#C9A84C]/25 bg-[#FDFAF3]/50 p-4 sm:p-5">
+    <div className="mt-4 space-y-3.5 rounded-xl border border-[#C9A84C]/25 bg-[#FDFAF3]/50 p-4 dark:border-[#302b20] dark:bg-[#1b1a16] sm:p-5">
       <div>
         <label htmlFor="dob" className="text-xs font-semibold text-gray-600">
           Date of birth
@@ -573,7 +573,7 @@ function MyBirthdaySettings({
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
-          className="mt-1.5 w-full rounded-xl border border-[#e5e7eb] bg-white px-4 py-2.5 text-sm outline-none transition focus:border-[#C9A84C] sm:w-56"
+          className="mt-1.5 w-full rounded-xl border border-[#e5e7eb] bg-white px-4 py-2.5 text-sm outline-none transition focus:border-[#C9A84C] dark:border-[#28251e] dark:bg-[#24221c] sm:w-56"
         />
         <p className="mt-1.5 text-[11px] text-gray-400">
           Only your month and day are ever shown to other members. Your age is
@@ -592,7 +592,7 @@ function MyBirthdaySettings({
           value={note}
           onChange={(e) => setNote(e.target.value)}
           placeholder="e.g. No gifts please — let's just have dinner together"
-          className="mt-1.5 w-full resize-none rounded-xl border border-[#e5e7eb] bg-white px-4 py-2.5 text-sm outline-none transition placeholder:text-gray-300 focus:border-[#C9A84C]"
+          className="mt-1.5 w-full resize-none rounded-xl border border-[#e5e7eb] bg-white px-4 py-2.5 text-sm outline-none transition placeholder:text-gray-300 focus:border-[#C9A84C] dark:border-[#28251e] dark:bg-[#24221c]"
         />
       </div>
 

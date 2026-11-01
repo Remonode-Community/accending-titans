@@ -153,7 +153,7 @@ function IncludedFeatures({
 }) {
   if (features.length === 0) {
     return (
-      <div className="flex items-start gap-3 rounded-xl border border-dashed border-gray-200 bg-white/60 p-4">
+      <div className="flex items-start gap-3 rounded-xl border border-dashed border-gray-200 bg-white/60 p-4 dark:border-[#302b20] dark:bg-[#24221c]">
         <Lock size={16} className="mt-0.5 flex-shrink-0 text-gray-400" />
         <div>
           <p className="text-sm font-semibold text-gray-700">
@@ -184,7 +184,7 @@ function IncludedFeatures({
             key={key}
             className={
               showDescriptions
-                ? `flex items-start gap-3 rounded-xl border p-3.5 ${
+                ? `flex items-start gap-3 rounded-xl border p-3.5 dark:border-[#302b20] dark:bg-[#24221c] ${
                     variant === 'cream'
                       ? 'border-[#C9A84C]/15 bg-[#FDFAF3]'
                       : 'border-gray-100 bg-white'
@@ -246,12 +246,12 @@ function ActiveSubscriptionCard({
   const features = sub.plan_features ?? [];
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+    <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-[#302b20] dark:bg-[#1b1a16]">
       {/* Header */}
-      <div className="relative border-b border-[#C9A84C]/10 bg-gradient-to-br from-[#FDFAF3] via-[#FDFAF3] to-[#F7EEDC] px-5 py-6 sm:px-7">
+      <div className="relative border-b border-[#C9A84C]/10 bg-gradient-to-br from-[#FDFAF3] via-[#FDFAF3] to-[#F7EEDC] px-5 py-6 dark:border-[#302b20] dark:from-[#1b1a16] dark:via-[#1b1a16] dark:to-[#1b1a16] sm:px-7">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-start gap-4">
-            <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl border border-[#C9A84C]/20 bg-white shadow-sm">
+            <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl border border-[#C9A84C]/20 bg-white shadow-sm dark:border-[#302b20] dark:bg-[#24221c]">
               <PlanGlyph
                 slug={sub.plan_slug}
                 className="h-7 w-7 text-[#C9A84C]"
@@ -272,7 +272,11 @@ function ActiveSubscriptionCard({
                   {sub.payment_status.charAt(0).toUpperCase() +
                     sub.payment_status.slice(1)}
                 </Badge>
-                <Badge variant="info" size="sm">
+                <Badge
+                  variant="info"
+                  size="sm"
+                  className="dark:bg-[#302b20] dark:text-[#e8d596]"
+                >
                   {formatInterval(sub.interval)} plan
                 </Badge>
                 <span className="text-xs font-medium text-gray-500">
@@ -301,7 +305,7 @@ function ActiveSubscriptionCard({
               {progress.elapsed} of {progress.total} days
             </span>
           </div>
-          <div className="h-2 w-full overflow-hidden rounded-full bg-white/80 ring-1 ring-inset ring-[#C9A84C]/10">
+          <div className="h-2 w-full overflow-hidden rounded-full bg-white/80 ring-1 ring-inset ring-[#C9A84C]/10 dark:bg-[#24221c] dark:ring-[#302b20]">
             <div
               className="h-full rounded-full bg-gradient-to-r from-[#C9A84C] to-[#B8962E] transition-all duration-700"
               style={{ width: `${progress.percentage}%` }}
@@ -313,7 +317,7 @@ function ActiveSubscriptionCard({
       <div className="space-y-7 p-5 sm:p-7">
         {/* Status grid */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <div className="rounded-xl border border-gray-100 bg-gray-50/70 p-3.5">
+          <div className="rounded-xl border border-gray-100 bg-gray-50/70 p-3.5 dark:border-[#28251e] dark:bg-[#24221c]">
             <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-medium text-gray-500">
               <Calendar size={13} />
               Started
@@ -322,7 +326,7 @@ function ActiveSubscriptionCard({
               {formatDate(sub.start_date)}
             </p>
           </div>
-          <div className="rounded-xl border border-gray-100 bg-gray-50/70 p-3.5">
+          <div className="rounded-xl border border-gray-100 bg-gray-50/70 p-3.5 dark:border-[#28251e] dark:bg-[#24221c]">
             <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-medium text-gray-500">
               <Calendar size={13} />
               {sub.auto_renew ? 'Renews' : 'Ends'}
@@ -331,7 +335,7 @@ function ActiveSubscriptionCard({
               {formatDate(sub.end_date)}
             </p>
           </div>
-          <div className="rounded-xl border border-gray-100 bg-gray-50/70 p-3.5">
+          <div className="rounded-xl border border-gray-100 bg-gray-50/70 p-3.5 dark:border-[#28251e] dark:bg-[#24221c]">
             <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-medium text-gray-500">
               <Clock size={13} />
               Days left
@@ -340,7 +344,7 @@ function ActiveSubscriptionCard({
               {sub.days_remaining}
             </p>
           </div>
-          <div className="rounded-xl border border-gray-100 bg-gray-50/70 p-3.5">
+          <div className="rounded-xl border border-gray-100 bg-gray-50/70 p-3.5 dark:border-[#28251e] dark:bg-[#24221c]">
             <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-medium text-gray-500">
               <RefreshCw size={13} />
               Auto-renew
@@ -362,7 +366,7 @@ function ActiveSubscriptionCard({
               <Layers size={16} className="text-[#C9A84C]" />
               What your plan includes
             </h3>
-            <span className="rounded-full bg-[#FDFAF3] px-2.5 py-0.5 text-xs font-semibold text-[#B8962E] ring-1 ring-inset ring-[#C9A84C]/15">
+            <span className="rounded-full bg-[#FDFAF3] px-2.5 py-0.5 text-xs font-semibold text-[#B8962E] ring-1 ring-inset ring-[#C9A84C]/15 dark:bg-[#24221c] dark:ring-[#302b20]">
               {features.length} {features.length === 1 ? 'feature' : 'features'}
             </span>
           </div>
@@ -376,12 +380,12 @@ function ActiveSubscriptionCard({
 
         {/* Next payment */}
         {sub.next_payment_date && sub.auto_renew && (
-          <div className="flex items-start gap-3 rounded-xl border border-blue-100 bg-blue-50 p-4">
+          <div className="flex items-start gap-3 rounded-xl border border-blue-100 bg-blue-50 p-4 dark:border-[#302b20] dark:bg-[#24221c]">
             <CreditCard
               size={16}
-              className="mt-0.5 flex-shrink-0 text-blue-500"
+              className="mt-0.5 flex-shrink-0 text-blue-500 dark:text-[#d4af37]"
             />
-            <p className="text-sm text-blue-800">
+            <p className="text-sm text-blue-800 dark:text-gray-300">
               Next payment of{' '}
               <strong className="font-semibold">
                 {formatPrice(sub.price, sub.currency)}
@@ -392,7 +396,7 @@ function ActiveSubscriptionCard({
         )}
 
         {/* Actions */}
-        <div className="border-t border-gray-100 pt-5">
+        <div className="border-t border-gray-100 pt-5 dark:border-[#28251e]">
           <div className="flex flex-wrap gap-3">
             {sub.auto_renew && (
               <Button
@@ -471,10 +475,10 @@ function PlanSelectionCard({
 
   return (
     <div
-      className={`relative flex flex-col rounded-2xl border bg-white transition-all duration-300 ${
+      className={`relative flex flex-col rounded-2xl border bg-white transition-all duration-300 dark:bg-[#1b1a16] ${
         isRecommended
-          ? 'z-10 border-[#C9A84C] shadow-lg shadow-[#C9A84C]/10 md:scale-[1.03]'
-          : 'border-gray-200 shadow-sm hover:border-[#C9A84C]/30 hover:shadow-lg'
+          ? 'z-10 border-[#C9A84C] shadow-lg shadow-[#C9A84C]/10 dark:border-[#d4af37]/60 md:scale-[1.03]'
+          : 'border-gray-200 shadow-sm hover:border-[#C9A84C]/30 hover:shadow-lg dark:border-[#302b20]'
       }`}
     >
       {isRecommended && (
@@ -493,7 +497,7 @@ function PlanSelectionCard({
         <div className="mb-4 flex items-center gap-3">
           <div
             className={`flex h-12 w-12 items-center justify-center rounded-xl ${
-              isRecommended ? 'bg-[#C9A84C]/15' : 'bg-gray-100'
+              isRecommended ? 'bg-[#C9A84C]/15' : 'bg-gray-100 dark:bg-[#24221c]'
             }`}
           >
             <PlanGlyph
@@ -527,7 +531,7 @@ function PlanSelectionCard({
           <IncludedFeatures features={features} catalogue={catalogue} emptyHint="Feature details for this plan are being finalised." />
         </div>
 
-        <div className="mt-5 border-t border-gray-100 pt-4">
+        <div className="mt-5 border-t border-gray-100 pt-4 dark:border-[#28251e]">
           <p className="mb-4 text-xs text-gray-500">
             {plan.duration_days}-day billing term
           </p>
@@ -536,7 +540,7 @@ function PlanSelectionCard({
             className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold transition-all duration-200 ${
               isRecommended
                 ? 'bg-gradient-to-r from-[#C9A84C] to-[#B8962E] text-white shadow-md shadow-[#C9A84C]/20 hover:shadow-lg hover:shadow-[#C9A84C]/30'
-                : 'bg-gray-900 text-white hover:bg-gray-800'
+                : 'bg-gray-900 text-white hover:bg-gray-800 dark:bg-[#302b20] dark:text-[#f4f0e5] dark:hover:bg-[#3b3628]'
             }`}
           >
             Choose {plan.name}
@@ -656,7 +660,7 @@ export default function SubscriptionPage() {
   return (
     <div className="mx-auto max-w-6xl space-y-8 pb-12">
       {/* Page header */}
-      <section className="rounded-2xl border border-[#C9A84C]/15 bg-gradient-to-br from-[#FDFAF3] to-white px-6 py-8 sm:px-9">
+      <section className="rounded-2xl border border-[#C9A84C]/15 bg-gradient-to-br from-[#FDFAF3] to-white px-6 py-8 dark:border-[#302b20] dark:from-[#1b1a16] dark:to-[#1b1a16] sm:px-9">
         <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#B8962E]">
@@ -672,7 +676,7 @@ export default function SubscriptionPage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2 rounded-xl border border-[#C9A84C]/15 bg-white/70 px-4 py-3 text-xs font-medium text-gray-600">
+          <div className="flex items-center gap-2 rounded-xl border border-[#C9A84C]/15 bg-white/70 px-4 py-3 text-xs font-medium text-gray-600 dark:border-[#302b20] dark:bg-[#24221c] dark:text-gray-300">
             <ShieldCheck size={16} className="flex-shrink-0 text-[#C9A84C]" />
             Secure payments by Paystack
           </div>
@@ -724,7 +728,7 @@ export default function SubscriptionPage() {
                     {history.map((item) => (
                       <div
                         key={item.id}
-                        className="flex items-center justify-between rounded-xl border border-gray-100 p-3.5 transition-colors hover:bg-gray-50"
+                        className="flex items-center justify-between rounded-xl border border-gray-100 p-3.5 transition-colors hover:bg-gray-50 dark:border-[#28251e] dark:hover:bg-[#24221c]"
                       >
                         <div>
                           <p className="text-sm font-semibold text-gray-900">

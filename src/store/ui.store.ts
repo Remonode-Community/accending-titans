@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { safeGetItem, safeSetItem } from '@/utils/safe-storage.utils';
+import { safeSetItem } from '@/utils/safe-storage.utils';
 
 interface Toast {
   id: string;
@@ -11,7 +11,7 @@ interface Toast {
 interface Modal {
   id: string;
   isOpen: boolean;
-  data?: any;
+  data?: unknown;
 }
 
 interface UIStore {
@@ -28,7 +28,7 @@ interface UIStore {
 
   // Modals
   modals: Record<string, Modal>;
-  openModal: (id: string, data?: any) => void;
+  openModal: (id: string, data?: unknown) => void;
   closeModal: (id: string) => void;
   closeAllModals: () => void;
   isModalOpen: (id: string) => boolean;
@@ -106,6 +106,9 @@ export const useUIStore = create<UIStore>((set, get) => ({
   setTheme: (theme) => {
     if (typeof window !== 'undefined') {
       safeSetItem('theme', theme);
+      const root = document.documentElement;
+      root.dataset.theme = theme;
+      root.classList.toggle('dark', theme === 'dark');
     }
     set({ theme });
   },

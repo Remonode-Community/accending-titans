@@ -361,7 +361,7 @@ export default function LandingPage() {
       {/* ═══════════════════ MOBILE APP SECTION ═══════════════════ */}
       <section
         id="download-app"
-        className="relative overflow-hidden bg-gradient-to-b from-gray-900 to-gray-950 px-4 sm:px-6 py-12 sm:py-16 md:py-24 lg:px-8"
+        className="relative overflow-hidden bg-gradient-to-b from-gray-900 to-gray-950 dark:!bg-none dark:!bg-[#11100d] px-4 sm:px-6 py-12 sm:py-16 md:py-24 lg:px-8"
       >
         <div className="absolute left-0 top-16 h-48 w-48 sm:h-64 sm:w-64 rounded-full bg-[#C9A84C]/15 blur-3xl" />
         <div className="absolute right-0 bottom-0 h-56 w-56 sm:h-72 sm:w-72 rounded-full bg-[#C9A84C]/10 blur-3xl" />
@@ -496,7 +496,7 @@ export default function LandingPage() {
                   ))}
                 </div>
 
-                <p className="text-sm text-gray-700 mb-4 italic leading-relaxed">"{testimonial.text}"</p>
+                <p className="text-sm text-gray-700 mb-4 italic leading-relaxed">&quot;{testimonial.text}&quot;</p>
 
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-[#C9A84C]/15 text-sm font-bold text-[#C9A84C]">
@@ -547,7 +547,7 @@ export default function LandingPage() {
       </section>
 
       {/* ═══════════════════ FOOTER ═══════════════════ */}
-      <footer className="bg-gray-900 text-gray-300 py-10 sm:py-12 md:py-14 px-4 sm:px-6 lg:px-8">
+      <footer className="bg-gray-900 text-gray-300 dark:bg-[#11100d] py-10 sm:py-12 md:py-14 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 mb-10">
             <div className="col-span-2 lg:col-span-1">

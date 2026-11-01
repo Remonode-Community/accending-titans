@@ -34,6 +34,7 @@ import { Topbar } from '@/components/shared/Topbar';
 import { AuthProtected } from '@/components/AuthProtected';
 import { NotificationBell } from '@/components/dashboard/NotificationBell';
 import { RoleSwitcher } from '@/components/shared/RoleSwitcher';
+import { ThemeToggle } from '@/components/shared/ThemeToggle';
 import { useFeatureStore } from '@/store/feature.store';
 import type {
   FeatureKey,
@@ -285,7 +286,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
+      <nav className="min-h-0 flex-1 space-y-0.5 overflow-y-auto overscroll-contain px-3 py-4">
               {visibleNavItems.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.href);
@@ -318,7 +319,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
       {/* Footer */}
       <div className="border-t border-gray-100 p-3 space-y-1">
         {(sidebarOpen || mobile) && (
-          <div className="mb-2 rounded-xl border border-[#C9A84C]/15 bg-[#FDFAF3] px-3.5 py-3">
+          <div className="dashboard-sidebar-account mb-2 rounded-xl border border-[#C9A84C]/15 bg-[#FDFAF3] px-3.5 py-3">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-[#C9A84C]/70">
               Signed in as
             </p>
@@ -344,19 +345,22 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
   return (
     <AuthProtected requireAuth>
-      <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+      <div
+        id="dashboard-shell"
+        className="fixed inset-0 flex overflow-hidden bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100"
+      >
 
         {/* Desktop Sidebar */}
         <aside
           className={clsx(
-            'hidden shrink-0 flex-col border-r border-gray-100 bg-white transition-all duration-300 md:flex',
+            'hidden min-h-0 shrink-0 flex-col border-r border-gray-100 bg-white transition-all duration-300 md:flex',
             sidebarOpen ? 'w-64' : 'w-[72px]'
           )}
         >
           <SidebarContent />
         </aside>
 
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           {/* Topbar */}
           <header className="flex h-14 items-center justify-between border-b border-gray-100/50 bg-white/90 dark:border-gray-600/80 dark:bg-gray-900/90 px-4 sm:px-6">
             <div className="flex items-center gap-3">
@@ -375,6 +379,8 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
             <div className="flex items-center gap-3">
               {/* Role Switcher - visible for admins/multi-role users */}
               <RoleSwitcher />
+
+              <ThemeToggle compact />
 
               {/* Notification Bell */}
               <NotificationBell className="mr-2" />
@@ -446,7 +452,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
           {/* Mobile Sidebar */}
           <aside
             className={clsx(
-              'fixed left-0 top-0 z-50 flex h-screen w-64 flex-col border-r border-gray-100 bg-white transition-transform duration-300 md:hidden',
+              'fixed inset-y-0 left-0 z-50 flex h-full min-h-0 w-64 flex-col border-r border-gray-100 bg-white transition-transform duration-300 md:hidden',
               mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
             )}
           >
@@ -477,7 +483,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
               </button>
             </div>
 
-            <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
+            <nav className="min-h-0 flex-1 space-y-0.5 overflow-y-auto overscroll-contain px-3 py-4">
         {visibleNavItems.map((item) => {
                 const Icon = item.icon;
                 const active = isActive(item.href);
@@ -507,7 +513,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
             </nav>
 
             <div className="border-t border-gray-100 p-3 space-y-1">
-              <div className="mb-2 rounded-xl border border-[#C9A84C]/15 bg-[#FDFAF3] px-3.5 py-3">
+              <div className="dashboard-sidebar-account mb-2 rounded-xl border border-[#C9A84C]/15 bg-[#FDFAF3] px-3.5 py-3">
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-[#C9A84C]/70">
                   Signed in as
                 </p>
@@ -526,7 +532,10 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
           </aside>
 
           {/* Main content */}
-          <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900 p-4 sm:p-6">
+          <main
+            id="dashboard-content"
+            className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-gray-50 p-4 dark:bg-gray-900 sm:p-6"
+          >
             {featureBlocked && activeFeature ? (
               <FeatureUnavailable
                 label={activeFeature.label}

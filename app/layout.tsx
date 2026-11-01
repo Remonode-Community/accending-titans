@@ -3,8 +3,6 @@ import Script from "next/script";
 import localFont from "next/font/local";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
-import { Topbar } from "@/components/shared/Topbar";
-import { useUIStore } from '@/store/ui.store';
 import { JsonLd } from "@/components/seo/JsonLd";
 import { BRAND, SITE_URL, SOCIAL } from "@/lib/seo/config";
 import { graph, organizationSchema, webSiteSchema } from "@/lib/seo/schema";
@@ -144,8 +142,25 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${jakarta.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
       <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(() => {
+              let theme = "light";
+              try {
+                const storedTheme = window.localStorage.getItem("theme");
+                if (storedTheme === "light" || storedTheme === "dark") theme = storedTheme;
+              } catch (error) {
+                console.warn("[Theme] Could not restore saved theme:", error);
+              }
+              const root = document.documentElement;
+              root.dataset.theme = theme;
+              root.classList.toggle("dark", theme === "dark");
+            })();`,
+          }}
+        />
         {/*
           Entity definitions for the whole site. Rendered inline in the server
           HTML rather than via next/script, because a `strategy="afterInteractive"`
@@ -239,7 +254,6 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col bg-gray-50 dark:bg-gray-900">
         <Providers>{children}</Providers>
-      <Topbar />
     </body>
     </html>
   );

@@ -15,7 +15,6 @@ import {
   Loader2,
   ChevronRight,
   Award,
-  Sparkles,
   UserPlus,
   BellRing,
   Zap,
@@ -67,21 +66,12 @@ interface StatCardProps {
   label: string;
   value: string | number;
   icon: React.ElementType;
-  accent?: 'gold' | 'green' | 'blue' | 'purple';
   subtitle?: string;
 }
 
-const accentMap: Record<string, string> = {
-  gold: 'bg-[#C9A84C]/10 text-[#C9A84C]',
-  green: 'bg-emerald-500/10 text-emerald-600',
-  blue: 'bg-blue-500/10 text-blue-600',
-  purple: 'bg-purple-500/10 text-purple-600',
-};
-
-function StatCard({ label, value, icon: Icon, accent = 'gold', subtitle }: StatCardProps) {
+function StatCard({ label, value, icon: Icon, subtitle }: StatCardProps) {
   return (
-    <div className="group relative overflow-hidden rounded-2xl border border-gray-100 bg-white p-5 transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5">
-      <div className="absolute -right-6 -top-6 h-16 w-16 rounded-full bg-gray-50/50 transition-all duration-300 group-hover:scale-150" />
+    <div className="rounded-2xl border border-gray-100 bg-white p-5 transition-shadow duration-200 hover:shadow-lg dark:border-[#28251e] dark:bg-[#1b1a16]">
       <div className="relative flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
@@ -94,9 +84,7 @@ function StatCard({ label, value, icon: Icon, accent = 'gold', subtitle }: StatC
             <p className="mt-1 text-xs font-medium text-gray-400">{subtitle}</p>
           )}
         </div>
-        <div
-          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${accentMap[accent]}`}
-        >
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#C9A84C]/10 text-[#C9A84C]">
           <Icon size={20} />
         </div>
       </div>
@@ -290,13 +278,8 @@ export default function ReferralPage() {
   return (
     <div className="space-y-6">
 
-     <section className="relative overflow-hidden rounded-3xl border border-[#C9A84C]/15 bg-gradient-to-br from-[#C9A84C]/5 via-white to-[#C9A84C]/5 px-6 py-8 sm:px-8 sm:py-10">
-        <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-[#C9A84C]/10 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-8 left-1/3 h-40 w-40 rounded-full bg-amber-200/30 blur-3xl" />
-
-        <div className="relative z-10">
-      
-
+      <section className="rounded-2xl border border-gray-100 bg-white p-5 sm:p-6 dark:border-[#28251e] dark:bg-[#1b1a16]">
+        <div>
           <h1 className="text-2xl font-black tracking-tight text-gray-900 sm:text-3xl">
             Invite friends, earn rewards together
           </h1>
@@ -316,12 +299,12 @@ export default function ReferralPage() {
           ) : primaryLink ? (
             <div className="mt-6 space-y-4">
               {/* Link Display */}
-              <div className="rounded-2xl border border-[#C9A84C]/15 bg-white p-4 shadow-sm">
+              <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 dark:border-[#28251e] dark:bg-[#24221c]">
                 <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
                   YOUR REFERRAL LINK
                 </p>
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                  <div className="min-w-0 flex-1 truncate rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-700">
+                  <div className="min-w-0 flex-1 truncate rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-700 dark:border-[#302b20] dark:bg-[#1b1a16]">
                     {referralUrl}
                   </div>
                   <div className="flex shrink-0 gap-2">
@@ -334,7 +317,7 @@ export default function ReferralPage() {
                     </button>
                     <button
                       onClick={() => handleNativeShare(referralUrl, primaryLink.code)}
-                      className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-4 text-sm font-bold text-gray-700 transition-all hover:bg-gray-50"
+                      className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-4 text-sm font-bold text-gray-700 transition-colors hover:bg-gray-50 dark:border-[#302b20] dark:bg-[#1b1a16]"
                     >
                       <Share2 size={14} />
                       Share
@@ -345,7 +328,7 @@ export default function ReferralPage() {
 
               {/* Code + Share Buttons */}
               <div className="flex flex-wrap items-center gap-3">
-                <div className="rounded-xl border border-[#C9A84C]/15 bg-white px-4 py-2.5 shadow-sm">
+                <div className="rounded-xl border border-gray-100 bg-white px-4 py-2.5 dark:border-[#28251e] dark:bg-[#1b1a16]">
                   <p className="text-xs text-gray-500">Your Code</p>
                   <p className="text-lg font-black tracking-wider text-[#C9A84C]">
                     {primaryLink.code}
@@ -356,7 +339,7 @@ export default function ReferralPage() {
                   href={shareUrls.whatsapp(referralUrl, primaryLink.code)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 transition hover:bg-emerald-500/20"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-[#C9A84C]/10 text-[#C9A84C] transition-colors hover:bg-[#C9A84C]/20"
                   title="Share on WhatsApp"
                 >
                   <MessageCircle size={16} />
@@ -365,7 +348,7 @@ export default function ReferralPage() {
                   href={shareUrls.twitter(referralUrl, primaryLink.code)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-sky-500/10 text-sky-600 transition hover:bg-sky-500/20"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-[#C9A84C]/10 text-[#C9A84C] transition-colors hover:bg-[#C9A84C]/20"
                   title="Share on Twitter/X"
                 >
                   <Twitter size={16} />
@@ -374,7 +357,7 @@ export default function ReferralPage() {
                   href={shareUrls.facebook(referralUrl)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600 transition hover:bg-blue-500/20"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-[#C9A84C]/10 text-[#C9A84C] transition-colors hover:bg-[#C9A84C]/20"
                   title="Share on Facebook"
                 >
                   <Facebook size={16} />
@@ -415,28 +398,24 @@ export default function ReferralPage() {
             label="Total Referrals"
             value={totalReferrals}
             icon={Users}
-            accent="gold"
             subtitle="People who joined"
           />
           <StatCard
             label="Active Referrals"
             value={activeReferrals}
             icon={CheckCircle2}
-            accent="green"
             subtitle="Currently active"
           />
           <StatCard
             label="Total Earnings"
             value={formatCurrency(totalEarnings)}
             icon={TrendingUp}
-            accent="blue"
             subtitle="₦500 per referral"
           />
           <StatCard
             label="Available Balance"
             value={formatCurrency(availableBalance)}
             icon={Wallet}
-            accent="purple"
             subtitle="Ready for withdrawal"
           />
         </div>

@@ -14,7 +14,7 @@ import type {
 } from '@/types/birthday.types';
 
 const CARD =
-  'rounded-[1.75rem] border border-[#ece7dd] bg-white shadow-[0_18px_40px_-28px_rgba(26,15,11,0.25)]';
+  'rounded-[1.75rem] border border-[#ece7dd] bg-white shadow-[0_18px_40px_-28px_rgba(26,15,11,0.25)] dark:border-[#28251e] dark:bg-[#1b1a16]';
 
 /**
  * A single member's birthday celebration.
@@ -147,7 +147,7 @@ export default function CelebrationPage({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Link
           href="/dashboard/birthdays"
-          className="inline-flex items-center gap-1.5 rounded-full border border-[#ece7dd] bg-white px-3.5 py-2 text-xs font-bold text-gray-500 shadow-sm transition hover:border-[#C9A84C]/40 hover:text-[#B8962E]"
+          className="inline-flex items-center gap-1.5 rounded-full border border-[#ece7dd] bg-white px-3.5 py-2 text-xs font-bold text-gray-500 shadow-sm transition hover:border-[#C9A84C]/40 hover:text-[#B8962E] dark:border-[#28251e] dark:bg-[#1b1a16]"
         >
           <ArrowLeft size={14} />
           All birthdays

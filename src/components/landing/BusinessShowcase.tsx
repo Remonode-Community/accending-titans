@@ -182,7 +182,7 @@ export default function BusinessShowcase() {
   const duplicated = [...businesses, ...businesses];
 
   return (
-    <section className="relative bg-gradient-to-b from-gray-50 to-white py-12 sm:py-16 md:py-24 px-4 sm:px-6 lg:px-8 overflow-hidden">
+    <section id="business-showcase" className="relative bg-gradient-to-b from-gray-50 to-white py-12 sm:py-16 md:py-24 px-4 sm:px-6 lg:px-8 overflow-hidden">
       {/* Decorative background */}
       <div className="absolute left-1/2 top-0 h-40 w-40 -translate-x-1/2 rounded-full bg-[#C9A84C]/5 blur-3xl" />
       <div className="absolute right-0 bottom-1/3 h-48 w-48 rounded-full bg-[#C9A84C]/5 blur-3xl" />

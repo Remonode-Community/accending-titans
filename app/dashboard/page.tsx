@@ -56,7 +56,7 @@ type TransactionData = {
 
 /** One card surface, so every panel on the page matches. */
 const CARD =
-  'rounded-2xl border border-[#e5e7eb] bg-white shadow-[0_10px_35px_rgba(0,0,0,0.04)]';
+  'dashboard-card rounded-2xl border border-[#e5e7eb] bg-white shadow-[0_10px_35px_rgba(0,0,0,0.04)]';
 
 /**
  * Each shortcut belongs to a switchable feature. When an administrator turns

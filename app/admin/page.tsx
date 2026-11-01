@@ -108,8 +108,8 @@ export default function AdminDashboardPage() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#f8f8f8]">
         <div className="w-full max-w-md rounded-2xl border border-[#e5e7eb] bg-white p-8 text-center shadow-[0_10px_35px_rgba(0,0,0,0.04)] mx-4">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-50">
-            <AlertCircle className="h-8 w-8 text-red-500" />
+          <div className="admin-icon-tile mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full">
+            <AlertCircle className="h-8 w-8" />
           </div>
           <h3 className="text-lg font-semibold text-[#111827] mb-2">
             Unable to Load Dashboard
@@ -137,56 +137,48 @@ export default function AdminDashboardPage() {
       label: 'Total Users',
       value: formatNumber(user_overview.total_users),
       icon: Users,
-      color: 'bg-blue-50 text-blue-600',
       subtext: `${formatNumber(user_overview.active_users)} active`,
     },
     {
       label: 'Verified Users',
       value: formatNumber(user_overview.verified_users),
       icon: MailCheck,
-      color: 'bg-emerald-50 text-emerald-600',
       subtext: `${formatPercent(user_overview.total_users ? (user_overview.verified_users / user_overview.total_users) * 100 : 0)} verification rate`,
     },
     {
       label: 'Active Today',
       value: formatNumber(active_users_metrics.daily_active_users),
       icon: Activity,
-      color: 'bg-purple-50 text-purple-600',
       subtext: `${formatNumber(active_users_metrics.weekly_active_users)} this week`,
     },
     {
       label: 'New Users (Today)',
       value: formatNumber(registration_trend.today),
       icon: UserPlus,
-      color: 'bg-green-50 text-green-600',
       subtext: `${formatNumber(registration_trend.this_week)} this week · ${formatNumber(registration_trend.this_month)} this month`,
     },
     {
       label: 'Total Logins',
       value: formatNumber(login_analytics.total_logins),
       icon: LogIn,
-      color: 'bg-indigo-50 text-indigo-600',
       subtext: `${formatNumber(login_analytics.today)} today`,
     },
     {
       label: 'Referrals',
       value: formatNumber(referral_analytics.total_referrals),
       icon: Share2,
-      color: 'bg-orange-50 text-orange-600',
       subtext: `${formatNumber(referral_analytics.users_with_referral_links)} referrers · ${formatPercent(referral_analytics.referral_conversion_rate)} conversion`,
     },
     {
       label: 'Unread Notifications',
       value: formatNumber(notification_analytics.unread_notifications),
       icon: Bell,
-      color: 'bg-rose-50 text-rose-600',
       subtext: `${formatNumber(notification_analytics.total_notifications)} total`,
     },
     {
       label: 'Profile Completion',
       value: formatPercent(user_overview.user_completion_rate),
       icon: UserCog,
-      color: 'bg-cyan-50 text-cyan-600',
       subtext: `${formatNumber(user_overview.users_with_complete_profile)} completed`,
     },
   ];
@@ -253,7 +245,7 @@ export default function AdminDashboardPage() {
                   </p>
                   <p className="mt-1 text-xs text-[#6b7280]">{kpi.subtext}</p>
                 </div>
-                <div className={`rounded-xl ${kpi.color} p-3 flex-shrink-0`}>
+                <div className="admin-icon-tile flex-shrink-0 rounded-xl p-3">
                   <Icon className="h-5 w-5" />
                 </div>
               </div>
@@ -267,8 +259,8 @@ export default function AdminDashboardPage() {
         {/* Role Distribution */}
         <Card className="rounded-2xl border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
           <div className="mb-5 flex items-center gap-3">
-            <div className="rounded-xl bg-purple-50 p-2.5">
-              <Shield className="h-5 w-5 text-purple-600" />
+            <div className="admin-icon-tile rounded-xl p-2.5">
+              <Shield className="h-5 w-5" />
             </div>
             <div>
               <h3 className="text-base font-semibold text-[#111827]">Role Distribution</h3>
@@ -307,8 +299,8 @@ export default function AdminDashboardPage() {
         {/* Verification Funnel */}
         <Card className="rounded-2xl border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
           <div className="mb-5 flex items-center gap-3">
-            <div className="rounded-xl bg-emerald-50 p-2.5">
-              <Target className="h-5 w-5 text-emerald-600" />
+            <div className="admin-icon-tile rounded-xl p-2.5">
+              <Target className="h-5 w-5" />
             </div>
             <div>
               <h3 className="text-base font-semibold text-[#111827]">Verification Funnel</h3>
@@ -360,8 +352,8 @@ export default function AdminDashboardPage() {
         {/* Login Analytics */}
         <Card className="rounded-2xl border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
           <div className="mb-5 flex items-center gap-3">
-            <div className="rounded-xl bg-indigo-50 p-2.5">
-              <LogIn className="h-5 w-5 text-indigo-600" />
+            <div className="admin-icon-tile rounded-xl p-2.5">
+              <LogIn className="h-5 w-5" />
             </div>
             <div>
               <h3 className="text-base font-semibold text-[#111827]">Login Analytics</h3>
@@ -426,8 +418,8 @@ export default function AdminDashboardPage() {
         {/* Registration Trend */}
         <Card className="rounded-2xl border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
           <div className="mb-5 flex items-center gap-3">
-            <div className="rounded-xl bg-green-50 p-2.5">
-              <TrendingUp className="h-5 w-5 text-green-600" />
+            <div className="admin-icon-tile rounded-xl p-2.5">
+              <TrendingUp className="h-5 w-5" />
             </div>
             <div>
               <h3 className="text-base font-semibold text-[#111827]">Registration Trend</h3>
@@ -484,8 +476,8 @@ export default function AdminDashboardPage() {
         {/* Referral Analytics */}
         <Card className="rounded-2xl border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_Rgba(0,0,0,0.04)]">
           <div className="mb-5 flex items-center gap-3">
-            <div className="rounded-xl bg-orange-50 p-2.5">
-              <Share2 className="h-5 w-5 text-orange-600" />
+            <div className="admin-icon-tile rounded-xl p-2.5">
+              <Share2 className="h-5 w-5" />
             </div>
             <div>
               <h3 className="text-base font-semibold text-[#111827]">Referral Analytics</h3>
@@ -536,8 +528,8 @@ export default function AdminDashboardPage() {
         {/* Active Users Metrics */}
         <Card className="rounded-2xl border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
           <div className="mb-5 flex items-center gap-3">
-            <div className="rounded-xl bg-blue-50 p-2.5">
-              <Activity className="h-5 w-5 text-blue-600" />
+            <div className="admin-icon-tile rounded-xl p-2.5">
+              <Activity className="h-5 w-5" />
             </div>
             <div>
               <h3 className="text-base font-semibold text-[#111827]">Active Users</h3>
@@ -584,8 +576,8 @@ export default function AdminDashboardPage() {
         {/* Notifications Overview */}
         <Card className="rounded-2xl border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
           <div className="mb-5 flex items-center gap-3">
-            <div className="rounded-xl bg-rose-50 p-2.5">
-              <Bell className="h-5 w-5 text-rose-600" />
+            <div className="admin-icon-tile rounded-xl p-2.5">
+              <Bell className="h-5 w-5" />
             </div>
             <div>
               <h3 className="text-base font-semibold text-[#111827]">Notifications</h3>
@@ -646,8 +638,8 @@ export default function AdminDashboardPage() {
       {referral_analytics.trend_30_days.length > 0 && (
         <Card className="rounded-2xl border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
           <div className="mb-5 flex items-center gap-3">
-            <div className="rounded-xl bg-orange-50 p-2.5">
-              <BarChart3 className="h-5 w-5 text-orange-600" />
+            <div className="admin-icon-tile rounded-xl p-2.5">
+              <BarChart3 className="h-5 w-5" />
             </div>
             <div>
               <h3 className="text-base font-semibold text-[#111827]">Referral Trend (30 Days)</h3>

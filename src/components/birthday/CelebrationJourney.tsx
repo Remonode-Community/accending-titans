@@ -39,13 +39,13 @@ import type {
 import type { NetworkMember } from '@/types/network.types';
 
 const SHELL =
-  'overflow-hidden rounded-[2rem] border border-[#ece7dd] bg-white shadow-[0_24px_60px_-40px_rgba(26,15,11,0.4)]';
+  'overflow-hidden rounded-[2rem] border border-[#ece7dd] bg-white shadow-[0_24px_60px_-40px_rgba(26,15,11,0.4)] dark:border-[#28251e] dark:bg-[#1b1a16]';
 const FIELD =
-  'w-full rounded-xl border border-[#e5e7eb] bg-white px-4 py-2.5 text-sm outline-none transition placeholder:text-gray-300 focus:border-[#C9A84C] focus:ring-2 focus:ring-[#C9A84C]/15';
+  'w-full rounded-xl border border-[#e5e7eb] bg-white px-4 py-2.5 text-sm outline-none transition placeholder:text-gray-300 focus:border-[#C9A84C] focus:ring-2 focus:ring-[#C9A84C]/15 dark:border-[#28251e] dark:bg-[#24221c] dark:text-gray-100';
 const PRIMARY =
   'inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#F3D27A] via-[#E6C56A] to-[#D9B96A] px-4 py-2.5 text-sm font-bold text-[#241410] shadow-[0_10px_24px_-14px_rgba(184,150,46,0.9)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50';
 const GHOST =
-  'inline-flex items-center gap-2 rounded-xl border border-[#ece7dd] bg-white px-4 py-2.5 text-sm font-semibold text-gray-600 transition hover:border-[#C9A84C]/40 hover:text-[#8A6F1F] disabled:cursor-not-allowed disabled:opacity-40';
+  'inline-flex items-center gap-2 rounded-xl border border-[#ece7dd] bg-white px-4 py-2.5 text-sm font-semibold text-gray-600 transition hover:border-[#C9A84C]/40 hover:text-[#8A6F1F] disabled:cursor-not-allowed disabled:opacity-40 dark:border-[#28251e] dark:bg-[#1b1a16] dark:text-gray-300';
 
 interface JourneyStep {
   id: string;
@@ -98,7 +98,7 @@ function JourneyStepper({
   onSelect: (index: number) => void;
 }) {
   return (
-    <div className="border-b border-[#f1ece2] bg-[#fcfaf6] px-3 py-3 sm:px-5">
+    <div className="border-b border-[#f1ece2] bg-[#fcfaf6] px-3 py-3 dark:border-[#28251e] dark:bg-[#1b1a16] sm:px-5">
       <ol className="scrollbar-hide flex items-center gap-1 overflow-x-auto pb-0.5">
         {steps.map((step, index) => {
           const Icon = step.icon;
@@ -215,7 +215,7 @@ function JourneyFooter({
   onNext: () => void;
 }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#f1ece2] bg-[#fcfaf6] px-5 py-4 sm:px-6">
+    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#f1ece2] bg-[#fcfaf6] px-5 py-4 dark:border-[#28251e] dark:bg-[#1b1a16] sm:px-6">
       <button type="button" onClick={onBack} disabled={active === 0} className={GHOST}>
         <ArrowLeft size={14} />
         Back
