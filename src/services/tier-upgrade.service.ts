@@ -17,6 +17,7 @@
  */
 
 import { apiClient } from './api-client';
+import { uploadService } from './upload.service';
 import {
   Tier0UpgradeRequest,
   Tier1UpgradeRequest,
@@ -184,18 +185,12 @@ class TierUpgradeService {
    * Upload profile image for Tier 1 upgrade
    * POST /api/v1/profile/upload-image
    *
-   * Expects multipart/form-data with an image file.
-   * Returns a secure Cloudinary image URL to include in the tier upgrade request.
+   * Multipart upload handled by the shared upload service; the backend hosts
+   * the file on Cloudinary, stores it on the member's row and returns a
+   * secure URL to embed in the tier upgrade request.
    */
   async uploadProfileImage(file: File): Promise<ApiResponse<{ image_url: string; public_id: string; width: number; height: number; size: number; uploaded_at: string }>> {
-    const formData = new FormData();
-    formData.append('image', file);
-
-    return apiClient.post('/profile/upload-image', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    return uploadService.uploadProfilePhoto(file);
   }
 
   /**

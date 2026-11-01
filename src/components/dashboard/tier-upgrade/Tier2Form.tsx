@@ -4,7 +4,7 @@
  * 
  * Fields:
  * - identity.type (nin, passport, drivers_license, voters_card)
- * - identity.image (base64 or URL)
+ * - identity.image (hosted image URL)
  * - identity.number (document number)
  * - identity.country (2-letter country code)
  */
@@ -17,6 +17,7 @@ import { Button } from '@/components/shared/Button';
 import { Input } from '@/components/shared/Input';
 import { Spinner } from '@/components/shared/Spinner';
 import { TierUpgradeFormData, IdentityDocumentType } from '@/types/tier-upgrade.types';
+import { tierUpgradeService } from '@/services/tier-upgrade.service';
 
 interface Tier2FormProps {
   initialData?: Partial<TierUpgradeFormData>;
@@ -98,27 +99,54 @@ export const Tier2Form: React.FC<Tier2FormProps> = ({
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setUploadingImage(true);
+    setFieldErrors((prev) => {
+      const next = { ...prev };
+      delete next.image;
+      return next;
+    });
 
-    // For now, create a data URL (in production, upload to Cloudinary)
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      setFormData((prev) => ({
+    try {
+      // Upload to Cloudinary via the backend; only the hosted URL is kept, so
+      // drafts and submissions stay small and the document survives reloads.
+      const res = await tierUpgradeService.uploadProfileImage(file);
+      const imageUrl = res.data?.image_url;
+
+      if (res.success && imageUrl) {
+        setFormData((prev) => ({
+          ...prev,
+          identity: {
+            type: (prev.identity?.type || 'nin') as IdentityDocumentType,
+            image: imageUrl,
+            number: prev.identity?.number || '',
+            country: prev.identity?.country || 'NG',
+          } as any,
+        }));
+      } else {
+        setFieldErrors((prev) => ({
+          ...prev,
+          image: res.message || 'The document image could not be uploaded. Please try again.',
+        }));
+      }
+    } catch (err) {
+      setFieldErrors((prev) => ({
         ...prev,
-        identity: {
-          type: (prev.identity?.type || 'nin') as IdentityDocumentType,
-          image: (event.target?.result as string) || '',
-          number: prev.identity?.number || '',
-          country: prev.identity?.country || 'NG',
-        } as any,
+        image:
+          err instanceof Error
+            ? err.message
+            : 'The document image could not be uploaded. Please try again.',
       }));
+    } finally {
       setUploadingImage(false);
-    };
-    reader.readAsDataURL(file);
+      // Allow re-selecting the same file after a remove/retry.
+      if (imageInputRef.current) {
+        imageInputRef.current.value = '';
+      }
+    }
   };
 
   const removeImage = () => {
@@ -161,6 +189,9 @@ export const Tier2Form: React.FC<Tier2FormProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // The document image is required; a submit racing the upload would fail
+    // validation against an empty field, so wait instead.
+    if (uploadingImage) return;
     if (validateForm()) {
       onSubmit(formData);
     }
@@ -267,7 +298,7 @@ export const Tier2Form: React.FC<Tier2FormProps> = ({
               <>
                 <Upload size={24} className="text-gray-400" />
                 <p className="text-sm font-semibold text-gray-900">Click to upload document</p>
-                <p className="text-xs text-gray-600">PNG, JPG up to 5MB</p>
+                <p className="text-xs text-gray-600">PNG, JPG up to 4MB</p>
               </>
             )}
           </button>
@@ -293,7 +324,7 @@ export const Tier2Form: React.FC<Tier2FormProps> = ({
       {/* Submit Button */}
       <Button
         type="submit"
-        disabled={isSubmitting}
+        disabled={isSubmitting || uploadingImage}
         className="w-full"
       >
         {isSubmitting ? 'Submitting...' : (

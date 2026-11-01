@@ -18,6 +18,7 @@ import { Button } from '@/components/shared/Button';
 import { Input } from '@/components/shared/Input';
 import { Spinner } from '@/components/shared/Spinner';
 import { TierUpgradeFormData, PhoneData, AddressData } from '@/types/tier-upgrade.types';
+import { tierUpgradeService } from '@/services/tier-upgrade.service';
 
 interface Tier1FormProps {
   initialData?: Partial<TierUpgradeFormData>;
@@ -124,19 +125,49 @@ export const Tier1Form: React.FC<Tier1FormProps> = ({
     }
   };
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // For now, create a data URL (in production, upload to Cloudinary)
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      setFormData((prev) => ({
+    setUploadingPhoto(true);
+    setFieldErrors((prev) => {
+      const next = { ...prev };
+      delete next.photo;
+      return next;
+    });
+
+    try {
+      // Upload to Cloudinary via the backend; only the hosted URL is kept, so
+      // drafts and submissions stay small and the photo survives reloads.
+      const res = await tierUpgradeService.uploadProfileImage(file);
+      const imageUrl = res.data?.image_url;
+
+      if (res.success && imageUrl) {
+        setFormData((prev) => ({
+          ...prev,
+          photo: imageUrl,
+        }));
+      } else {
+        setFieldErrors((prev) => ({
+          ...prev,
+          photo: res.message || 'The photo could not be uploaded. Please try again.',
+        }));
+      }
+    } catch (err) {
+      setFieldErrors((prev) => ({
         ...prev,
-        photo: (event.target?.result as string) || '',
+        photo:
+          err instanceof Error
+            ? err.message
+            : 'The photo could not be uploaded. Please try again.',
       }));
-    };
-    reader.readAsDataURL(file);
+    } finally {
+      setUploadingPhoto(false);
+      // Allow re-selecting the same file after a remove/retry.
+      if (photoInputRef.current) {
+        photoInputRef.current.value = '';
+      }
+    }
   };
 
   const removePhoto = () => {
@@ -193,6 +224,9 @@ export const Tier1Form: React.FC<Tier1FormProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // The photo is required; a submit racing the upload would fail validation
+    // against an empty field, so wait instead.
+    if (uploadingPhoto) return;
     if (validateForm()) {
       onSubmit(formData);
     }
@@ -394,7 +428,7 @@ export const Tier1Form: React.FC<Tier1FormProps> = ({
               <>
                 <Upload size={24} className="text-gray-400" />
                 <p className="text-sm font-semibold text-gray-900">Click to upload photo</p>
-                <p className="text-xs text-gray-600">PNG, JPG up to 5MB</p>
+                <p className="text-xs text-gray-600">PNG, JPG up to 4MB</p>
               </>
             )}
           </button>
@@ -413,7 +447,7 @@ export const Tier1Form: React.FC<Tier1FormProps> = ({
       {/* Submit Button */}
       <Button
         type="submit"
-        disabled={isSubmitting}
+        disabled={isSubmitting || uploadingPhoto}
         className="w-full"
       >
         {isSubmitting ? 'Submitting...' : (

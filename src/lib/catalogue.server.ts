@@ -50,8 +50,8 @@ const FETCH_TIMEOUT_MS = 8000;
 
 /** Listing pages are cheap to rebuild and change often. */
 const REVALIDATE_LIST = 300; // 5 minutes
-/** A single business page is more stable. */
-const REVALIDATE_DETAIL = 600; // 10 minutes
+/** Public business edits and newly uploaded images should show on the next visit. */
+const REVALIDATE_DETAIL = 0;
 
 interface Envelope<T> {
   status?: boolean;

@@ -25,6 +25,7 @@ import {
 import { AccountDeletion } from '@/components/dashboard/AccountDeletion';
 import { useProfile } from '@/hooks/useProfile';
 import { userService } from '@/services/auth.service';
+import { uploadService } from '@/services/upload.service';
 import {
   NIGERIAN_PHONE_RE,
   type AuthSession,
@@ -298,11 +299,106 @@ const MyDetailsTab: React.FC<{
   );
 };
 
-const ProfileTab: React.FC<{ profile: MemberProfile | null }> = ({ profile }) => {
+const ProfileTab: React.FC<{
+  profile: MemberProfile | null;
+  /** Called after a new photo is stored so the page can refetch the profile. */
+  onPhotoUpdated?: () => void;
+}> = ({ profile, onPhotoUpdated }) => {
   const basic = profile?.basicInfo;
   const meta = profile?.profile;
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
+  const [coverUploading, setCoverUploading] = useState(false);
+  const [coverError, setCoverError] = useState<string | null>(null);
   const displayName =
     [basic?.first_name, basic?.last_name].filter(Boolean).join(' ') || 'â€”';
+
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Mirror the backend rules so a bad file fails here, not after a round trip.
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      setUploadError('Only JPG, PNG or WebP images are supported.');
+      if (photoInputRef.current) photoInputRef.current.value = '';
+      return;
+    }
+    if (file.size > 4 * 1024 * 1024) {
+      setUploadError('Images must be 4MB or smaller.');
+      if (photoInputRef.current) photoInputRef.current.value = '';
+      return;
+    }
+
+    setUploadError(null);
+    setUploading(true);
+
+    try {
+      // The backend hosts the file on Cloudinary and stores the URL on the
+      // member's row in the same request, so a success only needs a refetch.
+      const res = await uploadService.uploadProfilePhoto(file);
+
+      if (res.success && res.data?.image_url) {
+        onPhotoUpdated?.();
+      } else {
+        setUploadError(
+          res.message || 'The photo could not be uploaded. Please try again.',
+        );
+      }
+    } catch (err) {
+      setUploadError(
+        err instanceof Error
+          ? err.message
+          : 'The photo could not be uploaded. Please try again.',
+      );
+    } finally {
+      setUploading(false);
+      // Allow re-selecting the same file after a remove/retry.
+      if (photoInputRef.current) photoInputRef.current.value = '';
+    }
+  };
+
+  /** Same contract as the avatar upload, for the personal cover banner. */
+  const handleCoverChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      setCoverError('Only JPG, PNG or WebP images are supported.');
+      if (coverInputRef.current) coverInputRef.current.value = '';
+      return;
+    }
+    if (file.size > 4 * 1024 * 1024) {
+      setCoverError('Images must be 4MB or smaller.');
+      if (coverInputRef.current) coverInputRef.current.value = '';
+      return;
+    }
+
+    setCoverError(null);
+    setCoverUploading(true);
+
+    try {
+      const res = await uploadService.uploadProfileCover(file);
+
+      if (res.success && res.data?.image_url) {
+        onPhotoUpdated?.();
+      } else {
+        setCoverError(
+          res.message || 'The cover could not be uploaded. Please try again.',
+        );
+      }
+    } catch (err) {
+      setCoverError(
+        err instanceof Error
+          ? err.message
+          : 'The cover could not be uploaded. Please try again.',
+      );
+    } finally {
+      setCoverUploading(false);
+      if (coverInputRef.current) coverInputRef.current.value = '';
+    }
+  };
 
   return (
     <div>
@@ -335,6 +431,32 @@ const ProfileTab: React.FC<{ profile: MemberProfile | null }> = ({ profile }) =>
         </div>
       </FieldRow>
 
+      <FieldRow label="Profile photo" hint="JPG, PNG or WebP - up to 4MB">
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => photoInputRef.current?.click()}
+            disabled={uploading}
+            className="rounded-xl border border-[#C9A84C]/40 bg-white px-4 py-2 text-sm font-bold text-[#B8962E] transition hover:bg-[#FDFAF3] disabled:opacity-50"
+          >
+            {uploading
+              ? 'Uploading...'
+              : meta?.photo_url
+                ? 'Change photo'
+                : 'Upload photo'}
+          </button>
+          {uploadError && <p className="text-xs text-red-600">{uploadError}</p>}
+        </div>
+        <input
+          ref={photoInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          onChange={handlePhotoChange}
+          className="hidden"
+          disabled={uploading}
+        />
+      </FieldRow>
+
       <FieldRow label="Business / Role" hint="Shown under your name">
         <p className="text-sm text-gray-700">
           {basic?.business_name || 'Not set \u2014 add it under My details'}
@@ -361,9 +483,9 @@ const ProfileTab: React.FC<{ profile: MemberProfile | null }> = ({ profile }) =>
         <div className="text-sm">
           <p className="font-bold text-gray-900">Not available yet</p>
           <p className="mt-1 text-gray-600">
-            Profile photo upload, bio and website need backend storage before
-            they can be saved. Your name, email, phone, address and business
-            name are fully working under My details.
+            Bio and website need backend storage before they can be saved. Your
+            profile photo uploads above; your name, email, phone, address and
+            business name are fully working under My details.
           </p>
         </div>
       </div>
@@ -895,6 +1017,7 @@ export default function ProfilePage() {
     saveBasicInfo,
     changePassword,
     resetSaveState,
+    refresh,
   } = useProfile();
 
   // Clear the previous tab's "Saved" / error banner when the user navigates.
@@ -925,7 +1048,7 @@ export default function ProfilePage() {
         onSave={handleSaveBasic}
       />
     ),
-    profile: <ProfileTab profile={profile} />,
+    profile: <ProfileTab profile={profile} onPhotoUpdated={() => void refresh()} />,
     password: (
       <PasswordTab
         onChangePassword={changePassword}
@@ -942,15 +1065,26 @@ export default function ProfilePage() {
 
       {/* â”€â”€ Profile hero card â”€â”€ */}
       <div className="overflow-hidden rounded-2xl border border-gray-200/80 bg-white shadow-sm">
-        {/* Cover banner */}
+        {/* Cover banner — the member's uploaded cover, or the gold gradient */}
         <div className="relative h-28 sm:h-36 bg-gradient-to-br from-[#FDFAF3] via-[#f5efd4] to-[#e8d9a0]">
-          <div className="absolute inset-0 opacity-30"
-            style={{
-              backgroundImage:
-                'radial-gradient(circle at 80% 50%, #C9A84C 0%, transparent 60%)',
-            }}
-          />
-          <div className="h-[3px] bg-gradient-to-r from-[#C9A84C]/30 via-[#C9A84C] to-[#C9A84C]/30" />
+          {profile?.profile.cover_url ? (
+            <Image
+              src={profile.profile.cover_url}
+              alt=""
+              fill
+              className="object-cover"
+              sizes="100vw"
+              unoptimized
+            />
+          ) : (
+            <div className="absolute inset-0 opacity-30"
+              style={{
+                backgroundImage:
+                  'radial-gradient(circle at 80% 50%, #C9A84C 0%, transparent 60%)',
+              }}
+            />
+          )}
+          <div className="relative h-[3px] bg-gradient-to-r from-[#C9A84C]/30 via-[#C9A84C] to-[#C9A84C]/30" />
         </div>
 
         {/* Avatar + info */}

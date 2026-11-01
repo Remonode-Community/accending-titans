@@ -7,9 +7,11 @@ import { Card } from '@/components/shared/Card';
 import { Button } from '@/components/shared/Button';
 import { Badge } from '@/components/shared/Badge';
 import { Input } from '@/components/shared/Input';
+import { ImageUploader } from '@/components/shared/ImageUploader';
 import { PageSkeleton } from '@/components/shared/SkeletonLoader';
 import { useAlert } from '@/hooks/useAlert';
 import { contentService } from '@/services/content.service';
+import { uploadService } from '@/services/upload.service';
 import { formatDate } from '@/utils/format.utils';
 import type { ContentSubmission } from '@/types/content.types';
 
@@ -69,7 +71,7 @@ export default function ContentSubmissionPage() {
 
   const handleSubmit = async () => {
     if (!title.trim() || !mediaUrl.trim()) {
-      showAlert('Title and Media URL are required', 'warning');
+      showAlert('Title and media are required', 'warning');
       return;
     }
 
@@ -108,6 +110,25 @@ export default function ContentSubmissionPage() {
     setMediaUrl('');
     setDuration('');
     setDescription('');
+  };
+
+  /**
+   * Image content types upload straight to Cloudinary via the backend; the
+   * hosted URL is what gets submitted (the API stores a URL, not a file).
+   * ImageUploader surfaces a "paste a link" fallback if the upload fails.
+   */
+  const handleMediaUpload = async (file: File): Promise<string> => {
+    const res = await uploadService.uploadImage(file, 'content');
+    const url = res.data?.image_url;
+
+    if (!res.success || !url) {
+      throw new Error(
+        res.message || 'That image could not be uploaded. Please try again.',
+      );
+    }
+
+    setMediaUrl(url);
+    return url;
   };
 
   const getStatusBadge = (status: string) => {
@@ -162,10 +183,22 @@ export default function ContentSubmissionPage() {
                 <option value="photo">Photo</option>
               </select>
             </div>
-            <div>
-              <label className="mb-2 block text-sm font-semibold text-gray-900">Media URL *</label>
-              <Input placeholder="https://example.com/media.mp4" value={mediaUrl} onChange={(e) => setMediaUrl(e.target.value)} />
-            </div>
+            {contentType === 'promotional_video' ? (
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-gray-900">Video URL *</label>
+                <Input placeholder="https://example.com/media.mp4" value={mediaUrl} onChange={(e) => setMediaUrl(e.target.value)} />
+              </div>
+            ) : (
+              <ImageUploader
+                label="Media *"
+                hint="JPG, PNG or WebP up to 4MB. The hosted link is what gets submitted for review."
+                value={mediaUrl ? [mediaUrl] : []}
+                onChange={(urls) => setMediaUrl(urls[0] ?? '')}
+                onUpload={handleMediaUpload}
+                max={1}
+                aspect="wide"
+              />
+            )}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="mb-2 block text-sm font-semibold text-gray-900">Duration (seconds)</label>

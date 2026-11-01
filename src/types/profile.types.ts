@@ -34,6 +34,8 @@ export interface ProfileBankInfo {
 export interface ProfileMeta {
   membership_id: string | null;
   photo_url: string | null;
+  /** Personal profile banner (distinct from the business catalogue cover). */
+  cover_url: string | null;
   is_titan_member: boolean;
   current_rank: string | null;
   is_profile_complete: boolean;
