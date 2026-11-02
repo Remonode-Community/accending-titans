@@ -19,15 +19,17 @@ interface ProtectedPageWrapperProps {
  * Wraps page content to ensure proper verification before rendering.
  *
  * CRITICAL: enforcement must wait for auth initialization to finish.
- * `isEmailVerified` / `isPhoneVerified` are deliberately NOT persisted (they go
- * stale the moment an address changes), so they sit at `false` until
- * AuthInitializer refreshes the user from the API. Checking them before then
- * reads a verified member as unverified and bounces them to /auth/verify-email
- * — which, once the refresh lands, immediately redirects them back. That
- * produced an endless redirect loop that made protected pages unreachable.
+ * Verification is read from `user.isEmailVerified` / `user.isPhoneVerified` —
+ * the same source every other guard uses — because the store's separate
+ * `isEmailVerified` / `isPhoneVerified` flags are deliberately NOT persisted
+ * (they go stale the moment an address changes) and sat at `false` until
+ * AuthInitializer refreshed the user from the API. Reading a different source
+ * than the other guards is what produced the endless
+ * /dashboard ⇄ /auth/verify-email redirect loop.
  *
- * So we gate on `isHydrated` and `isInitializationComplete`, exactly like
- * EmailVerificationEnforcer does.
+ * So we still gate on `isHydrated` and `isInitializationComplete`, exactly
+ * like EmailVerificationEnforcer does, so a stale persisted value is corrected
+ * by the API refresh before we act on it.
  *
  * Usage:
  * ```tsx
@@ -47,11 +49,15 @@ export function ProtectedPageWrapper({
 }: ProtectedPageWrapperProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, isAuthenticated, isEmailVerified, isPhoneVerified, isHydrated } = useAuthStore();
+  const { user, isAuthenticated, isHydrated } = useAuthStore();
   const { isInitializationComplete } = useInitialization();
 
   const [isClient, setIsClient] = useState(false);
   const [hasCheckedVerification, setHasCheckedVerification] = useState(false);
+
+  // Single source of truth: the persisted `user`, shared with every other guard.
+  const emailVerified = user?.isEmailVerified === true;
+  const phoneVerified = user?.isPhoneVerified === true;
 
   // Set client flag
   useEffect(() => {
@@ -71,7 +77,7 @@ export function ProtectedPageWrapper({
     if (!isAuthenticated || !user) return;
 
     // Check email verification if required
-    if (requireEmail && !isEmailVerified) {
+    if (requireEmail && !emailVerified) {
       console.warn(
         '[ProtectedPageWrapper] Unverified email detected on',
         pathname,
@@ -82,7 +88,7 @@ export function ProtectedPageWrapper({
     }
 
     // Check phone verification if required and feature is enabled
-    if (requirePhone && !isPhoneVerified && FEATURES.PHONE_VERIFICATION_ENABLED) {
+    if (requirePhone && !phoneVerified && FEATURES.PHONE_VERIFICATION_ENABLED) {
       console.warn(
         '[ProtectedPageWrapper] Unverified phone detected on',
         pathname,
@@ -100,8 +106,8 @@ export function ProtectedPageWrapper({
     isInitializationComplete,
     isAuthenticated,
     user,
-    isEmailVerified,
-    isPhoneVerified,
+    emailVerified,
+    phoneVerified,
     requireEmail,
     requirePhone,
     pathname,

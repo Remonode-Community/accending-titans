@@ -11,7 +11,6 @@ import {
   EyeOff,
   Lock,
   Mail,
-  Chrome,
 } from 'lucide-react';
 
 import { useAuth } from '@/hooks/useAuth';
@@ -187,26 +186,6 @@ export default function LoginPage() {
                   )}
                 </button>
               </form>
-
-              {/* ── Divider ── */}
-              <div className="my-5 flex items-center gap-3">
-                <div className="h-px flex-1 bg-gray-100" />
-                <span className="text-[11px] font-medium uppercase tracking-widest text-gray-300">
-                  or
-                </span>
-                <div className="h-px flex-1 bg-gray-100" />
-              </div>
-
-              {/* ── Social Buttons ── */}
-              <div className="grid grid-cols-1 gap-2.5">
-                <button
-                  type="button"
-                  className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white py-3 sm:py-2.5 text-sm font-medium text-gray-600 transition-colors hover:border-gray-300 hover:bg-gray-50"
-                >
-                  <Chrome size={15} className="text-gray-500" />
-                  Google
-                </button>
-              </div>
 
               {/* ── Register link ── */}
               <p className="mt-6 text-center text-sm text-gray-500">

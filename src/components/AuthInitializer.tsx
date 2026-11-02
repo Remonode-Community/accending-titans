@@ -35,7 +35,7 @@ import { FEATURES } from '@/config/features';
 export const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const router = useRouter();
   const pathname = usePathname();
-  const { setIsLoading, user, setUser, isHydrated, isPhoneVerified, isEmailVerified, activeRole } = useAuthStore();
+  const { setIsLoading, user, setUser, isHydrated, activeRole } = useAuthStore();
   const { markInitializationComplete } = useInitialization();
   const [isMounted, setIsMounted] = useState(false);
   const [routingResolved, setRoutingResolved] = useState(false);
@@ -182,16 +182,23 @@ export const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ child
     // Determine correct destination based on auth state
     let correctDestination: string | null = null;
 
+    // Verification state is read from `user` — the SAME source every other
+    // guard (AuthProtectedRoute, dashboard/admin/agent layouts,
+    // EmailVerificationEnforcer, ProtectedPageWrapper) uses. Routing on the
+    // store's separate `isEmailVerified` flag here used to disagree with them
+    // whenever the API refresh hadn't (or failed to) land, and the two guards
+    // bounced the member between /dashboard and /auth/verify-email forever.
+
     // Priority 1: Not authenticated
     if (!user) {
       correctDestination = '/auth/login';
     }
     // Priority 2: Email not verified
-    else if (!isEmailVerified) {
+    else if (!user.isEmailVerified) {
       correctDestination = `/auth/verify-email?email=${encodeURIComponent(user.email)}`;
     }
     // Priority 3: Phone not verified (if feature is enabled)
-    else if (!isPhoneVerified && FEATURES.PHONE_VERIFICATION_ENABLED) {
+    else if (!user.isPhoneVerified && FEATURES.PHONE_VERIFICATION_ENABLED) {
       correctDestination = `/auth/verify-phone?phone=${encodeURIComponent(user.phone_number || '')}`;
     }
     // Priority 4-6: Role-based routing
@@ -231,12 +238,12 @@ export const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ child
         console.log('[AuthInitializer] Routing:', {
           from: pathname,
           to: correctDestination,
-          reason: !user ? 'not_authenticated' : !isEmailVerified ? 'email_not_verified' : !isPhoneVerified ? 'phone_not_verified' : 'role_based',
+          reason: !user ? 'not_authenticated' : !user.isEmailVerified ? 'email_not_verified' : !user.isPhoneVerified ? 'phone_not_verified' : 'role_based',
         });
       }
       router.replace(correctDestination);
     }
-  }, [isMounted, isHydrated, routingResolved, pathname, user, isEmailVerified, isPhoneVerified, activeRole, router]);
+  }, [isMounted, isHydrated, routingResolved, pathname, user, activeRole, router]);
 
   // Render children - routing happens via effects above
   return <>{children}</>;

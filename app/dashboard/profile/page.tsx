@@ -26,6 +26,7 @@ import { AccountDeletion } from '@/components/dashboard/AccountDeletion';
 import { useProfile } from '@/hooks/useProfile';
 import { userService } from '@/services/auth.service';
 import { uploadService } from '@/services/upload.service';
+import { useAuthStore } from '@/store/auth.store';
 import {
   NIGERIAN_PHONE_RE,
   type AuthSession,
@@ -312,6 +313,10 @@ const ProfileTab: React.FC<{
   const coverInputRef = useRef<HTMLInputElement>(null);
   const [coverUploading, setCoverUploading] = useState(false);
   const [coverError, setCoverError] = useState<string | null>(null);
+  // The dashboard header and topbar read the photo/cover off the auth store's
+  // `user`, which is only refreshed on a full page load — so a successful
+  // upload mirrors its URL into the store here.
+  const patchUser = useAuthStore((s) => s.patchUser);
   const displayName =
     [basic?.first_name, basic?.last_name].filter(Boolean).join(' ') || 'â€”';
 
@@ -340,6 +345,9 @@ const ProfileTab: React.FC<{
       const res = await uploadService.uploadProfilePhoto(file);
 
       if (res.success && res.data?.image_url) {
+        // The backend stored the URL on the member's row; mirror it into the
+        // auth store so the dashboard header shows it without a full reload.
+        patchUser({ profile_photo_url: res.data.image_url });
         onPhotoUpdated?.();
       } else {
         setUploadError(
@@ -382,6 +390,9 @@ const ProfileTab: React.FC<{
       const res = await uploadService.uploadProfileCover(file);
 
       if (res.success && res.data?.image_url) {
+        // Same as the avatar: keep the auth store's user in step so the
+        // dashboard header's cover updates without a full reload.
+        patchUser({ cover_image_url: res.data.image_url });
         onPhotoUpdated?.();
       } else {
         setCoverError(
@@ -455,6 +466,46 @@ const ProfileTab: React.FC<{
           className="hidden"
           disabled={uploading}
         />
+      </FieldRow>
+
+      <FieldRow label="Cover photo" hint="Banner shown on your profile - JPG, PNG or WebP, up to 4MB">
+        <div className="space-y-2">
+          {meta?.cover_url && (
+            <div className="relative h-24 overflow-hidden rounded-xl border border-gray-200 bg-gray-100">
+              <Image
+                src={meta.cover_url}
+                alt="Profile cover"
+                fill
+                className="object-cover"
+                sizes="(max-width: 640px) 100vw, 400px"
+                unoptimized
+              />
+            </div>
+          )}
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => coverInputRef.current?.click()}
+              disabled={coverUploading}
+              className="rounded-xl border border-[#C9A84C]/40 bg-white px-4 py-2 text-sm font-bold text-[#B8962E] transition hover:bg-[#FDFAF3] disabled:opacity-50"
+            >
+              {coverUploading
+                ? 'Uploading...'
+                : meta?.cover_url
+                  ? 'Change cover'
+                  : 'Upload cover'}
+            </button>
+            {coverError && <p className="text-xs text-red-600">{coverError}</p>}
+          </div>
+          <input
+            ref={coverInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={handleCoverChange}
+            className="hidden"
+            disabled={coverUploading}
+          />
+        </div>
       </FieldRow>
 
       <FieldRow label="Business / Role" hint="Shown under your name">
@@ -835,8 +886,7 @@ const NotificationsTab: React.FC = () => {
  * Previously this tab rendered three hard-coded sessions (Chrome/Windows in
  * Lagos, Safari/iPhone in Abuja, Firefox/macOS) plus "Enable 2FA", "Revoke" and
  * "Delete account" buttons that had no onClick handlers at all. It now shows the
- * member's real API tokens, can revoke them, and states plainly which features
- * have no backend yet.
+ * member's real API tokens and can revoke them.
  */
 const SecurityTab: React.FC = () => {
   const [sessions, setSessions] = useState<AuthSession[]>([]);
@@ -891,28 +941,6 @@ const SecurityTab: React.FC = () => {
         title="Security settings"
         description="Manage your account security and active sessions."
       />
-
-      {/* 2FA â€” no backend endpoint exists yet */}
-      <div className="mt-1 rounded-xl border border-gray-100 bg-gray-50/70 p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-start gap-3">
-            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border border-[#C9A84C]/20 bg-[#FDFAF3]">
-              <Shield size={16} className="text-[#C9A84C]" />
-            </div>
-            <div>
-              <p className="text-sm font-black text-gray-900">
-                Two-factor authentication
-              </p>
-              <p className="mt-0.5 text-xs text-gray-400">
-                Add an extra layer of security to your account.
-              </p>
-            </div>
-          </div>
-          <span className="shrink-0 rounded-xl border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-400">
-            Not available yet
-          </span>
-        </div>
-      </div>
 
       {/* Active sessions â€” real API tokens */}
       <div className="mt-6">

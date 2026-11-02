@@ -83,7 +83,14 @@ export function DashboardProfileHeader({
   const memberAvatar = user?.profile_photo_url || null;
   const businessName = profile?.business_name?.trim() || null;
   const businessAvatar = profile?.profile_image_url || null;
-  const coverSrc = profile?.cover_image_url || null;
+  /*
+   * The member's own cover first: the dashboard is their page, and the cover
+   * they set on Dashboard → Profile is the one they expect to see. The
+   * business catalogue cover remains as the fallback for members who haven't
+   * uploaded a personal one (and for sessions persisted before the backend
+   * exposed `cover_image_url`, where this field is undefined).
+   */
+  const coverSrc = user?.cover_image_url || profile?.cover_image_url || null;
 
   // A business badge that just repeats the member's photo adds nothing.
   const showBusinessBadge = Boolean(businessAvatar && businessAvatar !== memberAvatar);
@@ -110,7 +117,7 @@ export function DashboardProfileHeader({
 
   return (
     <section className={`${CARD} overflow-hidden`}>
-      {/* Cover — the business cover, since that is the imagery they own. */}
+      {/* Cover — the member's personal cover, falling back to the business one. */}
       <div className="relative h-28 sm:h-40 lg:h-48">
         {coverSrc ? (
           <Image

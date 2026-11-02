@@ -24,6 +24,7 @@ interface AuthStore {
   isHydrated: boolean;
   
   setUser: (user: User | null) => void;
+  patchUser: (partial: Partial<User>) => void;
   setAuthToken: (token: string) => void;
   setIsLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
@@ -108,6 +109,19 @@ export const useAuthStore = create<AuthStore>()(
         });
       },
 
+      /**
+       * Merge fields into the current user WITHOUT setUser's side effects.
+       * setUser recomputes `activeRole` from the role list, which would kick a
+       * member out of a manually chosen role; this only touches the fields it
+       * is given. Used by the profile photo/cover uploads so every screen that
+       * reads `user` (dashboard header, topbar) shows the new image immediately
+       * instead of waiting for the next full-page refresh.
+       */
+      patchUser: (partial) =>
+        set((state) => ({
+          user: state.user ? { ...state.user, ...partial } : null,
+        })),
+
       setAuthToken: (token) => {
         if (typeof window !== 'undefined') {
           safeSetItem('token', token);
@@ -182,6 +196,16 @@ export const useAuthStore = create<AuthStore>()(
       onRehydrateStorage: () => (state) => {
         // Mark store as hydrated after persistence middleware restores state
         if (state) {
+          // `isEmailVerified` / `isPhoneVerified` are intentionally not
+          // persisted (they go stale the moment an address changes), so
+          // rehydration otherwise leaves them at `false` even when the
+          // restored `user` says verified. Re-align them with the restored
+          // user immediately, so no guard can read a false negative during
+          // the window before AuthInitializer's API refresh lands — that
+          // disagreement is what used to bounce members between /dashboard
+          // and /auth/verify-email.
+          state.isEmailVerified = state.user?.isEmailVerified || false;
+          state.isPhoneVerified = state.user?.isPhoneVerified || false;
           state.isHydrated = true;
         }
       },

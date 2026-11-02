@@ -75,6 +75,12 @@ export interface User {
   profile_complete_status: boolean;
   profile_photo_url: string | null;
   /**
+   * The member's personal cover banner (users.cover_image_url). Optional so
+   * sessions persisted before the backend exposed it still type-check; reads
+   * degrade to the business cover / brand cover fallback.
+   */
+  cover_image_url?: string | null;
+  /**
    * Humanised for display, e.g. "2 years ago". Use `joined_at` when a real
    * date is needed — this string cannot be parsed by a date library.
    */

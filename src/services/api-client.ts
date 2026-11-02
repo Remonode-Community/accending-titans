@@ -14,6 +14,7 @@ import {
 } from '@/utils/idempotency-error.utils';
 import { safeGetItem, safeSetItem, safeRemoveItem } from '@/utils/safe-storage.utils';
 import { trackApiError } from '@/utils/error-tracking.utils';
+import { useAuthStore } from '@/store/auth.store';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.bb.remonode.com/api/v1';
 
@@ -261,6 +262,24 @@ class ApiClient {
               localStorage.removeItem('auth-store');
             } catch (e) {
               debug.warn('[ApiClient] Error clearing auth store');
+            }
+
+            // Also drop the IN-MEMORY session. Zustand re-persists
+            // `auth-store` on every state change, so the very next `set()`
+            // (AuthInitializer's `finally` runs `setIsLoading(false)` right
+            // after a failed refresh) would rewrite the file we just deleted
+            // with the old `user` still in it. The next page load would then
+            // rehydrate as "authenticated" with no token — which bounced
+            // /auth/login ⇄ /dashboard (and /auth/verify-email ⇄ /dashboard)
+            // on an expired session. Clearing the store makes every guard
+            // agree that the session is gone.
+            try {
+              const authState = useAuthStore.getState();
+              if (hadSession || authState.user || authState.isAuthenticated) {
+                authState.logout();
+              }
+            } catch {
+              debug.warn('[ApiClient] Error clearing in-memory auth store');
             }
 
             // Public requests can also return 401; only redirect once for an
