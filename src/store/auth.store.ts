@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { User, AuthResponse } from '@/types/api.types';
 import { safeGetItem, safeSetItem, safeRemoveItem } from '@/utils/safe-storage.utils';
+import { canUseRole, getPrimaryRole } from '@/utils/role.utils';
 import { cleanupIdempotencyOnLogout } from '@/utils/idempotency-maintenance.utils';
 
 interface PINStatus {
@@ -86,26 +87,36 @@ export const useAuthStore = create<AuthStore>()(
       isHydrated: false,
 
       setUser: (user) => {
-        // Determine primary role for activeRole
-        let primaryRole: string | null = null;
-        if (user?.roles) {
-          if (user.roles.includes('admin')) {
-            primaryRole = 'admin';
-          } else if (user.roles.includes('agent')) {
-            primaryRole = 'agent';
-          } else {
-            primaryRole = user.roles[0] || null;
-          }
-        }
+        set((state) => {
+          // Preserve a manually chosen activeRole (e.g. an admin viewing the
+          // member dashboard) across the periodic user refresh — recomputing
+          // it from the role list would silently kick the user out of the
+          // view they picked. Only recompute when the account itself
+          // changed (login / account switch), or the picked role is no
+          // longer valid for the refreshed role list.
+          let activeRole: string | null;
+          const sameUser =
+            state.user?.id != null && user?.id != null && state.user.id === user.id;
 
-        set({
-          user,
-          isAuthenticated: !!user,
-          error: null,
-          isEmailVerified: user?.isEmailVerified || false,
-          isPhoneVerified: user?.isPhoneVerified || false,
-          // Set activeRole to primary role (admin > agent > customer/user)
-          activeRole: primaryRole,
+          if (
+            sameUser &&
+            state.activeRole &&
+            canUseRole(user?.roles, state.activeRole)
+          ) {
+            activeRole = state.activeRole;
+          } else {
+            // Primary role for activeRole (admin > agent > customer/user)
+            activeRole = getPrimaryRole(user?.roles);
+          }
+
+          return {
+            user,
+            isAuthenticated: !!user,
+            error: null,
+            isEmailVerified: user?.isEmailVerified || false,
+            isPhoneVerified: user?.isPhoneVerified || false,
+            activeRole,
+          };
         });
       },
 

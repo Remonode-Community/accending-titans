@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ChevronDown, Shield, Briefcase, User } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useAuthStore } from '@/store/auth.store';
+import { canUseRole } from '@/utils/role.utils';
 
 export const RoleSwitcher: React.FC = () => {
   const router = useRouter();
@@ -85,8 +86,10 @@ export const RoleSwitcher: React.FC = () => {
   };
 
   const handleRoleSwitch = (role: string) => {
-    // Allow admins to switch to "user" view even without the user role
-    if (!user.roles.includes(role) && !(user.roles.includes('admin') && role === 'user')) {
+    // Admins may switch to the synthetic 'user' view even without the user
+    // role; canUseRole encodes that override (shared with AuthInitializer,
+    // which validates the resulting activeRole when routing).
+    if (!canUseRole(user.roles, role)) {
       console.error(`User does not have role: ${role}`);
       return;
     }

@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/auth.store';
 import { safeGetItem } from '@/utils/safe-storage.utils';
 import { authService } from '@/services/auth.service';
+import { canUseRole, getPrimaryRole } from '@/utils/role.utils';
 import { useInitialization } from '@/contexts/InitializationContext';
 import { FEATURES } from '@/config/features';
 
@@ -208,18 +209,16 @@ export const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ child
       // Determine the role to use for routing
       let roleToRoute: string | null = null;
 
-      // Use activeRole if it's set and valid
-      if (activeRole !== null && activeRole !== undefined && user.roles?.includes(activeRole)) {
+      // Use activeRole if it's set and valid. `canUseRole` also accepts the
+      // synthetic 'user' view for admins (which is not a real role on their
+      // account); validating against `user.roles.includes(activeRole)` alone
+      // rejected it and routed the admin back to /admin, so switching to the
+      // user view appeared to do nothing.
+      if (activeRole !== null && activeRole !== undefined && canUseRole(user.roles, activeRole)) {
         roleToRoute = activeRole;
       } else {
         // Fallback to primary role if activeRole is invalid/not set
-        if (user.roles?.includes('admin')) {
-          roleToRoute = 'admin';
-        } else if (user.roles?.includes('agent')) {
-          roleToRoute = 'agent';
-        } else if (user.roles && user.roles.length > 0) {
-          roleToRoute = user.roles[0];
-        }
+        roleToRoute = getPrimaryRole(user.roles);
       }
 
       // Route based on the determined role
