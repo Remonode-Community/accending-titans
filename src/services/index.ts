@@ -23,3 +23,4 @@ export { birthdayService } from './birthday.service';
 export { contentService } from './content.service';
 export { sessionService } from './session.service';
 export { rankingService } from './ranking.service';
+export { supportService } from './support.service';

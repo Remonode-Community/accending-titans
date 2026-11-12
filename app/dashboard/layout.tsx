@@ -10,6 +10,7 @@ import {
   FileText,
   Home,
   Layers,
+  LifeBuoy,
   Lock,
   LogOut,
   Menu,
@@ -229,6 +230,10 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
     { href: '/dashboard/referral', label: 'Referral Program', icon: Users },
     { href: '/dashboard/messages', label: 'Messages', icon: Send },
     { href: '/dashboard/opportunities', label: 'Opportunities', icon: Award },
+    // The support desk is available on every plan: it is how members reach
+    // the team, so it must not disappear when a feature is switched off —
+    // hence deliberately absent from NAV_FEATURES.
+    { href: '/dashboard/support', label: 'Support', icon: LifeBuoy },
   ];
 
   useEffect(() => {

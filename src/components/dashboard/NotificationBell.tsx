@@ -9,7 +9,11 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNotifications } from '@/hooks/useNotifications';
 import Link from 'next/link';
 import { Bell, X } from 'lucide-react';
-import { formatNotificationDate, groupNotificationsByDate } from '@/utils/notification.utils';
+import {
+  getNotificationActionUrl,
+  getNotificationTypeLabel,
+  groupNotificationsByDate,
+} from '@/utils/notification.utils';
 import type { Notification } from '@/types/notification.types';
 
 interface NotificationBellProps {
@@ -19,7 +23,7 @@ interface NotificationBellProps {
 export const NotificationBell: React.FC<NotificationBellProps> = ({
   className = '',
 }) => {
-  const { notifications, loading, error, getUnreadCount, fetchNotifications } = useNotifications();
+  const { notifications, loading, error, getUnreadCount, fetchNotifications, markAsRead } = useNotifications();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const unreadCount = getUnreadCount();
@@ -43,6 +47,20 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
     }
   }, [isOpen]);
 
+  // Open a notification: mark it read and follow its deep link (support
+  // tickets land straight on the ticket thread).
+  const handleNotificationClick = (notification: Notification) => {
+    if (!notification.read_at && markAsRead) {
+      markAsRead(notification.id);
+    }
+
+    const actionUrl = getNotificationActionUrl(notification);
+    setIsOpen(false);
+    if (actionUrl) {
+      window.location.assign(actionUrl);
+    }
+  };
+
   // Group notifications by date for the dropdown
   const groupedNotifications = groupNotificationsByDate(notifications);
 
@@ -54,7 +72,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
     // Compute the grouped sections
     const sections = Object.entries(groupedNotifications)
       .reverse()
-      .filter(([_, items]) => items.length > 0)
+      .filter(([, items]) => items.length > 0)
       .map(([period, periodNotifications]) => {
         const showHeader =
           period === 'today'
@@ -98,11 +116,15 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
                 <div key={section.period} className={`p-3 sm:p-4 border-b ${section.periodClass}`}>
                   <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">{section.showHeader}</p>
                   {section.periodNotifications.slice(0, 3).map((notification: Notification) => (
-                    <div key={notification.id} className="px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm cursor-pointer transition-colors">
+                    <div
+                      key={notification.id}
+                      onClick={() => handleNotificationClick(notification)}
+                      className="px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm cursor-pointer transition-colors hover:bg-gray-100/70"
+                    >
                       <div className="font-medium text-gray-900 line-clamp-1">{notification.title}</div>
                       <p className="text-gray-600 line-clamp-2 mt-0.5 text-xs sm:text-sm">{notification.body}</p>
                       <div className="flex items-center gap-2 mt-1 flex-wrap">
-                        <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded whitespace-nowrap">{notification.type}</span>
+                        <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded whitespace-nowrap">{getNotificationTypeLabel(notification.type)}</span>
                         <span className="text-xs text-gray-500">
                           {new Date(notification.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                       </div>
@@ -160,11 +182,15 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
           ) : (
             <div className="divide-y">
               {notifications.slice(0, 5).map((notification) => (
-                <div key={notification.id} className="px-3 py-2 text-xs cursor-pointer transition-colors">
+                <div
+                  key={notification.id}
+                  onClick={() => handleNotificationClick(notification)}
+                  className="px-3 py-2 text-xs cursor-pointer transition-colors hover:bg-gray-100/70"
+                >
                   <div className="font-medium text-gray-900 line-clamp-1">{notification.title}</div>
                   <p className="text-gray-600 line-clamp-2 mt-0.5 text-xs">{notification.body}</p>
                   <div className="flex items-center gap-2 mt-2 flex-wrap">
-                    <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded whitespace-nowrap">{notification.type}</span>
+                    <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded whitespace-nowrap">{getNotificationTypeLabel(notification.type)}</span>
                     <span className="text-xs text-gray-500">
                       {new Date(notification.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                   </div>

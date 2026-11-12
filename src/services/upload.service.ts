@@ -17,7 +17,7 @@ import type { ApiResponse } from '@/types/api.types';
  */
 
 /** Whitelist mirrors the backend `folder` validation rule. */
-export type UploadFolder = 'content' | 'ads' | 'docs' | 'misc';
+export type UploadFolder = 'content' | 'ads' | 'docs' | 'misc' | 'tickets';
 
 export interface UploadedImage {
   /** Secure Cloudinary URL — the value to store/submit. */

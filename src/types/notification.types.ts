@@ -6,7 +6,17 @@
 import { PaginationMeta } from './api.types';
 
 // ============= Notification Type Definitions =============
-export type NotificationType = 'transaction' | 'system' | 'promotion' | 'update' | 'alert' | 'birthday';
+// `network_ask` and `support_ticket` are real backend enum values; the union
+// keeps them explicit so deep-link handling in notification.utils is typed.
+export type NotificationType =
+  | 'transaction'
+  | 'system'
+  | 'promotion'
+  | 'update'
+  | 'alert'
+  | 'birthday'
+  | 'network_ask'
+  | 'support_ticket';
 export type PriorityLevel = 'low' | 'normal' | 'high';
 
 // ============= Notification Object =============

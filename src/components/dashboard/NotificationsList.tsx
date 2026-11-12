@@ -236,6 +236,8 @@ export const NotificationsList: React.FC<NotificationsListProps> = ({
               <option value="update">Update</option>
               <option value="alert">Alert</option>
               <option value="birthday">Birthday</option>
+              <option value="support_ticket">Support</option>
+              <option value="network_ask">Member Network</option>
             </select>
 
             <select

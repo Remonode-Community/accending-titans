@@ -16,6 +16,8 @@ export const getNotificationTypeColor = (type: NotificationType): string => {
     update: 'cyan',
     alert: 'red',
     birthday: 'amber',
+    network_ask: 'violet',
+    support_ticket: 'gold',
   };
   return colors[type] || 'gray';
 };
@@ -31,6 +33,8 @@ export const getNotificationTypeLabel = (type: NotificationType): string => {
     update: 'Update',
     alert: 'Alert',
     birthday: 'Birthday',
+    network_ask: 'Member Network',
+    support_ticket: 'Support',
   };
   return labels[type] || type;
 };
@@ -155,6 +159,15 @@ export const getNotificationActionUrl = (notification: any): string | null => {
   // Transaction notifications
   if (notification.type === 'transaction' && data.transaction_id) {
     return `/dashboard`;
+  }
+
+  // Support desk: land on the right surface for the recipient. The notifier
+  // tags every notification with the panel it belongs to — members go to
+  // their ticket thread, staff to the admin queue's ticket view.
+  if (notification.type === 'support_ticket' && data.ticket_id) {
+    return data.panel === 'admin'
+      ? `/admin/support/${data.ticket_id}`
+      : `/dashboard/support/${data.ticket_id}`;
   }
 
   // Custom action URL

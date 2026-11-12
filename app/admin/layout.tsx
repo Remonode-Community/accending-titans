@@ -12,6 +12,7 @@ import {
   Share2,
   Bell,
   FileText,
+  LifeBuoy,
   LogOut,
   X,
   Settings,
@@ -91,6 +92,14 @@ const navGroups: NavGroup[] = [
     label: 'Engagement',
     items: [
       { label: 'Notifications', href: '/admin/notifications', icon: Bell },
+    ],
+  },
+  {
+    // The support queue is its own duty (permission: manage_support on the
+    // backend), so it sits in its own group rather than inside Community.
+    label: 'Support',
+    items: [
+      { label: 'Support Desk', href: '/admin/support', icon: LifeBuoy },
     ],
   },
   {

@@ -18,6 +18,9 @@ interface ImageUploaderProps {
   error?: string;
   /** Renders a 1:1 preview. Set false for wide banners. */
   aspect?: 'square' | 'wide';
+  /** Optional mirror of the internal `uploading` flag, so a parent can block
+   *  submission (e.g. send a support message) while uploads are in flight. */
+  onUploadingChange?: (uploading: boolean) => void;
   className?: string;
 }
 
@@ -42,6 +45,7 @@ export const ImageUploader = ({
   disabled = false,
   error,
   aspect = 'square',
+  onUploadingChange,
   className,
 }: ImageUploaderProps) => {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -57,6 +61,7 @@ export const ImageUploader = ({
 
     setUploadError(null);
     setUploading(true);
+    onUploadingChange?.(true);
 
     try {
       const accepted: string[] = [];
@@ -88,6 +93,7 @@ export const ImageUploader = ({
       }
     } finally {
       setUploading(false);
+      onUploadingChange?.(false);
       if (inputRef.current) inputRef.current.value = '';
     }
   };

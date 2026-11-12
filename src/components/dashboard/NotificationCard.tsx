@@ -7,8 +7,13 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Check, AlertCircle, Bell, Cake, CheckCircle, Gift, Info, Trash2, Zap } from 'lucide-react';
-import { formatNotificationDate, getNotificationTypeColor, getPriorityColor } from '@/utils/notification.utils';
+import { useRouter } from 'next/navigation';
+import { AlertCircle, Bell, Cake, CheckCircle, Gift, Info, LifeBuoy, Trash2, Users, Zap } from 'lucide-react';
+import {
+  formatNotificationDate,
+  getNotificationActionUrl,
+  getNotificationTypeColor,
+} from '@/utils/notification.utils';
 import { Notification, NotificationType } from '@/types/notification.types';
 
 interface NotificationCardProps {
@@ -30,6 +35,8 @@ const getNotificationIcon = (type: NotificationType) => {
     update: <Info className={`${iconProps} text-cyan-500`} />,
     alert: <AlertCircle className={`${iconProps} text-red-500`} />,
     birthday: <Cake className={`${iconProps} text-[#C9A84C]`} />,
+    network_ask: <Users className={`${iconProps} text-violet-500`} />,
+    support_ticket: <LifeBuoy className={`${iconProps} text-[#C9A84C]`} />,
   };
 
   return typeIcons[type] || <Bell className={`${iconProps} text-gray-500`} />;
@@ -43,6 +50,8 @@ const getTypeBadgeStyles = (type: NotificationType) => {
     update: 'bg-cyan-100 dark:bg-cyan-200 text-cyan-700',
     alert: 'bg-red-100 dark:bg-red-200 text-red-700',
     birthday: 'bg-[#FDFAF3] dark:bg-[#1a1a1a] text-[#9A7B2E]',
+    network_ask: 'bg-violet-100 dark:bg-violet-200 text-violet-700',
+    support_ticket: 'bg-[#FDFAF3] dark:bg-[#1a1a1a] text-[#9A7B2E]',
   };
   return styles[type] || styles.system;
 };
@@ -65,6 +74,7 @@ export const NotificationCard: React.FC<NotificationCardProps> = ({
   onToggleSelect,
 }) => {
   const [isDeleting, setIsDeleting] = useState(false);
+  const router = useRouter();
   const isUnread = !notification.read_at;
   const formattedDate = formatNotificationDate(notification.created_at);
 
@@ -74,7 +84,8 @@ export const NotificationCard: React.FC<NotificationCardProps> = ({
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (onDelete && window.confirm('Are you sure you want to delete this notification?')) {
       setIsDeleting(true);
       try {
@@ -85,14 +96,33 @@ export const NotificationCard: React.FC<NotificationCardProps> = ({
     }
   };
 
-  const handleToggleSelect = () => {
+  const handleToggleSelect = (e: React.SyntheticEvent) => {
+    e.stopPropagation();
     onToggleSelect?.(notification.id);
+  };
+
+  // Clicking the card marks it read and follows the deep link to its subject
+  // (e.g. a support notification lands on the ticket thread).
+  const handleCardClick = async () => {
+    if (onView) {
+      onView(notification);
+      return;
+    }
+
+    if (isUnread && onMarkAsRead) {
+      await handleMarkAsRead();
+    }
+
+    const actionUrl = getNotificationActionUrl(notification);
+    if (actionUrl) {
+      router.push(actionUrl);
+    }
   };
 
   return (
     <div
       className="bg-white dark:bg-gray-800 rounded-lg border transition-all duration-200 hover:shadow-md cursor-pointer hover:border-gray-300 dark:border-gray-500"
-      onClick={() => onView?.(notification)}
+      onClick={handleCardClick}
     >
       <div className="flex gap-4 p-4">
         {/* Icon container */}
@@ -150,6 +180,19 @@ export const NotificationCard: React.FC<NotificationCardProps> = ({
             </div>
 
             <span className="text-xs text-gray-500 dark:text-gray-400">{formattedDate}</span>
+
+            {onDelete && (
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={isDeleting}
+                title="Delete notification"
+                aria-label="Delete notification"
+                className="ml-auto rounded-lg p-1.5 text-gray-300 transition hover:bg-red-50 hover:text-red-500 disabled:opacity-50 dark:text-gray-500 dark:hover:bg-red-500/10 dark:hover:text-red-400"
+              >
+                <Trash2 size={13} />
+              </button>
+            )}
           </div>
         </div>
       </div>

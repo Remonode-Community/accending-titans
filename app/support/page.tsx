@@ -1,33 +1,11 @@
 'use client';
 
-import { Mail, MessageSquare, Phone, Clock, ArrowRight, Sparkles, Shield } from 'lucide-react';
+import { Mail, MessageSquare, Phone, Clock, ArrowRight, LifeBuoy, Sparkles, Shield } from 'lucide-react';
 import Link from 'next/link';
-import { useState } from 'react';
 import { LandingTopbar } from '@/components/LandingTopbar';
 import { Footer } from '@/components/shared/Footer';
 
 export default function SupportPage() {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    category: 'general',
-    subject: '',
-    message: '',
-  });
-
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    alert('Thank you for reaching out. We\'ll respond shortly.');
-    setFormData({ name: '', email: '', category: 'general', subject: '', message: '' });
-  };
-
   return (
     <>
       <LandingTopbar />
@@ -40,7 +18,7 @@ export default function SupportPage() {
           </div>
           
           <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-6">
-            We're Here to <span className="text-[#C9A84C]">Help</span>
+            We&apos;re Here to <span className="text-[#C9A84C]">Help</span>
           </h1>
           <p className="text-lg text-gray-600 leading-relaxed max-w-2xl mx-auto">
             Get the support you need. Our team is available 24/7 to assist with any questions or issues.
@@ -97,93 +75,43 @@ export default function SupportPage() {
         </div>
       </section>
 
-      {/* Support Form */}
+      {/* Support Desk CTA */}
       <section className="px-5 py-20 lg:px-8 bg-gray-50 border-t border-gray-100">
-        <div className="max-w-3xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Send us a Message</h2>
-            <p className="text-gray-600">Fill out the form below and our team will get back to you as soon as possible.</p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-6 bg-white rounded-2xl border border-gray-200 p-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2">Full Name</label>
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  placeholder="Your name"
-                  required
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 placeholder-gray-400 focus:border-[#C9A84C] focus:outline-none focus:ring-2 focus:ring-[#C9A84C]/20"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2">Email Address</label>
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="your@email.com"
-                  required
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 placeholder-gray-400 focus:border-[#C9A84C] focus:outline-none focus:ring-2 focus:ring-[#C9A84C]/20"
-                />
-              </div>
+        <div className="max-w-3xl mx-auto text-center">
+          <div className="rounded-2xl border border-gray-200 bg-white p-8 lg:p-12 shadow-sm">
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[#C9A84C]/20 mb-6">
+              <LifeBuoy className="text-[#C9A84C]" size={24} />
             </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-2">Category</label>
-              <select
-                name="category"
-                value={formData.category}
-                onChange={handleChange}
-                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 focus:border-[#C9A84C] focus:outline-none focus:ring-2 focus:ring-[#C9A84C]/20"
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+              Raise a Support Ticket
+            </h2>
+            <p className="text-gray-600 leading-relaxed max-w-xl mx-auto mb-8">
+              Open a ticket in your dashboard and our team will follow up right
+              in the conversation thread — with a notification and an email
+              every time we reply, so nothing gets lost.
+            </p>
+
+            <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
+              <Link
+                href="/dashboard/support/new"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#C9A84C] px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-[#C9A84C]/30 transition-all hover:bg-[#B8962E] sm:w-auto"
               >
-                <option value="general">General Inquiry</option>
-                <option value="technical">Technical Issue</option>
-                <option value="billing">Billing Issue</option>
-                <option value="account">Account Support</option>
-                <option value="fraud">Fraud Report</option>
-                <option value="other">Other</option>
-              </select>
+                Open a Support Ticket <ArrowRight size={18} />
+              </Link>
+              <Link
+                href="/dashboard/support"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-8 py-3.5 text-base font-semibold text-gray-700 transition-all hover:border-[#C9A84C]/40 hover:text-[#C9A84C] sm:w-auto"
+              >
+                View My Tickets
+              </Link>
             </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-2">Subject</label>
-              <input
-                type="text"
-                name="subject"
-                value={formData.subject}
-                onChange={handleChange}
-                placeholder="Brief subject"
-                required
-                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 placeholder-gray-400 focus:border-[#C9A84C] focus:outline-none focus:ring-2 focus:ring-[#C9A84C]/20"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-2">Message</label>
-              <textarea
-                name="message"
-                value={formData.message}
-                onChange={handleChange}
-                placeholder="Tell us more about your issue..."
-                rows={5}
-                required
-                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 placeholder-gray-400 focus:border-[#C9A84C] focus:outline-none focus:ring-2 focus:ring-[#C9A84C]/20 resize-none"
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="w-full rounded-xl bg-[#C9A84C] px-6 py-4 text-base font-semibold text-white shadow-lg shadow-[#C9A84C]/30 hover:bg-[#B8962E] transition-all"
-            >
-              Send Message
-            </button>
-          </form>
+            <p className="mt-6 text-xs text-gray-400">
+              You&apos;ll be asked to sign in first — tickets are tied to your account so we
+              can track and resolve them properly.
+            </p>
+          </div>
         </div>
       </section>
 

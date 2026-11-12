@@ -10,12 +10,15 @@ import {
   CheckCircle,
   Gift,
   Info,
+  LifeBuoy,
   Trash2,
+  Users,
   X,
   Zap,
 } from 'lucide-react';
 import type { Notification, NotificationType } from '@/types/notification.types';
 import { formatRelativeTime } from '@/utils/format.utils';
+import { getNotificationActionUrl } from '@/utils/notification.utils';
 
 interface NotificationDetailModalProps {
   notification: Notification | null;
@@ -62,6 +65,18 @@ const TYPE_CONFIG: Record<NotificationType, { icon: React.ElementType; label: st
     badgeBg: 'bg-[#FDFAF3] border-[#C9A84C]/20',
     badgeText: 'text-[#9A7B2E]',
   },
+  network_ask: {
+    icon: Users,
+    label: 'Member Network',
+    badgeBg: 'bg-violet-50 border-violet-100',
+    badgeText: 'text-violet-700',
+  },
+  support_ticket: {
+    icon: LifeBuoy,
+    label: 'Support',
+    badgeBg: 'bg-[#FDFAF3] border-[#C9A84C]/20',
+    badgeText: 'text-[#9A7B2E]',
+  },
 };
 
 const PRIORITY_CONFIG: Record<string, { dot: string; label: string }> = {
@@ -91,8 +106,7 @@ export const NotificationDetailModal: React.FC<NotificationDetailModalProps> = (
   const priorityConfig =
     PRIORITY_CONFIG[notification.priority] ?? PRIORITY_CONFIG.normal;
   const TypeIcon = typeConfig.icon;
-  const actionUrl =
-    typeof notification.data?.url === 'string' ? notification.data.url : null;
+  const actionUrl = getNotificationActionUrl(notification)
   const showRawData =
     Boolean(notification.data) &&
     notification.data?.type !== 'birthday_community' &&
