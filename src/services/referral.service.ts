@@ -1,18 +1,16 @@
 import { apiClient } from './api-client';
-import { ApiResponse } from '@/types/api.types';
+import type { ApiResponse } from '@/types/api.types';
 import type {
   ReferralLink,
   ReferralLinkFull,
-  ReferralLinkWithProgram,
   ReferralProgram,
   ReferralStats,
   PointsConversion,
   AdminReferralItem,
-  ReferralApiResponse,
-  AdminReferralListResponse,
   UserReferralData,
   ReferredUserDetail,
   ReferredUsersPagination,
+  AdminReferralLink,
 } from '@/types/referral.types';
 import { debug } from '@/utils/debug.utils';
 
@@ -36,9 +34,13 @@ class ReferralService {
         throw new Error(response.message || 'Failed to fetch programs');
       }
 
+      if (!Array.isArray(response.data)) {
+        throw new Error('Invalid response structure from referral programs endpoint');
+      }
+
       debug.log('[ReferralService] Programs fetched successfully');
-      return response.data || [];
-    } catch (error: any) {
+      return response.data;
+    } catch (error: unknown) {
       debug.error('[ReferralService] Failed to fetch programs', error);
       throw error;
     }
@@ -60,7 +62,7 @@ class ReferralService {
 
       debug.log('[ReferralService] Referral links fetched successfully');
       return response.data || [];
-    } catch (error: any) {
+    } catch (error: unknown) {
       debug.error('[ReferralService] Failed to fetch referral links', error);
       throw error;
     }
@@ -82,7 +84,7 @@ class ReferralService {
 
       debug.log('[ReferralService] Statistics fetched successfully');
       return response.data!;
-    } catch (error: any) {
+    } catch (error: unknown) {
       debug.error('[ReferralService] Failed to fetch statistics', error);
       throw error;
     }
@@ -96,23 +98,19 @@ class ReferralService {
     try {
       debug.log('[ReferralService] Fetching all referrals (admin)');
 
-      const response = await apiClient.get<any>('/referrals');
+      const response = await apiClient.get<{ referrals: AdminReferralItem[] }>('/referrals');
 
-      // Handle both wrapped and unwrapped responses
-      const responseData = response.data || response;
-
-      if (responseData?.referrals) {
-        debug.log('[ReferralService] Referrals fetched successfully');
-        return responseData.referrals;
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to fetch referrals');
       }
 
-      if (Array.isArray(responseData)) {
-        return responseData;
+      if (!Array.isArray(response.data?.referrals)) {
+        throw new Error('Invalid response structure from referrals endpoint');
       }
 
-      debug.log('[ReferralService] No referrals data found');
-      return [];
-    } catch (error: any) {
+      debug.log('[ReferralService] Referrals fetched successfully');
+      return response.data.referrals;
+    } catch (error: unknown) {
       debug.error('[ReferralService] Failed to fetch all referrals', error);
       throw error;
     }
@@ -126,23 +124,38 @@ class ReferralService {
     try {
       debug.log('[ReferralService] Fetching user referral data for user:', userId);
 
-      const response = await apiClient.get<any>(`/referrals/single/${userId}`);
+      const response = await apiClient.get<{
+        id: number;
+        name: string | null;
+        email: string;
+        referralLinks: AdminReferralLink[];
+      }>(`/referrals/single/${userId}`);
+      const resourceResponse = response as ApiResponse<{
+        id: number;
+        name: string | null;
+        email: string;
+        referralLinks: AdminReferralLink[];
+      }> & { authReferralLink?: string | null };
 
-      // This endpoint returns data directly, not wrapped in { success, message, data }
-      const responseData = response.data || response;
+      if (resourceResponse.success === false) {
+        throw new Error(resourceResponse.message || 'Failed to fetch user referral data');
+      }
 
-      if (!responseData || (typeof responseData === 'object' && !responseData.id && !responseData.referralLinks)) {
+      // Laravel JsonResource responses wrap the user fields in `data`, while
+      // the additional authReferralLink field is at the response root.
+      const responseData = resourceResponse.data;
+      if (!responseData || !Number.isInteger(responseData.id) || !Array.isArray(responseData.referralLinks)) {
         throw new Error('Invalid response structure from referral data endpoint');
       }
 
       return {
-        id: responseData.id || 0,
-        name: responseData.name || '',
-        email: responseData.email || '',
-        referralLinks: responseData.referralLinks || [],
-        authReferralLink: responseData.authReferralLink || null,
+        id: responseData.id,
+        name: responseData.name,
+        email: responseData.email,
+        referralLinks: responseData.referralLinks,
+        authReferralLink: resourceResponse.authReferralLink ?? null,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       debug.error('[ReferralService] Failed to fetch user referral data', error);
       throw error;
     }
@@ -177,7 +190,7 @@ class ReferralService {
         referred_users: result.referred_users || [],
         pagination: result.pagination || { current_page: 1, last_page: 1, per_page: perPage, total: 0 },
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       debug.error('[ReferralService] Failed to fetch referred users', error);
       throw error;
     }
@@ -202,7 +215,7 @@ class ReferralService {
 
       debug.log('[ReferralService] Referral link created successfully');
       return response.data!;
-    } catch (error: any) {
+    } catch (error: unknown) {
       debug.error('[ReferralService] Failed to create referral link', error);
       throw error;
     }
@@ -225,7 +238,7 @@ class ReferralService {
       }
 
       debug.log('[ReferralService] Referral tracked successfully');
-    } catch (error: any) {
+    } catch (error: unknown) {
       debug.error('[ReferralService] Failed to track referral', error);
       throw error;
     }
@@ -246,7 +259,7 @@ class ReferralService {
       }
 
       debug.log('[ReferralService] Withdrawal request submitted successfully');
-    } catch (error: any) {
+    } catch (error: unknown) {
       debug.error('[ReferralService] Failed to submit withdrawal', error);
       throw error;
     }
@@ -272,7 +285,7 @@ class ReferralService {
 
       debug.log('[ReferralService] Points converted successfully');
       return response.data!;
-    } catch (error: any) {
+    } catch (error: unknown) {
       debug.error('[ReferralService] Failed to convert points', error);
       throw error;
     }
@@ -295,8 +308,8 @@ class ReferralService {
       });
 
       debug.log('[ReferralService] Referral link shared successfully');
-    } catch (error: any) {
-      if (error.name !== 'AbortError') {
+    } catch (error: unknown) {
+      if (!(error instanceof Error && error.name === 'AbortError')) {
         debug.error('[ReferralService] Failed to share referral link', error);
         throw error;
       }
@@ -328,7 +341,7 @@ class ReferralService {
         }
         return success;
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       debug.error('[ReferralService] Failed to copy to clipboard', error);
       return false;
     }

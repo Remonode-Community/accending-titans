@@ -43,6 +43,8 @@ export interface NotificationPreference {
   promotion_notifications: boolean;
   update_notifications: boolean;
   alert_notifications: boolean;
+  support_ticket_notifications?: boolean;
+  network_ask_notifications?: boolean;
   email_notifications: boolean;
   push_notifications: boolean;
   created_at: string;
@@ -98,6 +100,8 @@ export interface NotificationStatsResponse {
       update: number;
       alert: number;
       birthday: number;
+      network_ask: number;
+      support_ticket: number;
     };
     by_priority: {
       low: number;

@@ -21,6 +21,7 @@ import {
   X,
   CheckCircle,
   UserCog,
+  ExternalLink,
 } from 'lucide-react';
 import { FilterPanel, type FilterField } from '@/components/shared/FilterPanel';
 import { useFilters } from '@/hooks/useFilters';
@@ -37,7 +38,7 @@ import { useAuthStore } from '@/store/auth.store';
 import { useAlert } from '@/hooks/useAlert';
 import { adminService } from '@/services/admin.service';
 import { formatDate } from '@/utils/format.utils';
-import type { AdminUser } from '@/types/api.types';
+import type { AdminUser, SendEmailRequest } from '@/types/api.types';
 import {
   User,
   Mail as MailIcon,
@@ -260,8 +261,6 @@ export default function AdminUsersPage() {
     body: '',
     type: 'system',
     priority: 'normal',
-    send_push: true,
-    send_email: false,
   });
 
   const [emailData, setEmailData] = useState({
@@ -571,8 +570,6 @@ export default function AdminUsersPage() {
       body: '',
       type: 'system',
       priority: 'normal',
-      send_push: true,
-      send_email: false,
     });
     setShowNotificationModal(true);
   };
@@ -590,8 +587,6 @@ export default function AdminUsersPage() {
         body: notificationData.body,
         type: notificationData.type,
         priority: notificationData.priority as 'high' | 'normal' | 'low',
-        send_push: notificationData.send_push,
-        send_email: notificationData.send_email,
       });
       showAlert('Notification sent successfully', 'success');
       setShowNotificationModal(false);
@@ -637,7 +632,7 @@ export default function AdminUsersPage() {
       setLoadingAction(true);
       
       // Build payload with only populated extra_data fields
-      const payload: any = {
+      const payload: SendEmailRequest = {
         title: emailData.title,
         body: emailData.body,
         type: emailData.type,
@@ -657,12 +652,21 @@ export default function AdminUsersPage() {
         payload.extra_data = emailData.extra_data;
       }
 
-      await adminService.sendEmailToUser(selectedUser.id, payload);
-      showAlert('Email sent successfully', 'success');
+      const response = await adminService.sendEmailToUser(selectedUser.id, payload);
+      if (!response?.success) {
+        throw new Error(response?.message || 'Email could not be sent.');
+      }
+      showAlert(response.message || 'Email sent successfully', 'success');
       setShowEmailModal(false);
     } catch (error) {
       console.error('Error sending email:', error);
-      showAlert('Failed to send email', 'error');
+      const message =
+        error instanceof Error
+          ? error.message
+          : error && typeof error === 'object' && 'message' in error && typeof error.message === 'string'
+            ? error.message
+            : 'Failed to send email';
+      showAlert(message, 'error');
     } finally {
       setLoadingAction(false);
     }
@@ -1086,6 +1090,14 @@ export default function AdminUsersPage() {
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <button
+                            onClick={() => router.push(`/admin/users/${u.id}`)}
+                            title="Open detailed profile"
+                            aria-label={`Open detailed profile for ${u.first_name} ${u.last_name}`}
+                            className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-semibold text-[#4a5ff7] transition hover:bg-[#eef2ff]"
+                          >
+                            <ExternalLink size={15} />
+                          </button>
+                          <button
                             onClick={() => handleOpenDetails(u)}
                             title="View Details"
                             className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-semibold text-[#4a5ff7] transition hover:bg-[#eef2ff]"
@@ -1198,7 +1210,17 @@ export default function AdminUsersPage() {
                     </p>
                     <div className="flex gap-1">
                       <button
+                        onClick={() => router.push(`/admin/users/${u.id}`)}
+                        title="Open detailed profile"
+                        aria-label={`Open detailed profile for ${u.first_name} ${u.last_name}`}
+                        className="rounded-lg p-2 text-[#4a5ff7] transition hover:bg-[#eef2ff]"
+                      >
+                        <ExternalLink size={16} />
+                      </button>
+                      <button
                         onClick={() => handleOpenDetails(u)}
+                        title="Quick details"
+                        aria-label={`Quick details for ${u.first_name} ${u.last_name}`}
                         className="rounded-lg p-2 text-[#4a5ff7] transition hover:bg-[#eef2ff]"
                       >
                         <Eye size={16} />
@@ -1592,6 +1614,14 @@ export default function AdminUsersPage() {
             {/* Actions */}
             <div className="flex gap-3 pt-4">
               <Button
+                variant="outline"
+                size="md"
+                onClick={() => router.push(`/admin/users/${userDetails.id}`)}
+                className="flex-1"
+              >
+                Open full profile
+              </Button>
+              <Button
                 variant="primary"
                 size="md"
                 onClick={() => {
@@ -1680,46 +1710,14 @@ export default function AdminUsersPage() {
                 className="w-full rounded-xl border border-[#d1d5db] bg-white px-4 py-3 text-sm text-[#111827] outline-none transition focus:border-[#4a5ff7] focus:ring-4 focus:ring-[#4a5ff7]/10"
               >
                 <option value="system">System</option>
-                <option value="promotional">Promotional</option>
-                <option value="security">Security</option>
+                <option value="promotion">Promotion</option>
+                <option value="alert">Alert</option>
                 <option value="update">Update</option>
               </select>
             </div>
 
-            {/* Options */}
-            <div className="space-y-3">
-              <label className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  checked={notificationData.send_push}
-                  onChange={(e) =>
-                    setNotificationData({
-                      ...notificationData,
-                      send_push: e.target.checked,
-                    })
-                  }
-                  className="h-4 w-4 rounded border-[#d1d5db]"
-                />
-                <span className="text-sm font-medium text-[#111827]">
-                  Send as push notification
-                </span>
-              </label>
-              <label className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  checked={notificationData.send_email}
-                  onChange={(e) =>
-                    setNotificationData({
-                      ...notificationData,
-                      send_email: e.target.checked,
-                    })
-                  }
-                  className="h-4 w-4 rounded border-[#d1d5db]"
-                />
-                <span className="text-sm font-medium text-[#111827]">
-                  Also send as email
-                </span>
-              </label>
+            <div className="rounded-lg bg-[#f8fafc] p-3 text-xs text-[#6b7280]">
+              The notification is saved in-app. A push is sent to registered devices when the user&apos;s notification preferences allow it.
             </div>
 
             {/* Actions */}
@@ -1804,7 +1802,7 @@ export default function AdminUsersPage() {
                     Message <span className="text-red-500">*</span>
                   </label>
                   <textarea
-                    placeholder="Email message (max 1000 characters, HTML supported)..."
+                    placeholder="Email message (max 1000 characters)..."
                     value={emailData.body}
                     maxLength={1000}
                     onChange={(e) =>

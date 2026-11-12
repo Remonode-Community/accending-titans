@@ -5,9 +5,11 @@ import {
   AlertCircle,
   Bell,
   CheckCircle,
+  LifeBuoy,
   Loader2,
   Mail,
   Smartphone,
+  Users,
   Zap,
 } from 'lucide-react';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -25,6 +27,8 @@ type ToggleableField =
   | 'promotion_notifications'
   | 'update_notifications'
   | 'alert_notifications'
+  | 'support_ticket_notifications'
+  | 'network_ask_notifications'
   | 'email_notifications'
   | 'push_notifications'
 ;
@@ -167,6 +171,7 @@ export const NotificationPreferences: React.FC<NotificationPreferencesProps> = (
     key: ToggleableField;
     label: string;
     description: string;
+    icon?: React.ElementType;
   }> = [
     {
       key: 'transaction_notifications',
@@ -192,6 +197,18 @@ export const NotificationPreferences: React.FC<NotificationPreferencesProps> = (
       key: 'alert_notifications',
       label: 'Security Alerts',
       description: 'Login alerts and suspicious activity',
+    },
+    {
+      key: 'support_ticket_notifications',
+      label: 'Support Tickets',
+      description: 'New tickets, replies, assignments and resolutions from the support desk',
+      icon: LifeBuoy,
+    },
+    {
+      key: 'network_ask_notifications',
+      label: 'Network Asks',
+      description: 'Support questions raised by your network',
+      icon: Users,
     },
   ];
 
@@ -308,13 +325,13 @@ export const NotificationPreferences: React.FC<NotificationPreferencesProps> = (
                     key={item.key}
                     label={item.label}
                     description={item.description}
-                    checked={preferences[item.key]}
+                    checked={Boolean(preferences[item.key])}
                     disabled={
                       !preferences.enabled ||
                       (savingField !== null && savingField !== item.key)
                     }
                     saving={savingField === item.key}
-                    onChange={() => handleToggle(item.key, preferences[item.key])}
+                    onChange={() => handleToggle(item.key, Boolean(preferences[item.key]))}
                   />
                 ))}
               </Section>
@@ -330,14 +347,14 @@ export const NotificationPreferences: React.FC<NotificationPreferencesProps> = (
                     key={item.key}
                     label={item.label}
                     description={item.description}
-                    checked={preferences[item.key]}
+                    checked={Boolean(preferences[item.key])}
                     disabled={
                       !preferences.enabled ||
                       (savingField !== null && savingField !== item.key)
                     }
                     saving={savingField === item.key}
                     icon={item.icon}
-                    onChange={() => handleToggle(item.key, preferences[item.key])}
+                    onChange={() => handleToggle(item.key, Boolean(preferences[item.key]))}
                   />
                 ))}
 

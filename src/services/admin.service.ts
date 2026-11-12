@@ -33,6 +33,20 @@ import type {
   AdminStatsResponse,
 } from '@/types/role.types';
 
+interface AdminNotificationStats {
+  total: number;
+  unread: number;
+  read: number;
+  by_type: Record<string, number>;
+  by_priority: Record<string, number>;
+}
+
+interface AdminNotificationSendResult {
+  sent: number;
+  requested?: number;
+  notification_id?: number;
+}
+
 class AdminService {
   async getDashboard(): Promise<ApiResponse<{ data: any }>> {
     return apiClient.get('/admin/dashboard/comprehensive');
@@ -133,7 +147,7 @@ class AdminService {
   async sendEmailToUser(
     userId: string | number,
     payload: SendEmailRequest
-  ): Promise<any> {
+  ): Promise<ApiResponse<{ email_sent: boolean; push_notification_created: boolean }>> {
     return apiClient.post(`/admin/users/${userId}/email`, payload);
   }
 
@@ -144,13 +158,17 @@ class AdminService {
       body: string;
       type: string;
       priority?: 'high' | 'normal' | 'low';
-      send_push?: boolean;
-      send_email?: boolean;
-      email_template?: string;
-      extra_data?: Record<string, any>;
+      extra_data?: Record<string, unknown>;
     }
-  ): Promise<any> {
-    return apiClient.post(`/admin/users/${userId}/notification`, payload);
+  ): Promise<ApiResponse<AdminNotificationSendResult>> {
+    return apiClient.post<AdminNotificationSendResult>('/admin/notifications/send-to-user', {
+      user_id: Number(userId),
+      title: payload.title,
+      body: payload.body,
+      type: payload.type,
+      priority: payload.priority,
+      data: payload.extra_data,
+    });
   }
 
   async changeUserRole(userId: string | number, role: string): Promise<any> {
@@ -384,37 +402,59 @@ class AdminService {
   }
 
   // NOTIFICATIONS
-  async getNotificationStats(): Promise<any> {
-    return apiClient.get('/notifications/stats');
+  async getNotificationStats(): Promise<ApiResponse<AdminNotificationStats>> {
+    return apiClient.get('/admin/notifications/stats');
   }
 
-  async sendNotificationToUser(userId: number, title: string, body: string, type: string, priority: string = 'normal', metadata?: any): Promise<any> {
-    return apiClient.post('/admin/notifications/send-to-user', {
+  async sendNotificationToUser(
+    userId: number,
+    title: string,
+    body: string,
+    type: string,
+    priority = 'normal',
+    metadata?: Record<string, unknown>
+  ): Promise<ApiResponse<AdminNotificationSendResult>> {
+    return apiClient.post<AdminNotificationSendResult>('/admin/notifications/send-to-user', {
       user_id: userId,
       title,
-      message: body,
+      body,
       type,
       priority,
-      metadata,
+      data: metadata,
     });
   }
 
-  async sendNotificationToUsers(userIds: number[], title: string, body: string, type: string, priority: string = 'normal'): Promise<any> {
-    return apiClient.post('/admin/notifications/send-to-users', {
+  async sendNotificationToUsers(
+    userIds: number[],
+    title: string,
+    body: string,
+    type: string,
+    priority: string = 'normal',
+    metadata?: Record<string, unknown>
+  ): Promise<ApiResponse<AdminNotificationSendResult>> {
+    return apiClient.post<AdminNotificationSendResult>('/admin/notifications/send-to-users', {
       user_ids: userIds,
       title,
-      message: body,
+      body,
       type,
       priority,
+      data: metadata,
     });
   }
 
-  async sendBroadcastCampaign(userIds: number[], title: string, body: string, options?: any): Promise<any> {
-    return apiClient.post('/admin/test/send-campaign', {
-      user_ids: userIds,
+  async sendNotificationToAllUsers(
+    title: string,
+    body: string,
+    type: string,
+    priority: string = 'normal',
+    metadata?: Record<string, unknown>
+  ): Promise<ApiResponse<AdminNotificationSendResult>> {
+    return apiClient.post<AdminNotificationSendResult>('/admin/notifications/broadcast', {
       title,
-      message: body,
-      options,
+      body,
+      type,
+      priority,
+      data: metadata,
     });
   }
 

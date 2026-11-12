@@ -13,14 +13,13 @@ import {
   ExternalLink,
   ChevronRight,
   Calendar,
-  Mail,
   User as UserIcon,
 } from 'lucide-react';
 
 import { Card, CardBody, CardHeader } from '@/components/shared/Card';
 import { referralService } from '@/services/referral.service';
 import { Toast } from '@/utils/toast.utils';
-import type { UserReferralData, ReferralLinkWithProgram, ReferralRelationship } from '@/types/referral.types';
+import type { UserReferralData, AdminReferralLink, AdminReferredUser } from '@/types/referral.types';
 
 // ─── Helpers ───────────────────────────────────────────────
 
@@ -33,13 +32,11 @@ const formatDate = (date: string): string =>
     minute: '2-digit',
   });
 
-const getInitials = (name: string): string =>
-  name
-    .split(' ')
-    .map((n) => n.charAt(0))
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
+const getInitials = (name: string | null): string => {
+  const parts = (name ?? '').trim().split(' ').filter(Boolean);
+  const initials = parts.map((n) => n.charAt(0)).join('').toUpperCase().slice(0, 2);
+  return initials;
+};
 
 // ─── Page ──────────────────────────────────────────────────
 
@@ -53,10 +50,10 @@ export default function AdminUserReferralDetailPage() {
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
-    if (!userId || isNaN(userId)) return;
     try {
-      setLoading(true);
-      setError('');
+      if (!Number.isInteger(userId) || userId < 1) {
+        throw new Error('Invalid user ID.');
+      }
       const result = await referralService.getUserReferralData(userId);
       setData(result);
     } catch (err) {
@@ -67,8 +64,14 @@ export default function AdminUserReferralDetailPage() {
   }, [userId]);
 
   useEffect(() => {
-    fetchData();
+    queueMicrotask(() => void fetchData());
   }, [fetchData]);
+
+  const handleRefresh = () => {
+    setLoading(true);
+    setError('');
+    void fetchData();
+  };
 
   const handleCopy = async (text: string, key: string) => {
     const ok = await referralService.copyToClipboard(text);
@@ -151,7 +154,7 @@ export default function AdminUserReferralDetailPage() {
   // ─── Main Content ────────────────────────────────────────
 
   const totalReferrals = data.referralLinks.reduce(
-    (sum, link) => sum + (link.relationships?.length ?? 0),
+    (sum, link) => sum + (link.referrals?.length ?? 0),
     0
   );
 
@@ -176,7 +179,7 @@ export default function AdminUserReferralDetailPage() {
                   {getInitials(data.name)}
                 </div>
                 <div>
-                  <h1 className="text-xl font-black text-gray-900">{data.name}</h1>
+                  <h1 className="text-xl font-black text-gray-900">{data.name ?? data.email}</h1>
                   <p className="mt-0.5 text-sm text-gray-500">{data.email}</p>
                   <p className="mt-1 text-xs text-gray-400">
                     User ID: #{data.id} &middot; {data.referralLinks.length} referral
@@ -187,7 +190,7 @@ export default function AdminUserReferralDetailPage() {
               </div>
 
               <button
-                onClick={fetchData}
+                onClick={handleRefresh}
                 className="inline-flex h-10 items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-600 transition hover:bg-gray-50"
               >
                 <Loader2 className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
@@ -199,11 +202,11 @@ export default function AdminUserReferralDetailPage() {
 
         {/* ─── Referral Links ────────────────────────────── */}
         {data.referralLinks.length > 0 ? (
-          data.referralLinks.map((link: ReferralLinkWithProgram) => {
-            const relationships = link.relationships ?? [];
+          data.referralLinks.map((link: AdminReferralLink) => {
+            const referrals = link.referrals ?? [];
             return (
               <Card
-                key={link.id}
+                key={link.code}
                 className="rounded-3xl border border-gray-200 bg-white shadow-sm"
               >
                 <CardHeader>
@@ -212,7 +215,7 @@ export default function AdminUserReferralDetailPage() {
                       <div className="flex items-center gap-2">
                         <Gift size={16} className="text-[#C9A84C]" />
                         <p className="text-sm font-bold text-gray-900">
-                          {link.program?.name || 'Referral Program'}
+                          {link.program || 'Referral Program'}
                         </p>
                       </div>
                       <div className="mt-1 flex items-center gap-3">
@@ -228,11 +231,11 @@ export default function AdminUserReferralDetailPage() {
                         </button>
                         {link.link && (
                           <button
-                            onClick={() => handleCopy(link.link, `link-${link.id}`)}
+                            onClick={() => handleCopy(link.link, `link-${link.code}`)}
                             className="inline-flex items-center gap-1 text-xs font-semibold text-[#C9A84C] hover:text-[#B8962E]"
                           >
                             <ExternalLink size={12} />
-                            {copiedCode === `link-${link.id}` ? 'Copied!' : 'Copy link'}
+                            {copiedCode === `link-${link.code}` ? 'Copied!' : 'Copy link'}
                           </button>
                         )}
                       </div>
@@ -241,44 +244,34 @@ export default function AdminUserReferralDetailPage() {
                     <div className="flex items-center gap-4">
                       <div className="text-right">
                         <p className="text-lg font-black text-gray-900">
-                          {relationships.length}
+                          {referrals.length}
                         </p>
                         <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
                           Referrals
                         </p>
                       </div>
-                      {link.created_at && (
-                        <div className="hidden sm:block text-right">
-                          <p className="text-xs text-gray-500">Created</p>
-                          <p className="text-xs font-semibold text-gray-700">
-                            {formatDate(link.created_at)}
-                          </p>
-                        </div>
-                      )}
                     </div>
                   </div>
                 </CardHeader>
 
                 <CardBody>
-                  {relationships.length > 0 ? (
+                  {referrals.length > 0 ? (
                     <div className="space-y-2">
-                      {relationships.map((rel: ReferralRelationship) => (
+                      {referrals.map((referredUser: AdminReferredUser) => (
                         <div
-                          key={rel.id}
+                          key={referredUser.id}
                           className="flex items-center justify-between rounded-2xl border border-gray-100 bg-gray-50/50 px-4 py-3 transition hover:bg-gray-50"
                         >
                           <div className="flex items-center gap-3 min-w-0">
                             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#C9A84C]/10 text-xs font-bold text-[#C9A84C]">
-                              {getInitials(
-                                `${rel.user?.first_name || ''} ${rel.user?.last_name || ''}`
-                              )}
+                              {getInitials(referredUser.name)}
                             </div>
                             <div className="min-w-0">
                               <p className="truncate text-sm font-semibold text-gray-900">
-                                {rel.user?.first_name} {rel.user?.last_name}
+                                {referredUser.name ?? referredUser.email}
                               </p>
                               <p className="truncate text-xs text-gray-500">
-                                {rel.user?.email}
+                                {referredUser.email}
                               </p>
                             </div>
                           </div>
@@ -286,7 +279,7 @@ export default function AdminUserReferralDetailPage() {
                           <div className="flex items-center gap-3 shrink-0">
                             <span className="hidden items-center gap-1 text-xs text-gray-400 sm:flex">
                               <Calendar size={12} />
-                              {formatDate(rel.created_at)}
+                              {formatDate(referredUser.created_at)}
                             </span>
                             <ChevronRight size={14} className="text-gray-300" />
                           </div>

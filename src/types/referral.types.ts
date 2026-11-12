@@ -33,27 +33,18 @@ export interface ReferralLinkFull {
   link: string;
 }
 
-export interface ReferralLinkWithProgram extends ReferralLinkFull {
-  program: ReferralProgram;
-  relationships?: ReferralRelationship[];
+export interface AdminReferralLink {
+  code: string;
+  link: string;
+  program: string;
+  referrals: AdminReferredUser[];
 }
 
-// ============= REFERRAL RELATIONSHIP =============
-
-export interface ReferralRelationship {
+export interface AdminReferredUser {
   id: number;
-  referral_link_id: number;
-  user_id: number;
-  created_at: string;
-  updated_at: string;
-  user: ReferredUser;
-}
-
-export interface ReferredUser {
-  id: number;
-  first_name: string;
-  last_name: string;
+  name: string | null;
   email: string;
+  created_at: string;
 }
 
 // ============= REFERRAL STATISTICS =============
@@ -71,7 +62,7 @@ export interface ReferralStats {
 export interface AdminReferralItem {
   user: {
     id: number;
-    name: string;
+    name: string | null;
     email: string;
   };
   program: string;
@@ -81,7 +72,7 @@ export interface AdminReferralItem {
   referrals: Array<{
     user: {
       id: number;
-      name: string;
+      name: string | null;
       email: string;
     };
     referred_at: string;
@@ -92,9 +83,9 @@ export interface AdminReferralItem {
 
 export interface UserReferralData {
   id: number;
-  name: string;
+  name: string | null;
   email: string;
-  referralLinks: ReferralLinkWithProgram[];
+  referralLinks: AdminReferralLink[];
   authReferralLink: string | null;
 }
 
@@ -148,4 +139,3 @@ export interface AdminReferralListResponse {
     referrals: AdminReferralItem[];
   };
 }
-

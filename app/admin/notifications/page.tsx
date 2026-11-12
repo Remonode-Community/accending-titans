@@ -1,502 +1,446 @@
-/* ──────────────────────────────────────────────────────────────────────
-  AdminNotificationsPage
-  ── Send notifications + full management list with pagination, filtering,
-  bulk selection, stats, and per-user notification tracking
-  ────────────────────────────────────────────────────────────────────── */
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Bell, Send, Edit2, Plus, ChevronDown, X } from 'lucide-react';
+import { AlertCircle, Bell, CheckCircle2, Megaphone, Send, Users } from 'lucide-react';
 
 import { AdminHeader } from '@/components/admin/AdminHeader';
-import { AdminStats } from '@/components/admin/AdminStats';
 import { Card, CardBody, CardHeader } from '@/components/shared/Card';
 import { Button } from '@/components/shared/Button';
-import { Badge } from '@/components/shared/Badge';
-import { Input } from '@/components/shared/Input';
+import { Spinner } from '@/components/shared/Spinner';
 import { useAuthStore } from '@/store/auth.store';
 import { adminService } from '@/services/admin.service';
-import { Spinner } from '@/components/shared/Spinner';
-import { Modal } from '@/components/shared/Modal';
-import { NotificationsList } from '@/components/dashboard/NotificationsList';
 import type { AdminUser } from '@/types/api.types';
 
-interface NotificationStats {
-  total?: number;
-  unread?: number;
-  read?: number;
-  by_type?: Record<string, number>;
-  by_priority?: Record<string, number>;
-}
+type SendMode = 'single' | 'selected' | 'all';
+type Recipient = Pick<AdminUser, 'id' | 'first_name' | 'last_name' | 'email'> & {
+  is_active?: boolean;
+};
 
-interface UserNotificationStats {
-  user_id: number;
+interface NotificationStats {
+  total: number;
   unread: number;
   read: number;
-  total: number;
+  by_type: Record<string, number>;
+  by_priority: Record<string, number>;
 }
 
-interface AdminNotification {
-  id: number;
-  user_id: number;
-  title: string;
-  body: string;
-  type: string;
-  priority: string;
-  read_at: string | null;
-  created_at: string;
-  updated_at: string;
-  user?: {
-    first_name: string;
-    last_name: string;
-    email: string;
-  };
-}
+const initialForm = {
+  title: '',
+  body: '',
+  type: 'system',
+  priority: 'normal',
+};
 
 export default function AdminNotificationsPage() {
   const router = useRouter();
   const { user } = useAuthStore();
-  const [notifStats, setNotifStats] = useState<NotificationStats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [showSendModal, setShowSendModal] = useState(false);
-  const [sendMode, setSendMode] = useState<'single' | 'bulk'>('single');
-
-  // Users state for dropdown selection
-  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [stats, setStats] = useState<NotificationStats | null>(null);
+  const [loadingStats, setLoadingStats] = useState(true);
+  const [sendMode, setSendMode] = useState<SendMode>('single');
+  const [form, setForm] = useState(initialForm);
+  const [users, setUsers] = useState<Recipient[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState('');
+  const [selectedUserIds, setSelectedUserIds] = useState<number[]>([]);
+  const [search, setSearch] = useState('');
   const [loadingUsers, setLoadingUsers] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showUserDropdown, setShowUserDropdown] = useState(false);
-  const [selectedSingleUser, setSelectedSingleUser] = useState<AdminUser | null>(null);
-  const [selectedBulkUsers, setSelectedBulkUsers] = useState<AdminUser[]>([]);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
-  // Per-user notification stats
-  const [userNotificationStats, setUserNotificationStats] = useState<
-    UserNotificationStats[]
-  >([]);
-  const [userStatsLoading, setUserStatsLoading] = useState(false);
-
-  const [formData, setFormData] = useState({
-    user_id: '',
-    user_ids: '',
-    title: '',
-    body: '',
-    type: 'system',
-    priority: 'normal',
-  });
-
-  const isAdmin = useMemo(() => {
-    return Boolean(user?.roles?.some((role) => role === 'admin'));
-  }, [user]);
+  const isAdmin = useMemo(
+    () => Boolean(user?.roles?.includes('admin')),
+    [user]
+  );
 
   useEffect(() => {
-    if (user && !isAdmin) {
-      router.push('/dashboard');
-    }
+    if (user && !isAdmin) router.replace('/dashboard');
   }, [user, isAdmin, router]);
 
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        setLoading(true);
-        const response = await adminService.getNotificationStats();
-        if (response?.data) {
-          setNotifStats(response.data);
+    if (!isAdmin) return;
+
+    let active = true;
+    adminService.getNotificationStats()
+      .then((response) => {
+        if (active && response?.success && response.data) {
+          setStats(response.data as NotificationStats);
         }
-      } catch (error) {
-        console.error('Error fetching notification stats:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchStats();
-  }, []);
-
-  // Fetch per-user notification stats
-  useEffect(() => {
-    // Per-user stats require backend support for per-user notification tracking
-    // For now, display placeholder until backend is updated
-    setUserStatsLoading(false);
-    setUserNotificationStats([]);
-  }, []);
-
-  // Fetch users when modal opens
-  useEffect(() => {
-    if (showSendModal && users.length === 0) {
-      const fetchUsers = async () => {
-        try {
-          setLoadingUsers(true);
-          const response = await adminService.getUsers(1, 100);
-          const usersArray = response?.data;
-          if (Array.isArray(usersArray) && usersArray.length > 0) {
-            setUsers(usersArray);
-          } else {
-            console.log('No users array found or empty:', usersArray);
-          }
-        } catch (error) {
-          console.error('Error fetching users:', error);
-        } finally {
-          setLoadingUsers(false);
+      })
+      .catch((requestError) => {
+        if (active) {
+          setError(requestError?.message || 'Unable to load notification statistics.');
         }
-      };
-
-      fetchUsers();
-    }
-  }, [showSendModal, users.length]);
-
-  const handleSend = async () => {
-    try {
-      if (sendMode === 'single') {
-        if (!selectedSingleUser || !formData.title || !formData.body) {
-          alert('Please select a user and fill in all fields');
-          return;
-        }
-        await adminService.sendNotificationToUser(
-          Number(selectedSingleUser.id),
-          formData.title,
-          formData.body,
-          formData.type,
-          formData.priority
-        );
-      } else {
-        if (selectedBulkUsers.length === 0 || !formData.title || !formData.body) {
-          alert('Please select at least one user and fill in all fields');
-          return;
-        }
-        const userIds = selectedBulkUsers.map((u) => Number(u.id));
-
-        await adminService.sendNotificationToUsers(
-          userIds,
-          formData.title,
-          formData.body,
-          formData.type,
-          formData.priority
-        );
-      }
-      alert('Notification sent successfully!');
-      setShowSendModal(false);
-      setFormData({
-        user_id: '',
-        user_ids: '',
-        title: '',
-        body: '',
-        type: 'system',
-        priority: 'normal',
+      })
+      .finally(() => {
+        if (active) setLoadingStats(false);
       });
-      setSelectedSingleUser(null);
-      setSelectedBulkUsers([]);
-      setSearchQuery('');
-    } catch (error) {
-      console.error('Error sending notification:', error);
-      alert('Error sending notification');
+
+    return () => {
+      active = false;
+    };
+  }, [isAdmin]);
+
+  useEffect(() => {
+    if (!isAdmin || sendMode === 'all') return;
+
+    let active = true;
+    const timer = window.setTimeout(async () => {
+      try {
+        setLoadingUsers(true);
+        const response = await adminService.getUsers(
+          1,
+          50,
+          search.trim() ? { search: search.trim() } : undefined
+        );
+        const data = response?.data as
+          | { users?: Recipient[]; data?: Recipient[] }
+          | Recipient[]
+          | undefined;
+        const recipients = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.users)
+            ? data.users
+            : Array.isArray(data?.data)
+              ? data.data
+              : [];
+        if (active) setUsers(recipients);
+      } catch (requestError) {
+        if (active) {
+          setError(requestError instanceof Error ? requestError.message : 'Unable to load recipients.');
+        }
+      } finally {
+        if (active) setLoadingUsers(false);
+      }
+    }, 250);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [isAdmin, search, sendMode]);
+
+  const toggleRecipient = useCallback((id: number) => {
+    setSelectedUserIds((current) =>
+      current.includes(id) ? current.filter((value) => value !== id) : [...current, id]
+    );
+  }, []);
+
+  const handleSend = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError(null);
+    setSuccess(null);
+
+    if (!form.title.trim() || !form.body.trim()) {
+      setError('Enter both a title and a message.');
+      return;
+    }
+    if (sendMode === 'single' && !selectedUserId) {
+      setError('Choose a recipient.');
+      return;
+    }
+    if (sendMode === 'selected' && selectedUserIds.length === 0) {
+      setError('Select at least one recipient.');
+      return;
+    }
+    if (sendMode === 'all' && !window.confirm('Send this notification to every active user?')) {
+      return;
+    }
+
+    try {
+      setSending(true);
+      const response = sendMode === 'single'
+        ? await adminService.sendNotificationToUser(
+            Number(selectedUserId),
+            form.title.trim(),
+            form.body.trim(),
+            form.type,
+            form.priority
+          )
+        : sendMode === 'selected'
+          ? await adminService.sendNotificationToUsers(
+              selectedUserIds,
+              form.title.trim(),
+              form.body.trim(),
+              form.type,
+              form.priority
+            )
+          : await adminService.sendNotificationToAllUsers(
+              form.title.trim(),
+              form.body.trim(),
+              form.type,
+              form.priority
+            );
+
+      if (!response?.success) {
+        throw new Error(response?.message || 'The notification could not be sent.');
+      }
+
+      const count = response.data?.sent ?? (sendMode === 'single' ? 1 : 0);
+      setSuccess(`Notification saved for ${count} active user${count === 1 ? '' : 's'}. Push delivery follows each user's notification preferences.`);
+      setForm(initialForm);
+      setSelectedUserId('');
+      setSelectedUserIds([]);
+
+      const refreshedStats = await adminService.getNotificationStats();
+      if (refreshedStats?.success && refreshedStats.data) {
+        setStats(refreshedStats.data as NotificationStats);
+      }
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'Unable to send the notification.');
+    } finally {
+      setSending(false);
     }
   };
 
-  const statsItems = [
-    {
-      title: 'Total Notifications',
-      value: notifStats?.total || 0,
-      icon: <Bell className="h-6 w-6" />,
-      change: { value: '+12.5%', direction: 'up' as const },
-    },
-    {
-      title: 'Unread',
-      value: notifStats?.unread || 0,
-      icon: <Bell className="h-6 w-6" />,
-      change: { value: '-2.1%', direction: 'down' as const },
-    },
-    {
-      title: 'Read',
-      value: notifStats?.read || 0,
-      icon: <Bell className="h-6 w-6" />,
-      change: { value: '+15.3%', direction: 'up' as const },
-    },
+  if (!isAdmin) return null;
+
+  const statCards = [
+    { label: 'Total notifications', value: stats?.total ?? 0, icon: Bell },
+    { label: 'Unread', value: stats?.unread ?? 0, icon: Megaphone },
+    { label: 'Read', value: stats?.read ?? 0, icon: CheckCircle2 },
   ];
 
-  if (!isAdmin) {
-    return null;
-  }
-
   return (
-    <div
-      className="min-h-screen space-y-6 bg-[radial-gradient(circle_at_top_right,rgba(215,25,39,0.12),transparent_32%),#f8f8f8] p-6 text-slate-950 dark:bg-[radial-gradient(circle_at_top_right,rgba(215,25,39,0.12),transparent_32%),#090707] dark:text-white"
-    >
+    <div className="min-h-screen space-y-6 bg-[#f8f8f8] p-4 text-slate-950 sm:p-6">
       <AdminHeader
         title="Notifications"
-        description="Send and manage user notifications"
-        action={{
-          label: '+ Send Notification',
-          onClick: () => setShowSendModal(true),
-        }}
+        description="Send a notification to one user, selected users, or all active users."
       />
 
-      {loading ? (
-        <div className="flex min-h-[400px] items-center justify-center">
-          <div className="text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#eef2ff]">
-              <Spinner />
-            </div>
-            <p className="text-sm font-medium text-gray-500">
-              Loading notification stats...
-            </p>
-          </div>
-        </div>
-      ) : (
-        <>
-          <AdminStats stats={statsItems} />
-
-          {/* Notification Types */}
-          {notifStats?.by_type && (
-            <Card>
-              <CardHeader>
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Notifications by Type
-                </h3>
-              </CardHeader>
-              <CardBody>
-                <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory md:grid md:grid-cols-2 md:overflow-x-visible md:gap-6 lg:grid-cols-5">
-                  {Object.entries(notifStats.by_type).map(([type, count]) => (
-                    <div
-                      key={type}
-                      className="min-w-[180px] snap-center md:min-w-0 rounded-lg border-2 border-[#c9a84c] bg-gradient-to-br from-[#c9a84c]/5 to-transparent p-4 text-center transition-all hover:shadow-lg hover:border-[#c9a84c]"
-                    >
-                      <p className="text-sm font-semibold text-[#c9a84c] capitalize">
-                        {type}
-                      </p>
-                      <p className="mt-3 text-3xl font-bold text-gray-900">
-                        {count}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </CardBody>
-            </Card>
-          )}
-
-          {/* Priority Distribution */}
-          {notifStats?.by_priority && (
-            <Card>
-              <CardHeader>
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Notifications by Priority
-                </h3>
-              </CardHeader>
-              <CardBody>
-                <div className="space-y-3">
-                  {Object.entries(notifStats.by_priority).map(([priority, count]) => (
-                    <div
-                      key={priority}
-                      className="flex items-center justify-between rounded-lg border-l-4 border-l-[#c9a84c] bg-[#c9a84c]/5 px-3 py-2"
-                    >
-                      <div className="flex items-center gap-3">
-                        <Badge
-                          variant={
-                            priority === 'high'
-                              ? 'danger'
-                              : priority === 'normal'
-                                ? 'info'
-                                : 'warning'
-                          }
-                        >
-                          {priority}
-                        </Badge>
-                        <span className="text-sm text-gray-600">
-                          {priority === 'high'
-                            ? 'High Priority'
-                            : priority === 'normal'
-                              ? 'Normal Priority'
-                              : 'Low Priority'}{' '}
-                          Notifications
-                        </span>
-                      </div>
-                      <span className="font-semibold text-gray-900">{count}</span>
-                    </div>
-                  ))}
-                </div>
-              </CardBody>
-            </Card>
-          )}
-
-          {/* Per-User Notification Stats */}
-          <Card>
-            <CardHeader>
-              <h3 className="text-lg font-semibold text-gray-900">
-                Per-User Notification Stats
-              </h3>
-            </CardHeader>
-            <CardBody>
-              {userStatsLoading ? (
-                <div className="flex min-h-[200px] items-center justify-center">
-                  <div className="text-center">
-                    <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#eef2ff]">
-                      <Spinner />
-                    </div>
-                    <p className="text-sm font-medium text-gray-500">
-                      Loading per-user stats...
-                    </p>
-                  </div>
-                </div>
-              ) : userNotificationStats.length === 0 ? (
-                <div className="p-6 text-center text-gray-500">
-                  <Bell className="h-8 w-8 mx-auto mb-4" />
-                  <p>No user notification data available</p>
-                  <p className="mt-2 text-sm">Notifications will appear here as they are sent</p>
-                </div>
-              ) : (
-                <div className="space-y-3 px-2">
-                  {userNotificationStats.map((stats) => {
-                    // Find user info
-                    const userInfo = users.find((u) => u.id === stats.user_id);
-                    const userName =
-                      userInfo?.first_name + ' ' + userInfo?.last_name || `User ${stats.user_id}`;
-
-                    const unreadColor = stats.unread > 0 ? 'text-red-600' : 'text-gray-500';
-                    const unreadBg = stats.unread > 0 ? 'bg-red-100' : 'bg-gray-100';
-
-                    return (
-                      <div
-                        key={stats.user_id}
-                        className="flex items-center justify-between rounded-lg border border-gray-200/80 bg-white p-3 transition-all hover:shadow-sm"
-                      >
-                        <div className="flex items-center gap-2">
-                          <div
-                            className={`w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-medium ${stats.unread > 0 ? 'text-red-600' : 'text-gray-500'}`}
-                          >
-                            {userName.charAt(0)}
-                          </div>
-                          <div>
-                            <p className="font-medium text-gray-900 truncate">{userName}</p>
-                            <p className="text-xs text-gray-500">User ID: {stats.user_id}</p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-1">
-                          <span className={`text-xs font-semibold ${unreadColor} ${unreadBg} rounded px-1.5 py-0.5`}>
-                            {stats.unread} unread
-                          </span>
-                          <span className="text-xs text-gray-500">
-                            {stats.read} read
-                          </span>
-                          <span className="text-xs text-gray-400">
-                            {stats.total} total
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </CardBody>
-          </Card>
-
-          {/* Notification Types */}
-          {notifStats?.by_type && (
-            <Card>
-              <CardHeader>
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Notifications by Type
-                </h3>
-              </CardHeader>
-              <CardBody>
-                <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory md:grid md:grid-cols-2 md:overflow-x-visible md:gap-6 lg:grid-cols-5">
-                  {Object.entries(notifStats.by_type).map(([type, count]) => (
-                    <div
-                      key={type}
-                      className="min-w-[180px] snap-center md:min-w-0 rounded-lg border-2 border-[#c9a84c] bg-gradient-to-br from-[#c9a84c]/5 to-transparent p-4 text-center transition-all hover:shadow-lg hover:border-[#c9a84c]"
-                    >
-                      <p className="text-sm font-semibold text-[#c9a84c] capitalize">
-                        {type}
-                      </p>
-                      <p className="mt-3 text-3xl font-bold text-gray-900">
-                        {count}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </CardBody>
-            </Card>
-          )}
-
-          {/* Priority Distribution */}
-          {notifStats?.by_priority && (
-            <Card>
-              <CardHeader>
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Notifications by Priority
-                </h3>
-              </CardHeader>
-              <CardBody>
-                <div className="space-y-3">
-                  {Object.entries(notifStats.by_priority).map(([priority, count]) => (
-                    <div
-                      key={priority}
-                      className="flex items-center justify-between rounded-lg border-l-4 border-l-[#c9a84c] bg-[#c9a84c]/5 px-3 py-2"
-                    >
-                      <div className="flex items-center gap-3">
-                        <Badge
-                          variant={
-                            priority === 'high'
-                              ? 'danger'
-                              : priority === 'normal'
-                                ? 'info'
-                                : 'warning'
-                          }
-                        >
-                          {priority}
-                        </Badge>
-                        <span className="text-sm text-gray-600">
-                          {priority === 'high'
-                            ? 'High Priority'
-                            : priority === 'normal'
-                              ? 'Normal Priority'
-                              : 'Low Priority'}{' '}
-                          Notifications
-                        </span>
-                      </div>
-                      <span className="font-semibold text-gray-900">{count}</span>
-                    </div>
-                  ))}
-                </div>
-              </CardBody>
-            </Card>
-          )}
-
-          {/* Quick Actions */}
-          <Card>
-            <CardHeader>
-              <h3 className="text-lg font-semibold text-gray-900">
-                Quick Actions
-              </h3>
-            </CardHeader>
-            <CardBody>
-              <div className="flex gap-3 overflow-x-auto pb-4 snap-x snap-mandatory md:grid md:grid-cols-2 md:overflow-x-visible md:gap-4 lg:grid-cols-3">
-                <button
-                  onClick={() => setSendMode('single')}
-                  className="min-w-max snap-center md:min-w-0 flex items-center gap-2 rounded-lg bg-[#c9a84c] px-4 py-3 font-medium text-white transition-all hover:bg-[#b01620] hover:shadow-lg focus:ring-2 focus:ring-[#c9a84c]/50 md:justify-center"
-                >
-                  <Send className="h-4 w-4" />
-                  Send to User
-                </button>
-                <button
-                  onClick={() => setSendMode('bulk')}
-                  className="min-w-max snap-center md:min-w-0 flex items-center gap-2 rounded-lg bg-[#c9a84c] px-4 py-3 font-medium text-white transition-all hover:bg-[#b01620] hover:shadow-lg focus:ring-2 focus:ring-[#c9a84c]/50 md:justify-center"
-                >
-                  <Send className="h-4 w-4" />
-                  Send to Multiple
-                </button>
-                <button
-                  disabled
-                  className="min-w-max snap-center md:min-w-0 flex items-center gap-2 rounded-lg border-2 border-[#c9a84c] px-4 py-3 font-medium text-[#c9a84c] opacity-50 transition-all md:justify-center"
-                >
-                  <Edit2 className="h-4 w-4" />
-                  Broadcast Campaign
-                </button>
+      <section className="grid gap-4 sm:grid-cols-3" aria-label="Notification totals">
+        {statCards.map(({ label, value, icon: Icon }) => (
+          <Card key={label}>
+            <CardBody className="flex items-center justify-between p-5">
+              <div>
+                <p className="text-sm text-slate-500">{label}</p>
+                {loadingStats ? (
+                  <div className="mt-2"><Spinner /></div>
+                ) : (
+                  <p className="mt-1 text-2xl font-semibold">{value.toLocaleString()}</p>
+                )}
               </div>
+              <span className="rounded-xl bg-amber-50 p-3 text-amber-700">
+                <Icon size={20} />
+              </span>
             </CardBody>
           </Card>
-        </>
-      )}
+        ))}
+      </section>
+
+      <Card id="notification-composer">
+        <CardHeader>
+          <h2 className="text-lg font-semibold">Compose notification</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            In-app messages are saved for recipients. Push is attempted for registered devices when user preferences allow it.
+          </p>
+        </CardHeader>
+        <CardBody>
+          <div className="mb-6 grid gap-3 sm:grid-cols-3" role="group" aria-label="Recipient group">
+            {([
+              ['single', 'One user', 'Send a private message', Users],
+              ['selected', 'Selected users', 'Choose multiple recipients', Users],
+              ['all', 'All active users', 'Platform-wide announcement', Megaphone],
+            ] as const).map(([mode, label, description, Icon]) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => {
+                  setSendMode(mode);
+                  setError(null);
+                  setSuccess(null);
+                }}
+                aria-pressed={sendMode === mode}
+                className={`rounded-xl border p-4 text-left transition ${
+                  sendMode === mode
+                    ? 'border-amber-500 bg-amber-50 ring-1 ring-amber-500'
+                    : 'border-slate-200 hover:border-slate-400'
+                }`}
+              >
+                <span className="flex items-center gap-2 font-semibold">
+                  <Icon size={18} /> {label}
+                </span>
+                <span className="mt-1 block text-sm text-slate-500">{description}</span>
+              </button>
+            ))}
+          </div>
+
+          <form onSubmit={handleSend} className="space-y-5">
+            {sendMode !== 'all' && (
+              <div className="space-y-3">
+                <label htmlFor="recipient-search" className="block text-sm font-medium">
+                  Find recipients
+                </label>
+                <input
+                  id="recipient-search"
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Search by name, email, or phone"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
+                />
+                {loadingUsers ? (
+                  <div className="flex justify-center py-4"><Spinner /></div>
+                ) : sendMode === 'single' ? (
+                  <select
+                    aria-label="Choose a recipient"
+                    value={selectedUserId}
+                    onChange={(event) => setSelectedUserId(event.target.value)}
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
+                  >
+                    <option value="">Select an active user</option>
+                    {users.filter((recipient) => recipient.is_active !== false).map((recipient) => (
+                      <option key={recipient.id} value={recipient.id}>
+                        {recipient.first_name} {recipient.last_name} · {recipient.email}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className="max-h-56 overflow-y-auto rounded-lg border border-slate-200">
+                    {users.filter((recipient) => recipient.is_active !== false).length === 0 ? (
+                      <p className="p-4 text-sm text-slate-500">No active users found.</p>
+                    ) : users.filter((recipient) => recipient.is_active !== false).map((recipient) => (
+                      <label key={recipient.id} className="flex cursor-pointer items-center gap-3 border-b border-slate-100 px-4 py-3 last:border-0 hover:bg-slate-50">
+                        <input
+                          type="checkbox"
+                          checked={selectedUserIds.includes(Number(recipient.id))}
+                          onChange={() => toggleRecipient(Number(recipient.id))}
+                          className="h-4 w-4 accent-amber-600"
+                        />
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-medium">
+                            {recipient.first_name} {recipient.last_name}
+                          </span>
+                          <span className="block truncate text-xs text-slate-500">{recipient.email}</span>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+                {sendMode === 'selected' && (
+                  <p className="text-xs text-slate-500">
+                    {selectedUserIds.length} recipient{selectedUserIds.length === 1 ? '' : 's'} selected
+                  </p>
+                )}
+              </div>
+            )}
+
+            {sendMode === 'all' && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+                This announcement will be saved for every active account. Inactive accounts are excluded.
+              </div>
+            )}
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="block text-sm font-medium">
+                Notification type
+                <select
+                  value={form.type}
+                  onChange={(event) => setForm((current) => ({ ...current, type: event.target.value }))}
+                  className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2"
+                >
+                  <option value="system">System</option>
+                  <option value="update">Update</option>
+                  <option value="promotion">Promotion</option>
+                  <option value="alert">Alert</option>
+                  <option value="transaction">Transaction</option>
+                </select>
+              </label>
+              <label className="block text-sm font-medium">
+                Priority
+                <select
+                  value={form.priority}
+                  onChange={(event) => setForm((current) => ({ ...current, priority: event.target.value }))}
+                  className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2"
+                >
+                  <option value="low">Low</option>
+                  <option value="normal">Normal</option>
+                  <option value="high">High</option>
+                </select>
+              </label>
+            </div>
+
+            <label className="block text-sm font-medium">
+              Title
+              <input
+                required
+                maxLength={120}
+                value={form.title}
+                onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
+                placeholder="A clear, concise title"
+                className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
+              />
+            </label>
+
+            <label className="block text-sm font-medium">
+              Message
+              <textarea
+                required
+                maxLength={5000}
+                rows={5}
+                value={form.body}
+                onChange={(event) => setForm((current) => ({ ...current, body: event.target.value }))}
+                placeholder="Write the message users will receive"
+                className="mt-2 w-full resize-y rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
+              />
+              <span className="mt-1 block text-right text-xs text-slate-500">{form.body.length}/5000</span>
+            </label>
+
+            {error && (
+              <p role="alert" className="flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+                <AlertCircle size={17} /> {error}
+              </p>
+            )}
+            {success && (
+              <p role="status" className="flex items-center gap-2 rounded-lg bg-green-50 p-3 text-sm text-green-700">
+                <CheckCircle2 size={17} /> {success}
+              </p>
+            )}
+
+            <div className="flex justify-end">
+              <Button type="submit" isLoading={sending} disabled={loadingUsers && sendMode !== 'all'}>
+                <Send size={16} /> Send notification
+              </Button>
+            </div>
+          </form>
+        </CardBody>
+      </Card>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader><h2 className="font-semibold">Notifications by type</h2></CardHeader>
+          <CardBody>
+            {Object.keys(stats?.by_type ?? {}).length === 0 ? (
+              <p className="text-sm text-slate-500">No notification activity yet.</p>
+            ) : (
+              <div className="space-y-3">
+                {Object.entries(stats?.by_type ?? {}).map(([type, count]) => (
+                  <div key={type} className="flex items-center justify-between text-sm">
+                    <span className="capitalize text-slate-600">{type.replaceAll('_', ' ')}</span>
+                    <span className="font-semibold">{count}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardBody>
+        </Card>
+        <Card>
+          <CardHeader><h2 className="font-semibold">Notifications by priority</h2></CardHeader>
+          <CardBody>
+            {Object.keys(stats?.by_priority ?? {}).length === 0 ? (
+              <p className="text-sm text-slate-500">No notification activity yet.</p>
+            ) : (
+              <div className="space-y-3">
+                {Object.entries(stats?.by_priority ?? {}).map(([priority, count]) => (
+                  <div key={priority} className="flex items-center justify-between text-sm">
+                    <span className="capitalize text-slate-600">{priority}</span>
+                    <span className="font-semibold">{count}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardBody>
+        </Card>
+      </div>
     </div>
   );
 }
