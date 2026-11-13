@@ -562,6 +562,7 @@ export default function SubscriptionPage() {
     plans,
     plansLoading,
     fetchPlans,
+    fetchSubscription,
     subscription,
     hasActiveSubscription,
     subscriptionLoading,
@@ -602,6 +603,15 @@ export default function SubscriptionPage() {
     setSelectedPlan(plan);
     setShowCheckout(true);
   }, []);
+
+  // Payment verified & subscription activated — refresh this hook instance's
+  // subscription state so the page reflects the new subscription immediately
+  // (the checkout modal refreshes its own instance; this one must refresh its
+  // own local state, and without this the user would see stale data until a
+  // manual reload).
+  const handlePaymentSuccess = useCallback(() => {
+    fetchSubscription();
+  }, [fetchSubscription]);
 
   // ── Cancel auto-renew ──
 
@@ -648,7 +658,10 @@ export default function SubscriptionPage() {
 
   // Wait for the subscription answer before deciding which page to show;
   // otherwise an existing member briefly sees the "choose a plan" pitch.
-  if (subscriptionLoading || (!hasActiveSubscription && plansLoading)) {
+  // While the checkout modal is open — e.g. right after a successful payment,
+  // while the success countdown runs — the page must stay mounted, otherwise
+  // the early return would unmount the modal mid-success.
+  if ((subscriptionLoading && !showCheckout) || (!hasActiveSubscription && plansLoading)) {
     return <PageSkeleton />;
   }
 
@@ -818,6 +831,7 @@ export default function SubscriptionPage() {
           setSelectedPlan(null);
         }}
         plan={selectedPlan}
+        onSuccess={handlePaymentSuccess}
       />
     </div>
   );
