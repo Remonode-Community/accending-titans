@@ -82,6 +82,7 @@ export interface BirthdayNotificationSettings {
 
 export interface AdminPlatformSettings {
   features: FeatureFlag[];
+  default_landing_page?: string;
   birthday_eligibility: BirthdayEligibilityRule;
   birthday_notifications: BirthdayNotificationSettings;
 }
@@ -97,4 +98,10 @@ export interface FeatureMapResponse {
   plan?: MemberPlanEntitlement;
   /** Labels and grouping for every plan-gated feature key. */
   catalogue?: FeatureCatalogueEntry[];
+  /**
+   * The administrator-configured default landing page for the member
+   * dashboard (e.g. `/dashboard/birthdays`), resolved against this member.
+   * `/dashboard` when nothing (valid) is configured.
+   */
+  default_landing_page?: string;
 }

@@ -26,6 +26,13 @@ class PlatformSettingsService {
     return apiClient.put('/admin/platform-settings/features', { features });
   }
 
+  /** PUT /admin/platform-settings/default-dashboard-page */
+  async adminUpdateDefaultLandingPage(
+    page: string
+  ): Promise<ApiResponse<{ default_landing_page: string }>> {
+    return apiClient.put('/admin/platform-settings/default-dashboard-page', { page });
+  }
+
   /** PUT /admin/platform-settings/birthday-eligibility */
   async adminUpdateBirthdayEligibility(
     rule: BirthdayEligibilityRule

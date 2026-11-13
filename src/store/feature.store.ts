@@ -26,11 +26,14 @@ interface FeatureState {
   plan: MemberPlanEntitlement | null;
   /** Labels and grouping for every plan-gated feature key. */
   catalogue: FeatureCatalogueEntry[];
+  /** The administrator-configured default landing page for the member dashboard. */
+  defaultLandingPage: string;
   loaded: boolean;
   loading: boolean;
   load: (force?: boolean) => Promise<void>;
   apply: (payload: FeatureMapResponse) => void;
   setFeatures: (features: Record<string, boolean>) => void;
+  setDefaultLandingPage: (page: string) => void;
   isEnabled: (key: FeatureKey) => boolean;
   /** Look up a catalogue entry by key. */
   featureMeta: (key: FeatureKey) => FeatureCatalogueEntry | undefined;
@@ -42,6 +45,7 @@ export const useFeatureStore = create<FeatureState>((set, get) => ({
   unavailable: {},
   plan: null,
   catalogue: [],
+  defaultLandingPage: '/dashboard',
   loaded: false,
   loading: false,
 
@@ -73,9 +77,12 @@ export const useFeatureStore = create<FeatureState>((set, get) => ({
       unavailable: payload.unavailable ?? {},
       plan: payload.plan ?? null,
       catalogue: payload.catalogue ?? [],
+      defaultLandingPage: payload.default_landing_page ?? '/dashboard',
     }),
 
   setFeatures: (features) => set({ features, loaded: true }),
+
+  setDefaultLandingPage: (page) => set({ defaultLandingPage: page }),
 
   isEnabled: (key) => get().features[key] ?? true,
 
@@ -87,6 +94,7 @@ export const useFeatureStore = create<FeatureState>((set, get) => ({
       unavailable: {},
       plan: null,
       catalogue: [],
+      defaultLandingPage: '/dashboard',
       loaded: false,
       loading: false,
     }),

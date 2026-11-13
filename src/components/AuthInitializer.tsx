@@ -8,6 +8,8 @@ import { authService } from '@/services/auth.service';
 import { canUseRole, getPrimaryRole } from '@/utils/role.utils';
 import { useInitialization } from '@/contexts/InitializationContext';
 import { FEATURES } from '@/config/features';
+import { useFeatureStore } from '@/store/feature.store';
+import { resolveDefaultLandingPage } from '@/utils/nav-visibility.utils';
 
 /**
  * AuthInitializer Component
@@ -41,6 +43,11 @@ export const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ child
   const [isMounted, setIsMounted] = useState(false);
   const [routingResolved, setRoutingResolved] = useState(false);
   const hasInitialized = useRef(false);
+
+  // Member-dashboard landing page configuration (admin-set, per-member resolved).
+  const defaultLandingPage = useFeatureStore((s) => s.defaultLandingPage);
+  const features = useFeatureStore((s) => s.features);
+  const catalogue = useFeatureStore((s) => s.catalogue);
 
   // Ensure component only initializes on client after hydration
   useEffect(() => {
@@ -227,7 +234,13 @@ export const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ child
       } else if (roleToRoute === 'agent') {
         correctDestination = '/agent';
       } else {
-        correctDestination = '/dashboard';
+        // Member dashboard: land on the administrator-configured default
+        // landing page, resolved against this member's entitlements.
+        correctDestination = resolveDefaultLandingPage({
+          defaultPage: defaultLandingPage,
+          features,
+          catalogue,
+        });
       }
     }
 
@@ -242,7 +255,7 @@ export const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ child
       }
       router.replace(correctDestination);
     }
-  }, [isMounted, isHydrated, routingResolved, pathname, user, activeRole, router]);
+  }, [isMounted, isHydrated, routingResolved, pathname, user, activeRole, router, defaultLandingPage, features, catalogue]);
 
   // Render children - routing happens via effects above
   return <>{children}</>;

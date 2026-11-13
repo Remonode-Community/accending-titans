@@ -37,29 +37,12 @@ import { NotificationBell } from '@/components/dashboard/NotificationBell';
 import { RoleSwitcher } from '@/components/shared/RoleSwitcher';
 import { ThemeToggle } from '@/components/shared/ThemeToggle';
 import { useFeatureStore } from '@/store/feature.store';
+import { useVisibleNavItems } from '@/hooks/useVisibleNavItems';
+import { resolveDefaultLandingPage } from '@/utils/nav-visibility.utils';
 import type {
   FeatureKey,
   FeatureUnavailableReason,
 } from '@/types/platform-settings.types';
-
-/**
- * Sidebar items that an administrator can switch off.
- *
- * Kept beside the navigation rather than inside each item so the nav array
- * (and its explanatory comments) stay untouched.
- */
-const NAV_FEATURES: Record<string, FeatureKey> = {
-  '/dashboard/catalogue': 'catalogue',
-  '/dashboard/subscriptions': 'subscriptions',
-  '/dashboard/wallet': 'wallet',
-  '/dashboard/birthdays': 'birthdays',
-  '/dashboard/network': 'network',
-  '/dashboard/content': 'content',
-  '/dashboard/rankings': 'rankings',
-  '/dashboard/referral': 'referrals',
-  '/dashboard/messages': 'messages',
-  '/dashboard/opportunities': 'opportunities',
-};
 
 /**
  * Route prefixes owned by a switchable feature. Direct navigation is blocked
@@ -162,6 +145,8 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const features = useFeatureStore((s) => s.features);
   const unavailable = useFeatureStore((s) => s.unavailable);
   const plan = useFeatureStore((s) => s.plan);
+  const catalogue = useFeatureStore((s) => s.catalogue);
+  const defaultLandingPage = useFeatureStore((s) => s.defaultLandingPage);
   const featuresLoaded = useFeatureStore((s) => s.loaded);
   const loadFeatures = useFeatureStore((s) => s.load);
 
@@ -207,47 +192,77 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
     }
   }, [showAvatarMenu]);
 
-  const navItems = [
+  const navItems: Array<{
+    href: string;
+    label: string;
+    icon: React.ElementType;
+    /** Gating feature key; omitted for always-on entries (Dashboard, Support). */
+    feature?: FeatureKey;
+  }> = [
     { href: '/dashboard', label: 'Dashboard', icon: Home },
-    { href: '/dashboard/catalogue', label: 'Business Catalogue', icon: ShoppingBag },
-    { href: '/dashboard/subscriptions', label: 'Subscription', icon: Star },
-    { href: '/dashboard/wallet', label: 'Wallet', icon: Wallet },
-  // Network celebrations: where a member's network comes together to
-  // celebrate them, and quietly plan a surprise.
-  //
-  // The old `/dashboard/rewards` birthday page was folded into this section:
-  // its loyalty-reward status now renders as a "Birthday reward" card on this
-  // hub, so the separate route was removed. `/dashboard/rewards/history`
-  // (the cashback/referral transaction ledger) is a different feature and
-  // still exists.
-  { href: '/dashboard/birthdays', label: 'Birthdays', icon: Cake },
+    // Business Catalogue — plan-gated.
+    { href: '/dashboard/catalogue', label: 'Business Catalogue', icon: ShoppingBag, feature: 'catalogue' },
+    // Subscription — plan-gated.
+    { href: '/dashboard/subscriptions', label: 'Subscription', icon: Star, feature: 'subscriptions' },
+    // Wallet — plan-gated.
+    { href: '/dashboard/wallet', label: 'Wallet', icon: Wallet, feature: 'wallet' },
+    // Network celebrations: where a member's network comes together to
+    // celebrate them, and quietly plan a surprise.
+    //
+    // The old `/dashboard/rewards` birthday page was folded into this section:
+    // its loyalty-reward status now renders as a "Birthday reward" card on this
+    // hub, so the separate route was removed. `/dashboard/rewards/history`
+    // (the cashback/referral transaction ledger) is a different feature and
+    // still exists.
+    { href: '/dashboard/birthdays', label: 'Birthdays', icon: Cake, feature: 'birthdays' },
     // The member network: circles, the ask board, and the impact ledger. It is
     // a plan feature, so the whole network requires a plan that includes it —
     // enforced server-side, not merely hidden here.
-    { href: '/dashboard/network', label: 'Member Network', icon: Layers },
-    { href: '/dashboard/content', label: 'Submit Content', icon: Upload },
-    { href: '/dashboard/rankings', label: 'Rankings', icon: TrendingUp },
-    { href: '/dashboard/referral', label: 'Referral Program', icon: Users },
-    { href: '/dashboard/messages', label: 'Messages', icon: Send },
-    { href: '/dashboard/opportunities', label: 'Opportunities', icon: Award },
+    { href: '/dashboard/network', label: 'Member Network', icon: Layers, feature: 'network' },
+    // Submit Content — plan-gated.
+    { href: '/dashboard/content', label: 'Submit Content', icon: Upload, feature: 'content' },
+    // Rankings — plan-gated.
+    { href: '/dashboard/rankings', label: 'Rankings', icon: TrendingUp, feature: 'rankings' },
+    // Referral Program — plan-gated.
+    { href: '/dashboard/referral', label: 'Referral Program', icon: Users, feature: 'referrals' },
+    // Messages — plan-gated.
+    { href: '/dashboard/messages', label: 'Messages', icon: Send, feature: 'messages' },
+    // Opportunities — plan-gated.
+    { href: '/dashboard/opportunities', label: 'Opportunities', icon: Award, feature: 'opportunities' },
     // The support desk is available on every plan: it is how members reach
     // the team, so it must not disappear when a feature is switched off —
-    // hence deliberately absent from NAV_FEATURES.
+    // hence deliberately left ungated here.
     { href: '/dashboard/support', label: 'Support', icon: LifeBuoy },
   ];
 
   useEffect(() => {
-    if (user) loadFeatures();
-  }, [user, loadFeatures]);
+    if (user) loadFeatures(true);
+  }, [user, loadFeatures, activeRole]);
+
+  // Admin-configured default landing page: the dashboard entry route (`/dashboard`)
+  // forwards to the effective landing page. Deeper module routes are respected
+  // as-is, so refreshing while on a module page does not bounce the user.
+  useEffect(() => {
+    if (!user) return;
+    if (pathname !== '/dashboard') return;
+
+    const landing = resolveDefaultLandingPage({
+      defaultPage: defaultLandingPage,
+      features,
+      catalogue,
+    });
+
+    if (landing !== '/dashboard') {
+      router.replace(landing);
+    }
+  }, [user, pathname, defaultLandingPage, features, catalogue, router]);
 
   const isActive = (href: string) => pathname === href;
 
-  const visibleNavItems = featuresLoaded
-    ? navItems.filter((item) => {
-        const feature = NAV_FEATURES[item.href];
-        return !feature || features[feature] !== false;
-      })
-    : navItems;
+  // Centralized, feature-aware sidebar visibility. While the feature map is
+  // still loading, feature-gated items are withheld (never flashed) so the
+  // sidebar only ever shows what the user is entitled to.
+  const visibleNavItems = useVisibleNavItems(navItems);
 
   const activeFeature = featuresLoaded
     ? FEATURE_ROUTE_PREFIXES.find(

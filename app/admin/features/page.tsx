@@ -7,8 +7,10 @@ import { Loader2, Save, SlidersHorizontal } from 'lucide-react';
 
 import { Button } from '@/components/shared/Button';
 import { Card } from '@/components/shared/Card';
+import { Select } from '@/components/shared/Select';
 import { useAlert } from '@/hooks/useAlert';
 import { useAuthStore } from '@/store/auth.store';
+import { useFeatureStore } from '@/store/feature.store';
 import { platformSettingsService } from '@/services/platform-settings.service';
 import type { FeatureFlag, FeatureKey } from '@/types/platform-settings.types';
 
@@ -47,11 +49,14 @@ export default function AdminFeaturesPage() {
   const router = useRouter();
   const { user } = useAuthStore();
   const { showAlert } = useAlert();
+  const loadMemberFeatures = useFeatureStore((s) => s.load);
 
   const [features, setFeatures] = useState<FeatureFlag[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [defaultLandingPage, setDefaultLandingPage] = useState('/dashboard');
+  const [savingLanding, setSavingLanding] = useState(false);
 
   const isAdmin = useMemo(() => Boolean(user?.roles?.some((r) => r === 'admin')), [user]);
 
@@ -65,6 +70,7 @@ export default function AdminFeaturesPage() {
       const res = await platformSettingsService.adminGet();
       if (res.success && res.data?.features) {
         setFeatures(res.data.features);
+        setDefaultLandingPage(res.data.default_landing_page || '/dashboard');
         setDirty(false);
       }
     } catch {
@@ -102,6 +108,10 @@ export default function AdminFeaturesPage() {
         showAlert('Feature switches saved', 'success');
         setDirty(false);
         await load();
+        // Push the freshly saved effective map into the member-facing feature
+        // store so open member sessions refresh their feature-gated sidebar
+        // immediately instead of waiting for the next page load.
+        await loadMemberFeatures(true);
       } else {
         showAlert(res.message || 'Failed to save feature switches', 'error');
       }
@@ -111,6 +121,35 @@ export default function AdminFeaturesPage() {
       setSaving(false);
     }
   };
+
+  const saveDefaultLandingPage = async () => {
+    try {
+      setSavingLanding(true);
+      const res = await platformSettingsService.adminUpdateDefaultLandingPage(defaultLandingPage);
+      if (res.success) {
+        setDefaultLandingPage(res.data?.default_landing_page || defaultLandingPage);
+        // Push the new effective map into the member-facing feature store so
+        // open member sessions refresh their sidebar and landing-page state.
+        await loadMemberFeatures(true);
+      } else {
+        showAlert(res.message || 'Failed to save default landing page', 'error');
+      }
+    } catch {
+      showAlert('Failed to save default landing page', 'error');
+    } finally {
+      setSavingLanding(false);
+    }
+  };
+
+  const landingOptions = useMemo(() => {
+    const options: Array<{ value: string; label: string }> = [{ value: '/dashboard', label: 'Dashboard' }];
+    for (const feature of features) {
+      if (feature.path) {
+        options.push({ value: feature.path, label: feature.label });
+      }
+    }
+    return options;
+  }, [features]);
 
   const groups = useMemo(() => {
     const order: string[] = [];
@@ -159,6 +198,37 @@ export default function AdminFeaturesPage() {
           </span>
           are also limited to the subscription plans that include them.
         </p>
+      </Card>
+
+      <Card className="rounded-2xl border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
+        <div className="flex flex-wrap items-start justify-between gap-6">
+          <div className="min-w-0">
+            <h2 className="text-sm font-bold text-gray-900">Default landing page</h2>
+            <p className="mt-1 text-xs text-gray-500">
+              Where authenticated members land when they open their dashboard. The
+              page is resolved against each member&apos;s plan and feature access.
+            </p>
+          </div>
+          <div className="w-full max-w-xs">
+            <Select
+              label="Default dashboard page"
+              value={defaultLandingPage}
+              onChange={(event) => setDefaultLandingPage(event.target.value)}
+              options={landingOptions}
+              disabled={savingLanding}
+            />
+          </div>
+        </div>
+        <div className="mt-6 flex justify-end">
+          <Button
+            onClick={saveDefaultLandingPage}
+            disabled={savingLanding || defaultLandingPage === '/dashboard'}
+            className="inline-flex items-center gap-2 rounded-xl bg-[#C9A84C] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#B8962E] disabled:opacity-50"
+          >
+            {savingLanding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            Save default landing page
+          </Button>
+        </div>
       </Card>
 
       {loading ? (
