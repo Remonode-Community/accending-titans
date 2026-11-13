@@ -22,6 +22,13 @@ interface PaystackCheckoutModalProps {
   onClose: () => void;
   plan: SubscriptionPlan | null;
   paystackPublicKey?: string;
+  /**
+   * Invoked once the payment has been verified and the subscription activated
+   * successfully, before the success step is shown. Consumers (e.g. the
+   * subscriptions page) use it to refresh their own subscription state so the
+   * UI reflects the new subscription without a reload.
+   */
+  onSuccess?: () => void;
 }
 
 type CheckoutStep = 'confirm' | 'processing' | 'paystack' | 'verifying' | 'success' | 'error';
@@ -41,6 +48,7 @@ export function PaystackCheckoutModal({
   onClose,
   plan,
   paystackPublicKey,
+  onSuccess,
 }: PaystackCheckoutModalProps) {
   const router = useRouter();
   const { user } = useAuth();
@@ -66,19 +74,39 @@ export function PaystackCheckoutModal({
     }
   }, [isOpen]);
 
+  // Close the modal and send the member back to the subscription page once the
+  // success countdown finishes. Skipped when the member is already there, so an
+  // in-place payment does not trigger a pointless navigation.
+  const handleCloseAndRedirect = useCallback(() => {
+    onClose();
+    // Small delay to let the modal close before navigating
+    setTimeout(() => {
+      if (
+        typeof window !== 'undefined' &&
+        window.location.pathname !== '/dashboard/subscriptions'
+      ) {
+        router.push('/dashboard/subscriptions');
+      }
+    }, 100);
+  }, [onClose, router]);
+
   // Countdown for success auto-redirect
   useEffect(() => {
-    if (step === 'success' && countdown > 0) {
+    if (step !== 'success') return;
+
+    if (countdown > 0) {
       const timer = setTimeout(() => {
         setCountdown((prev) => prev - 1);
       }, 1000);
       return () => clearTimeout(timer);
     }
-    if (step === 'success' && countdown === 0) {
-      onClose();
-      setTimeout(() => router.push('/dashboard/subscriptions'), 100);
-    }
-  }, [step, countdown, router, onClose]);
+
+    // Countdown finished — close the modal and reflect the new subscription.
+    const timer = setTimeout(() => {
+      handleCloseAndRedirect();
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [step, countdown, handleCloseAndRedirect]);
 
   // ── Handle "Continue to Payment" ────────────────────────────────────
   const handleProceedToPayment = useCallback(async () => {
@@ -134,6 +162,9 @@ export function PaystackCheckoutModal({
             plan.id,
           );
           if (success) {
+            // Let the page refresh its own subscription state before showing
+            // the success step, so the reflected subscription is fresh.
+            onSuccess?.();
             setStep('success');
             setCountdown(5);
           } else {
@@ -155,7 +186,7 @@ export function PaystackCheckoutModal({
 
     setInitData(result);
     setStep('paystack');
-  }, [plan, user, initializePayment, verifyAndCreate, error, paystackPublicKey]);
+  }, [plan, user, initializePayment, verifyAndCreate, error, paystackPublicKey, onSuccess]);
 
   // Handle "I've completed payment" — only used in fallback (no PaystackPop)
   const handlePaymentComplete = useCallback(async () => {
@@ -166,6 +197,7 @@ export function PaystackCheckoutModal({
 
     const success = await verifyAndCreate(initData.reference, plan.id);
     if (success) {
+      onSuccess?.();
       setStep('success');
       setCountdown(5);
     } else {
@@ -174,7 +206,7 @@ export function PaystackCheckoutModal({
         error || 'Payment verification failed. Please contact support.',
       );
     }
-  }, [initData, plan, verifyAndCreate, error]);
+  }, [initData, plan, verifyAndCreate, error, onSuccess]);
 
   // Handle payment cancelled — only used in fallback
   const handlePaymentCancelled = useCallback(() => {
@@ -503,11 +535,7 @@ export function PaystackCheckoutModal({
                       </p>
 
                       <button
-                        onClick={() => {
-                          onClose();
-                          // Small delay to let the modal close before navigating
-                          setTimeout(() => router.push('/dashboard/subscriptions'), 100);
-                        }}
+                        onClick={handleCloseAndRedirect}
                         className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-[#C9A84C] to-[#B8962E] text-white text-sm font-bold hover:shadow-lg transition-all inline-flex items-center justify-center gap-2"
                       >
                         View my subscription
