@@ -57,7 +57,7 @@ export const RoleSwitcher: React.FC = () => {
       case 'admin':
         return 'bg-[#fee2e2] text-[#991b1b]';
       case 'agent':
-        return 'bg-[#dbeafe] text-[#1e40af]';
+        return 'bg-gray-100 text-gray-700';
       default:
         return 'bg-[#f0fdf4] text-[#166534]';
     }
@@ -108,7 +108,7 @@ export const RoleSwitcher: React.FC = () => {
       {/* Role Switcher Button */}
       <button
         onClick={() => setShowRoleMenu(!showRoleMenu)}
-        className="flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+        className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors"
         title="Switch role"
       >
         <div className="flex items-center gap-2">

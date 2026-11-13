@@ -24,7 +24,7 @@ export function ThemeToggle({ compact = false }: ThemeToggleProps) {
     <button
       type="button"
       onClick={() => setTheme(nextTheme)}
-      className={`flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 ${
+      className={`flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 ${
         compact ? 'p-2' : ''
       }`}
       title={`Switch to ${nextTheme} mode`}

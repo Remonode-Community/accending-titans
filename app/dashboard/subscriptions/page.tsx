@@ -380,12 +380,12 @@ function ActiveSubscriptionCard({
 
         {/* Next payment */}
         {sub.next_payment_date && sub.auto_renew && (
-          <div className="flex items-start gap-3 rounded-xl border border-blue-100 bg-blue-50 p-4 dark:border-[#302b20] dark:bg-[#24221c]">
+          <div className="flex items-start gap-3 rounded-xl border border-[#C9A84C]/15 bg-[#FDFAF3] p-4 dark:border-[#302b20] dark:bg-[#24221c]">
             <CreditCard
               size={16}
-              className="mt-0.5 flex-shrink-0 text-blue-500 dark:text-[#d4af37]"
+              className="mt-0.5 flex-shrink-0 text-[#B8962E] dark:text-[#d4af37]"
             />
-            <p className="text-sm text-blue-800 dark:text-gray-300">
+            <p className="text-sm text-gray-700 dark:text-gray-300">
               Next payment of{' '}
               <strong className="font-semibold">
                 {formatPrice(sub.price, sub.currency)}

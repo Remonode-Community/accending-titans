@@ -13,7 +13,7 @@ const variantClasses = {
   success: 'bg-green-100 text-green-800',
   danger: 'bg-red-100 text-red-800',
   warning: 'bg-yellow-100 text-yellow-800',
-  info: 'bg-[#f0f2ff] text-[#8a96ff]',
+  info: 'bg-[#FDFAF3] text-[#B8962E]',
 };
 
 const sizeClasses = {
