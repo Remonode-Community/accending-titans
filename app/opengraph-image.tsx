@@ -8,7 +8,6 @@ import {
   brandFonts,
   brandLogoDataUri,
 } from '@/lib/seo/og';
-
 export const runtime = 'nodejs';
 export const alt = `${BRAND.name} — ${BRAND.tagline}`;
 export const size = OG_SIZE;
