@@ -12,7 +12,6 @@ export const runtime = 'nodejs';
 export const alt = `${BRAND.name} — ${BRAND.tagline}`;
 export const size = OG_SIZE;
 export const contentType = 'image/png';
-
 /**
  * The branded card layout, shared by opengraph-image and twitter-image.
  *
