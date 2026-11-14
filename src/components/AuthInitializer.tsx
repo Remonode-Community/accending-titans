@@ -230,7 +230,16 @@ export const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ child
 
       // Route based on the determined role
       if (roleToRoute === 'admin') {
-        correctDestination = '/admin';
+        // Admins may still open member-dashboard module routes (the backend
+        // lets them bypass plan entitlements for support/inspection). Keep the
+        // member route the admin is trying to visit instead of bouncing them to
+        // the admin surface — the member-dashboard landing logic then decides
+        // the final target.
+        if (pathname && pathname.startsWith('/dashboard')) {
+          correctDestination = pathname;
+        } else {
+          correctDestination = '/admin';
+        }
       } else if (roleToRoute === 'agent') {
         correctDestination = '/agent';
       } else {
