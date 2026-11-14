@@ -40,6 +40,20 @@ export interface NavVisibilityContext {
   plan?: MemberPlanEntitlement | null;
 }
 
+const isFeatureAllowed = (key: FeatureKey, ctx: NavVisibilityContext): boolean => {
+  if (!ctx.loaded) return false;
+
+  const meta = ctx.catalogue?.find((entry) => entry.key === key);
+  if (ctx.features[key] === false) return false;
+
+  if (meta?.plan_gated && !ctx.plan?.features?.includes(key)) {
+    // Plan-gated and the user's plan does not include it.
+    return false;
+  }
+
+  return true;
+};
+
 export const isNavItemVisible = (
   item: NavItemLike,
   ctx: NavVisibilityContext
@@ -47,25 +61,7 @@ export const isNavItemVisible = (
   // Always-on entries (no gating feature) render immediately.
   if (!item.feature) return true;
 
-  // Gated entry whose access state has not resolved yet → stay hidden.
-  // This closes the "flash of unauthorized items while loading/hydrating" gap.
-  if (!ctx.loaded) return false;
-
-  // Disabled globally or not included in the member's plan.
-  if (ctx.features[item.feature] === false) return false;
-
-  // Plan-gated entry: only visible while the user's active plan actually
-  // includes the feature. The effective feature map folds the plan in for
-  // regular members, but an administrator bypasses the plan check server-side
-  // (so support staff can inspect modules) — the sidebar must still hide
-  // features the administrator does not have access to.
-  const meta = ctx.catalogue?.find((entry) => entry.key === item.feature);
-  if (meta?.plan_gated) {
-    const included = ctx.plan?.features?.includes(item.feature);
-    if (!included) return false;
-  }
-
-  return true;
+  return isFeatureAllowed(item.feature, ctx);
 };
 
 export const getVisibleNavItems = <T extends NavItemLike>(
@@ -80,6 +76,46 @@ export const getVisibleNavItems = <T extends NavItemLike>(
   return items.filter((item) => isNavItemVisible(item, ctx));
 };
 
+/** Map of plan-gated dashboard module hrefs to the feature key that gates them. */
+const MODULE_HREF_TO_FEATURE: Record<string, FeatureKey> = {
+  '/dashboard/catalogue': 'catalogue',
+  '/dashboard/subscriptions': 'subscriptions',
+  '/dashboard/wallet': 'wallet',
+  '/dashboard/birthdays': 'birthdays',
+  '/dashboard/network': 'network',
+  '/dashboard/content': 'content',
+  '/dashboard/rankings': 'rankings',
+  '/dashboard/referral': 'referrals',
+  '/dashboard/messages': 'messages',
+  '/dashboard/opportunities': 'opportunities',
+};
+
+/**
+ * The feature key gating a dashboard module href, or null when the href is not
+ * a known plan-gated module (the ungated hub `/dashboard`, Support, and unknown
+ * routes fall through to the always-on bucket).
+ */
+export const getFeatureKeyForHref = (href: string): FeatureKey | null => {
+  const clean = (href || '').split('?')[0];
+  const base = Object.keys(MODULE_HREF_TO_FEATURE).find(
+    (moduleHref) => clean === moduleHref || clean.startsWith(`${moduleHref}/`)
+  );
+
+  return base ? MODULE_HREF_TO_FEATURE[base] : null;
+};
+
+/**
+ * Whether a dashboard module href is allowed for the current user context.
+ * Unmapped routes (Support, the ungated hub) are always allowed.
+ */
+export const isHrefVisible = (href: string, ctx: NavVisibilityContext): boolean => {
+  const featureKey = getFeatureKeyForHref(href);
+
+  if (!featureKey) return true;
+
+  return isFeatureAllowed(featureKey, ctx);
+};
+
 /**
  * Resolve the effective default landing page for the authenticated member
  * dashboard.
@@ -90,12 +126,14 @@ export const getVisibleNavItems = <T extends NavItemLike>(
  *
  * The configured page is only honoured when it maps onto a known feature that
  * is enabled for this user in the effective feature map (the map already folds
- * the global switch and the subscription plan into `false`).
+ * the global switch and the subscription plan into `false`) and, for plan-gated
+ * features, when the user's plan actually includes it.
  */
 export const resolveDefaultLandingPage = (params: {
   defaultPage?: string | null;
   features: Record<string, boolean>;
   catalogue?: FeatureCatalogueEntry[];
+  plan?: MemberPlanEntitlement | null;
 }): string => {
   const landing = params.defaultPage || '/dashboard';
 
@@ -107,7 +145,20 @@ export const resolveDefaultLandingPage = (params: {
   const key = entry?.key;
 
   if (!key || params.features[key] === false) {
+    // Not enabled globally or not included in the member's plan.
     return '/dashboard';
+  }
+
+  // Plan-gated: only honour the configured landing when the user actually has
+  // the feature in their plan. The effective feature map folds the plan in for
+  // regular members, but an administrator bypasses it server-side — without an
+  // explicit plan check an administrator without a subscription would still be
+  // sent to the configured landing.
+  if (entry?.plan_gated) {
+    const included = params.plan?.features?.includes(key);
+    if (!included) {
+      return '/dashboard';
+    }
   }
 
   return landing;

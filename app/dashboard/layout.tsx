@@ -250,13 +250,14 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
       defaultPage: defaultLandingPage,
       features,
       catalogue,
+      plan,
     });
 
     const currentPath = (pathname || '').split('?')[0];
     if (!isLandingPath(currentPath, landing)) {
       router.replace(landing);
     }
-  }, [user, pathname, defaultLandingPage, features, catalogue, router]);
+  }, [user, pathname, defaultLandingPage, features, catalogue, plan, router]);
 
   const isActive = (href: string) => pathname === href;
 

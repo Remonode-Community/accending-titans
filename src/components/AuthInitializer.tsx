@@ -48,6 +48,7 @@ export const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ child
   const defaultLandingPage = useFeatureStore((s) => s.defaultLandingPage);
   const features = useFeatureStore((s) => s.features);
   const catalogue = useFeatureStore((s) => s.catalogue);
+  const plan = useFeatureStore((s) => s.plan);
 
   // Ensure component only initializes on client after hydration
   useEffect(() => {
@@ -231,15 +232,19 @@ export const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ child
       // Route based on the determined role
       if (roleToRoute === 'admin') {
         // Admins may still open member-dashboard module routes (the backend
-        // lets them bypass plan entitlements for support/inspection). Keep the
-        // member route the admin is trying to visit instead of bouncing them to
-        // the admin surface — the member-dashboard landing logic then decides
-        // the final target.
-        if (pathname && pathname.startsWith('/dashboard')) {
-          correctDestination = pathname;
-        } else {
-          correctDestination = '/admin';
-        }
+        // lets them bypass plan entitlements for support/inspection), but the
+        // default-landing resolution still decides the final target and falls
+        // back when the admin has no subscription/entitlement for it. Admin
+        // surface routes (`/admin/...`) keep their own destination.
+        const isMemberDashboardPath = !!pathname && (pathname === '/dashboard' || pathname.startsWith('/dashboard/'));
+        correctDestination = isMemberDashboardPath
+          ? resolveDefaultLandingPage({
+              defaultPage: defaultLandingPage,
+              features,
+              catalogue,
+              plan,
+            })
+          : '/admin';
       } else if (roleToRoute === 'agent') {
         correctDestination = '/agent';
       } else {
@@ -249,6 +254,7 @@ export const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ child
           defaultPage: defaultLandingPage,
           features,
           catalogue,
+          plan,
         });
       }
     }
@@ -273,7 +279,7 @@ export const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ child
         router.replace(correctDestination);
       }
     }
-  }, [isMounted, isHydrated, routingResolved, pathname, user, activeRole, router, defaultLandingPage, features, catalogue]);
+  }, [isMounted, isHydrated, routingResolved, pathname, user, activeRole, router, defaultLandingPage, features, catalogue, plan]);
 
   // Render children - routing happens via effects above
   return <>{children}</>;

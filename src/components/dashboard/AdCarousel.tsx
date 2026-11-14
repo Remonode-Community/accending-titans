@@ -4,6 +4,8 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
 import { useAdvertisements } from '@/hooks/useAdvertisements';
 import { Advertisement } from '@/types/api.types';
+import { useFeatureStore } from '@/store/feature.store';
+import { isHrefVisible, type NavVisibilityContext } from '@/utils/nav-visibility.utils';
 
 interface AdCarouselProps {
   platform?: 'mobile' | 'web' | 'all';
@@ -87,9 +89,26 @@ export const AdCarousel: React.FC<AdCarouselProps> = ({
 
   const handleActionClick = (ad: Advertisement) => {
     switch (ad.actionType) {
-      case 'navigation':
-        window.location.href = `/dashboard/${ad.actionValue}`;
+      case 'navigation': {
+        const target = `/dashboard/${ad.actionValue}`.split('?')[0];
+        const state = useFeatureStore.getState();
+        const ctx: NavVisibilityContext = {
+          features: state.features,
+          loaded: state.loaded,
+          catalogue: state.catalogue,
+          plan: state.plan,
+        };
+
+        if (!isHrefVisible(target, ctx)) {
+          // The advertised module sits behind a plan the current user does not
+          // hold — never send them there; fall back to the dashboard hub.
+          window.location.href = '/dashboard';
+          return;
+        }
+
+        window.location.href = target;
         break;
+      }
       case 'deepLink':
         window.location.href = ad.actionValue;
         break;
