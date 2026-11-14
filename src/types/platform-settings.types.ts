@@ -36,6 +36,8 @@ export interface FeatureCatalogueEntry {
   description: string;
   group: string;
   path: string | null;
+  /** Whether the feature is gated behind a subscription plan. */
+  plan_gated: boolean;
 }
 
 /** The member's active plan entitlement, as returned by `/v1/features`. */

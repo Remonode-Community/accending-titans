@@ -16,7 +16,11 @@
  *   flash one while the access state is still being resolved.
  */
 
-import type { FeatureCatalogueEntry, FeatureKey } from '@/types/platform-settings.types';
+import type {
+  FeatureCatalogueEntry,
+  FeatureKey,
+  MemberPlanEntitlement,
+} from '@/types/platform-settings.types';
 
 /** A sidebar navigation entry. `feature` gates the entry; omit for always-on. */
 export interface NavItemLike {
@@ -29,6 +33,11 @@ export interface NavVisibilityContext {
   features: Record<string, boolean>;
   /** Whether the feature map has been resolved for this session/user. */
   loaded: boolean;
+  /** Plan catalogue metadata (key → label/group/path), used to know which
+   *  features are plan-gated. */
+  catalogue?: FeatureCatalogueEntry[];
+  /** The user's plan entitlement, used to gate plan-gated entries. */
+  plan?: MemberPlanEntitlement | null;
 }
 
 export const isNavItemVisible = (
@@ -42,8 +51,21 @@ export const isNavItemVisible = (
   // This closes the "flash of unauthorized items while loading/hydrating" gap.
   if (!ctx.loaded) return false;
 
-  // Enabled by default when the key is absent from the map.
-  return ctx.features[item.feature] !== false;
+  // Disabled globally or not included in the member's plan.
+  if (ctx.features[item.feature] === false) return false;
+
+  // Plan-gated entry: only visible while the user's active plan actually
+  // includes the feature. The effective feature map folds the plan in for
+  // regular members, but an administrator bypasses the plan check server-side
+  // (so support staff can inspect modules) — the sidebar must still hide
+  // features the administrator does not have access to.
+  const meta = ctx.catalogue?.find((entry) => entry.key === item.feature);
+  if (meta?.plan_gated) {
+    const included = ctx.plan?.features?.includes(item.feature);
+    if (!included) return false;
+  }
+
+  return true;
 };
 
 export const getVisibleNavItems = <T extends NavItemLike>(
