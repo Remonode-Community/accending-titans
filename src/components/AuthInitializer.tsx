@@ -9,7 +9,7 @@ import { canUseRole, getPrimaryRole } from '@/utils/role.utils';
 import { useInitialization } from '@/contexts/InitializationContext';
 import { FEATURES } from '@/config/features';
 import { useFeatureStore } from '@/store/feature.store';
-import { resolveDefaultLandingPage } from '@/utils/nav-visibility.utils';
+import { isLandingPath, resolveDefaultLandingPage } from '@/utils/nav-visibility.utils';
 
 /**
  * AuthInitializer Component
@@ -245,15 +245,24 @@ export const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ child
     }
 
     // Redirect if not on the correct path
-    if (correctDestination && !pathname?.startsWith(correctDestination.split('?')[0])) {
-      if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_VERBOSE_LOGS === 'true') {
-        console.log('[AuthInitializer] Routing:', {
-          from: pathname,
-          to: correctDestination,
-          reason: !user ? 'not_authenticated' : !user.isEmailVerified ? 'email_not_verified' : !user.isPhoneVerified ? 'phone_not_verified' : 'role_based',
-        });
+    if (correctDestination) {
+      const targetPath = (correctDestination || '/dashboard').split('?')[0];
+      const currentPath = (pathname || '').split('?')[0];
+
+      // `isLandingPath` treats the ungated hub (`/dashboard`) as matching only
+      // itself, so an unentitled member who deep-links to a configured landing
+      // module is redirected back to the resolved (fallback) landing page
+      // instead of being treated as already being there.
+      if (!isLandingPath(currentPath, targetPath)) {
+        if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_VERBOSE_LOGS === 'true') {
+          console.log('[AuthInitializer] Routing:', {
+            from: pathname,
+            to: correctDestination,
+            reason: !user ? 'not_authenticated' : !user.isEmailVerified ? 'email_not_verified' : !user.isPhoneVerified ? 'phone_not_verified' : 'role_based',
+          });
+        }
+        router.replace(correctDestination);
       }
-      router.replace(correctDestination);
     }
   }, [isMounted, isHydrated, routingResolved, pathname, user, activeRole, router, defaultLandingPage, features, catalogue]);
 

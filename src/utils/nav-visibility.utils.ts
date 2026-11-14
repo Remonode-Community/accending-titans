@@ -112,3 +112,30 @@ export const resolveDefaultLandingPage = (params: {
 
   return landing;
 };
+
+/**
+ * Whether a member-dashboard path *is* the resolved landing page (or a child
+ * of it).
+ *
+ * The ungated hub (`/dashboard`) matches only itself — module routes such as
+ * `/dashboard/birthdays` are its children, not the hub itself. Treating the
+ * hub as a prefix of everything would make an unentitled member deep-linked to
+ * a configured landing page look like they were already at the landing page;
+ * the resolver has already folded entitlement into the landing value, so the
+ * hub must only ever match itself.
+ */
+export const isLandingPath = (path: string, landing: string): boolean => {
+  const normalizedLanding = landing || '/dashboard';
+  const normalizedPath = (path || '').split('?')[0];
+
+  if (normalizedPath === normalizedLanding) {
+    return true;
+  }
+
+  if (normalizedLanding === '/dashboard') {
+    // The ungated hub matches only itself.
+    return false;
+  }
+
+  return normalizedPath.startsWith(`${normalizedLanding}/`);
+};

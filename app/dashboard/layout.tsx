@@ -38,7 +38,7 @@ import { RoleSwitcher } from '@/components/shared/RoleSwitcher';
 import { ThemeToggle } from '@/components/shared/ThemeToggle';
 import { useFeatureStore } from '@/store/feature.store';
 import { useVisibleNavItems } from '@/hooks/useVisibleNavItems';
-import { resolveDefaultLandingPage } from '@/utils/nav-visibility.utils';
+import { isLandingPath, resolveDefaultLandingPage } from '@/utils/nav-visibility.utils';
 import type {
   FeatureKey,
   FeatureUnavailableReason,
@@ -252,7 +252,8 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
       catalogue,
     });
 
-    if (landing !== '/dashboard') {
+    const currentPath = (pathname || '').split('?')[0];
+    if (!isLandingPath(currentPath, landing)) {
       router.replace(landing);
     }
   }, [user, pathname, defaultLandingPage, features, catalogue, router]);
