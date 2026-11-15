@@ -38,7 +38,8 @@ import { RoleSwitcher } from '@/components/shared/RoleSwitcher';
 import { ThemeToggle } from '@/components/shared/ThemeToggle';
 import { useFeatureStore } from '@/store/feature.store';
 import { useVisibleNavItems } from '@/hooks/useVisibleNavItems';
-import { isLandingPath, resolveDefaultLandingPage } from '@/utils/nav-visibility.utils';
+import { useBirthdayPreferencesComplete } from '@/hooks/useBirthdayPreferencesComplete';
+import { isLandingPath, resolveDefaultLandingPage, shouldForwardToLanding } from '@/utils/nav-visibility.utils';
 import type {
   FeatureKey,
   FeatureUnavailableReason,
@@ -149,6 +150,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const defaultLandingPage = useFeatureStore((s) => s.defaultLandingPage);
   const featuresLoaded = useFeatureStore((s) => s.loaded);
   const loadFeatures = useFeatureStore((s) => s.load);
+  const birthdayPreferencesComplete = useBirthdayPreferencesComplete();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -254,10 +256,17 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
     });
 
     const currentPath = (pathname || '').split('?')[0];
-    if (!isLandingPath(currentPath, landing)) {
+    // Forward to the admin-configured landing only while the member still owes
+    // the module's onboarding (the compulsory birthday plan form). Once the
+    // form is complete the restriction is lifted and the member simply stays
+    // on the hub instead of being bounced into the module.
+    if (
+      !isLandingPath(currentPath, landing) &&
+      shouldForwardToLanding({ landing, birthdayPreferencesComplete })
+    ) {
       router.replace(landing);
     }
-  }, [user, pathname, defaultLandingPage, features, catalogue, plan, router]);
+  }, [user, pathname, defaultLandingPage, features, catalogue, plan, birthdayPreferencesComplete, router]);
 
   const isActive = (href: string) => pathname === href;
 

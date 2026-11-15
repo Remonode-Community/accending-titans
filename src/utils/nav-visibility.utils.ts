@@ -190,3 +190,43 @@ export const isLandingPath = (path: string, landing: string): boolean => {
 
   return normalizedPath.startsWith(`${normalizedLanding}/`);
 };
+
+/**
+ * Whether the member dashboard should auto-forward from the ungated hub
+ * (`/dashboard`) to the resolved default landing page.
+ *
+ * The forward exists so an entitled member who lands on the hub is taken to the
+ * administrator-configured module. The compulsory birthday plan form is that
+ * module's onboarding gate, so:
+ *
+ *  - while the form is outstanding (`birthdayPreferencesComplete === false`)
+ *    the landing module *is* the required form — forward to it;
+ *  - once the form has been completed the restriction is lifted and the member
+ *    simply stays on the hub, reaching the module through normal navigation.
+ *
+ * Callers pass the already-resolved landing (entitlement-folded, fallback-safe).
+ */
+export const shouldForwardToLanding = (params: {
+  landing: string;
+  birthdayPreferencesComplete?: boolean | null;
+}): boolean => {
+  const landing = params.landing || '/dashboard';
+
+  // The ungated hub is its own destination — nothing to forward.
+  if (landing === '/dashboard') {
+    return false;
+  }
+
+  // Only the birthday module carries a compulsory onboarding form today.
+  if (getFeatureKeyForHref(landing) !== 'birthdays') {
+    return true;
+  }
+
+  if (params.birthdayPreferencesComplete === false) {
+    // The first-run birthday plan form is still outstanding.
+    return true;
+  }
+
+  // Completed (or still unknown) — do not force the bounce into the module.
+  return false;
+};

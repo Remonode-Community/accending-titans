@@ -9,7 +9,8 @@ import { canUseRole, getPrimaryRole } from '@/utils/role.utils';
 import { useInitialization } from '@/contexts/InitializationContext';
 import { FEATURES } from '@/config/features';
 import { useFeatureStore } from '@/store/feature.store';
-import { isHrefVisible, isLandingPath, resolveDefaultLandingPage, type NavVisibilityContext } from '@/utils/nav-visibility.utils';
+import { useBirthdayPreferencesComplete } from '@/hooks/useBirthdayPreferencesComplete';
+import { isHrefVisible, isLandingPath, resolveDefaultLandingPage, shouldForwardToLanding, type NavVisibilityContext } from '@/utils/nav-visibility.utils';
 
 /**
  * AuthInitializer Component
@@ -50,6 +51,7 @@ export const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ child
   const catalogue = useFeatureStore((s) => s.catalogue);
   const plan = useFeatureStore((s) => s.plan);
   const loaded = useFeatureStore((s) => s.loaded);
+  const birthdayPreferencesComplete = useBirthdayPreferencesComplete();
 
   // Ensure component only initializes on client after hydration
   useEffect(() => {
@@ -248,12 +250,22 @@ export const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ child
 
       let memberDestination: string;
       if (memberDashboardPath === '/dashboard') {
-        memberDestination = resolveDefaultLandingPage({
+        const landing = resolveDefaultLandingPage({
           defaultPage: defaultLandingPage,
           features,
           catalogue,
           plan,
         });
+        // Forward to the admin-configured landing only while the member still
+        // owes the module's onboarding (the compulsory birthday plan form).
+        // Once the form is complete, the restriction is lifted and the member
+        // simply stays on the hub.
+        memberDestination = shouldForwardToLanding({
+          landing,
+          birthdayPreferencesComplete,
+        })
+          ? landing
+          : '/dashboard';
       } else if (isMemberDashboardPath) {
         memberDestination = isHrefVisible(memberDashboardPath, memberCtx)
           ? memberDashboardPath
@@ -304,7 +316,7 @@ export const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ child
         router.replace(correctDestination);
       }
     }
-  }, [isMounted, isHydrated, routingResolved, pathname, user, activeRole, router, defaultLandingPage, features, catalogue, plan, loaded]);
+  }, [isMounted, isHydrated, routingResolved, pathname, user, activeRole, router, defaultLandingPage, features, catalogue, plan, loaded, birthdayPreferencesComplete]);
 
   // Render children - routing happens via effects above
   return <>{children}</>;
