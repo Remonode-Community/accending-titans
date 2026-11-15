@@ -9,7 +9,7 @@ import { canUseRole, getPrimaryRole } from '@/utils/role.utils';
 import { useInitialization } from '@/contexts/InitializationContext';
 import { FEATURES } from '@/config/features';
 import { useFeatureStore } from '@/store/feature.store';
-import { isLandingPath, resolveDefaultLandingPage } from '@/utils/nav-visibility.utils';
+import { isHrefVisible, isLandingPath, resolveDefaultLandingPage, type NavVisibilityContext } from '@/utils/nav-visibility.utils';
 
 /**
  * AuthInitializer Component
@@ -49,6 +49,7 @@ export const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ child
   const features = useFeatureStore((s) => s.features);
   const catalogue = useFeatureStore((s) => s.catalogue);
   const plan = useFeatureStore((s) => s.plan);
+  const loaded = useFeatureStore((s) => s.loaded);
 
   // Ensure component only initializes on client after hydration
   useEffect(() => {
@@ -229,6 +230,43 @@ export const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ child
         roleToRoute = getPrimaryRole(user.roles);
       }
 
+      // Member-dashboard destination resolution. The ungated hub (`/dashboard`)
+      // forwards to the admin-configured landing page, resolved against the
+      // user's entitlements (falling back to the hub when unentitled). Deeper
+      // module routes are honoured while the module is allowed for this user
+      // and fall back to the resolved landing otherwise — billing
+      // (`/dashboard/subscriptions`) is ungated, so renewal stays reachable.
+      const memberDashboardPath = pathname || '';
+      const isMemberDashboardPath =
+        memberDashboardPath === '/dashboard' || memberDashboardPath.startsWith('/dashboard/');
+      const memberCtx: NavVisibilityContext = {
+        features,
+        loaded,
+        catalogue,
+        plan,
+      };
+
+      let memberDestination: string;
+      if (memberDashboardPath === '/dashboard') {
+        memberDestination = resolveDefaultLandingPage({
+          defaultPage: defaultLandingPage,
+          features,
+          catalogue,
+          plan,
+        });
+      } else if (isMemberDashboardPath) {
+        memberDestination = isHrefVisible(memberDashboardPath, memberCtx)
+          ? memberDashboardPath
+          : resolveDefaultLandingPage({
+              defaultPage: defaultLandingPage,
+              features,
+              catalogue,
+              plan,
+            });
+      } else {
+        memberDestination = '/dashboard';
+      }
+
       // Route based on the determined role
       if (roleToRoute === 'admin') {
         // Admins may still open member-dashboard module routes (the backend
@@ -236,26 +274,13 @@ export const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ child
         // default-landing resolution still decides the final target and falls
         // back when the admin has no subscription/entitlement for it. Admin
         // surface routes (`/admin/...`) keep their own destination.
-        const isMemberDashboardPath = !!pathname && (pathname === '/dashboard' || pathname.startsWith('/dashboard/'));
-        correctDestination = isMemberDashboardPath
-          ? resolveDefaultLandingPage({
-              defaultPage: defaultLandingPage,
-              features,
-              catalogue,
-              plan,
-            })
-          : '/admin';
+        correctDestination = isMemberDashboardPath ? memberDestination : '/admin';
       } else if (roleToRoute === 'agent') {
         correctDestination = '/agent';
       } else {
         // Member dashboard: land on the administrator-configured default
         // landing page, resolved against this member's entitlements.
-        correctDestination = resolveDefaultLandingPage({
-          defaultPage: defaultLandingPage,
-          features,
-          catalogue,
-          plan,
-        });
+        correctDestination = memberDestination;
       }
     }
 
@@ -279,7 +304,7 @@ export const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ child
         router.replace(correctDestination);
       }
     }
-  }, [isMounted, isHydrated, routingResolved, pathname, user, activeRole, router, defaultLandingPage, features, catalogue, plan]);
+  }, [isMounted, isHydrated, routingResolved, pathname, user, activeRole, router, defaultLandingPage, features, catalogue, plan, loaded]);
 
   // Render children - routing happens via effects above
   return <>{children}</>;
