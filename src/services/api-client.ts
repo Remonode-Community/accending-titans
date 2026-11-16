@@ -326,10 +326,17 @@ class ApiClient {
           }
 
           debug.error('[ApiClient] Got 403 - access forbidden');
-          // Store 403 error in session for error modal to display
+          // Store 403 error in session for error modal to display. The reason
+          // fields ride along so the modal can say *why* — permission,
+          // subscription, plan or an admin switch — instead of one generic
+          // sentence for four different situations.
           if (typeof window !== 'undefined') {
             sessionStorage.setItem('error_403', JSON.stringify({
               message: formattedError.message,
+              error_code: formattedError.error_code,
+              feature: formattedError.feature,
+              required: formattedError.required,
+              status: formattedError.status ?? error.response?.status,
               endpoint: error.config?.url,
               timestamp: new Date().toISOString(),
             }));
@@ -370,6 +377,9 @@ class ApiClient {
       code: response?.code,
       feature: response?.feature,
       required: response?.required,
+      // A refusal with no `error_code` (a role denial) can only be told apart
+      // from a transport fault by the status it came back with.
+      status: error.response?.status,
       errors: response?.errors,
     };
   }

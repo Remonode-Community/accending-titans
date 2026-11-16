@@ -21,11 +21,13 @@ import {
 import { Button } from '@/components/shared/Button';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { Modal } from '@/components/shared/Modal';
+import { AccessDeniedNotice } from '@/components/shared/AccessDeniedNotice';
 import { BirthdayCountdownCard } from '@/components/birthday/BirthdayCountdownCard';
 import { BirthdayPreferencesWizard } from '@/components/birthday/BirthdayPreferencesWizard';
 import { birthdayService } from '@/services/birthday.service';
 import { useAuth } from '@/hooks/useAuth';
 import { birthdayColorHex } from '@/utils/birthday.utils';
+import { describeAccessDenied, type AccessDenied } from '@/utils/access-denied.utils';
 import type {
   BirthdayEligibility,
   MyBirthday,
@@ -58,6 +60,13 @@ export default function BirthdaysPage() {
   const [reward, setReward] = useState<BirthdayEligibility | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  /**
+   * Set when the refusal came from the API and carried a reason worth
+   * explaining (no plan, plan excludes Birthdays, feature switched off).
+   * A plain `error` string cannot say which of those it was, so the two are
+   * kept apart and only this one gets the explanatory card.
+   */
+  const [denied, setDenied] = useState<AccessDenied | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showPlanEditor, setShowPlanEditor] = useState(false);
 
@@ -65,12 +74,22 @@ export default function BirthdaysPage() {
     try {
       setLoading(true);
       setError(null);
+      setDenied(null);
       const [mineRes, networkRes] = await Promise.all([
         birthdayService.getMine(),
         birthdayService.getNetwork(90),
       ]);
 
-      if (mineRes.success && mineRes.data) setMine(mineRes.data);
+      if (mineRes.success && mineRes.data) {
+        setMine(mineRes.data);
+      } else if (!mineRes.success) {
+        // A refusal rather than an empty account: say why instead of
+        // rendering a hub that silently has nothing in it.
+        const reason = describeAccessDenied(mineRes, 'Could not load your birthday plan.');
+        if (reason.kind === 'unknown') setError(reason.message);
+        else setDenied(reason);
+      }
+
       if (networkRes.success && networkRes.data?.birthdays) setNetwork(networkRes.data.birthdays);
 
       // The loyalty reward card is supplementary: if this call fails the rest
@@ -81,8 +100,14 @@ export default function BirthdaysPage() {
       } catch {
         // Omit the reward card.
       }
-    } catch {
-      setError('Could not load birthdays right now.');
+    } catch (err) {
+      // `api-client` rejects with a plain object, never an `Error`. Collapsing
+      // every failure to "Could not load birthdays right now." hid the real
+      // answer — most often that the member has no plan, or that their plan
+      // does not include Birthdays.
+      const reason = describeAccessDenied(err, 'Could not load birthdays right now.');
+      if (reason.kind === 'unknown') setError(reason.message);
+      else setDenied(reason);
     } finally {
       setLoading(false);
     }
@@ -124,6 +149,28 @@ export default function BirthdaysPage() {
           initial={mine.profile.preferences}
           onCompleted={() => void load()}
         />
+      </div>
+    );
+  }
+
+  /*
+   * A refusal that came with a stated reason replaces the hub entirely.
+   * Every card on it depends on the profile the API just declined to return,
+   * so showing them half-loaded — or showing nothing but "Could not load
+   * birthdays right now." — would leave the member with no idea whether to
+   * buy a plan, wait for an admin, or contact support.
+   */
+  if (!loading && denied) {
+    return (
+      <div className="space-y-6">
+        <header>
+          <h1 className="text-2xl font-black tracking-tight text-gray-900">Birthdays</h1>
+          <p className="mt-1 text-sm text-gray-500">
+            Your network is coming together to celebrate.
+          </p>
+        </header>
+
+        <AccessDeniedNotice denied={denied} onRetry={() => void load()} />
       </div>
     );
   }

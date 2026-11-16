@@ -29,6 +29,7 @@ import {
 import { ProtectedPageWrapper } from '@/components/ProtectedPageWrapper';
 import { PageSkeleton } from '@/components/shared/SkeletonLoader';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
+import { AccessDeniedNotice } from '@/components/shared/AccessDeniedNotice';
 import { Modal } from '@/components/shared/Modal';
 import { BusinessProfileForm } from '@/components/catalogue/BusinessProfileForm';
 import { useMyCatalogue } from '@/hooks/useMyCatalogue';
@@ -645,6 +646,7 @@ export default function CataloguePage() {
     isSavingProfile,
     savingItemId,
     error,
+    denied,
     refresh,
     saveProfile,
     addItem,
@@ -751,6 +753,20 @@ export default function CataloguePage() {
     return (
       <ProtectedPageWrapper>
         <PageSkeleton />
+      </ProtectedPageWrapper>
+    );
+  }
+
+  /*
+   * A refused load replaces the page. Everything below depends on the
+   * portfolio the API just declined to return, so rendering the "set up your
+   * business profile" empty state on top of a red error line would tell the
+   * member to do something they are not currently allowed to do.
+   */
+  if (denied) {
+    return (
+      <ProtectedPageWrapper>
+        <AccessDeniedNotice denied={denied} onRetry={() => void refresh()} />
       </ProtectedPageWrapper>
     );
   }

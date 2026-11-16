@@ -39,7 +39,14 @@ import { ThemeToggle } from '@/components/shared/ThemeToggle';
 import { useFeatureStore } from '@/store/feature.store';
 import { useVisibleNavItems } from '@/hooks/useVisibleNavItems';
 import { useBirthdayPreferencesComplete } from '@/hooks/useBirthdayPreferencesComplete';
-import { isLandingPath, resolveDefaultLandingPage, shouldForwardToLanding } from '@/utils/nav-visibility.utils';
+import {
+  featureUnavailableReason as resolveFeatureUnavailableReason,
+  isFeatureAllowed,
+  isLandingPath,
+  resolveDefaultLandingPage,
+  shouldForwardToLanding,
+  type NavVisibilityContext,
+} from '@/utils/nav-visibility.utils';
 import type {
   FeatureKey,
   FeatureUnavailableReason,
@@ -281,10 +288,29 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
       )
     : undefined;
 
-  const featureBlocked = Boolean(activeFeature && features[activeFeature.feature] === false);
+  // One rule for "may this member use this module?", shared with the sidebar
+  // and with AuthInitializer's routing decision. Keeping a second copy here
+  // is how a route ended up being allowed by one check and refused by
+  // another — which is what made the refusal unreachable: routing bounced the
+  // member away before this card could render.
+  //
+  // `activeFeature` only resolves once the map has loaded, which is exactly
+  // when the rule becomes decidable, so the shared `!loaded` short-circuit
+  // inside `isFeatureAllowed` can never hide a module that is actually fine.
+  const navCtx: NavVisibilityContext = {
+    features,
+    loaded: featuresLoaded,
+    catalogue,
+    plan,
+    unavailable,
+  };
+
+  const featureBlocked = Boolean(
+    activeFeature && !isFeatureAllowed(activeFeature.feature, navCtx),
+  );
 
   const featureUnavailableReason: FeatureUnavailableReason = activeFeature
-    ? unavailable[activeFeature.feature] ?? 'disabled'
+    ? resolveFeatureUnavailableReason(activeFeature.feature, navCtx)
     : 'disabled';
 
   const initials = user?.first_name

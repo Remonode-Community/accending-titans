@@ -23,7 +23,10 @@ server {
     resolver 1.1.1.1 8.8.8.8 valid=30s ipv6=off;
     resolver_timeout 5s;
 
-    set $backend_origin ${BACKEND_ORIGIN};
+    # No `set $backend_origin` + variable proxy_pass here: a variable makes
+    # nginx resolve via the public `resolver` above, which cannot see
+    # host.docker.internal (it lives only in the container /etc/hosts via
+    # extra_hosts) -> 502. Static proxy_pass uses the system resolver instead.
     set $backend_host ${BACKEND_HOST};
 
     error_log /var/log/nginx/error.log warn;
@@ -41,7 +44,7 @@ server {
     }
 
     location /api/ {
-        proxy_pass $backend_origin;
+        proxy_pass ${BACKEND_ORIGIN};
         proxy_http_version 1.1;
         proxy_ssl_server_name on;
         proxy_ssl_name $backend_host;

@@ -10,7 +10,7 @@ import { useInitialization } from '@/contexts/InitializationContext';
 import { FEATURES } from '@/config/features';
 import { useFeatureStore } from '@/store/feature.store';
 import { useBirthdayPreferencesComplete } from '@/hooks/useBirthdayPreferencesComplete';
-import { isHrefVisible, isLandingPath, resolveDefaultLandingPage, shouldForwardToLanding, type NavVisibilityContext } from '@/utils/nav-visibility.utils';
+import { getFeatureKeyForHref, isLandingPath, resolveDefaultLandingPage, shouldForwardToLanding } from '@/utils/nav-visibility.utils';
 
 /**
  * AuthInitializer Component
@@ -235,20 +235,16 @@ export const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ child
       // Member-dashboard destination resolution. The ungated hub (`/dashboard`)
       // forwards to the admin-configured landing page, resolved against the
       // user's entitlements (falling back to the hub when unentitled). Deeper
-      // module routes are honoured while the module is allowed for this user
-      // and fall back to the resolved landing otherwise — billing
-      // (`/dashboard/subscriptions`) is ungated, so renewal stays reachable.
+      // module routes are honoured as-is: refusing a member their route is the
+      // dashboard layout's job, because it is the only place that can say *why*
+      // (their plan, or an administrator's switch) instead of silently putting
+      // them back on the hub. Billing (`/dashboard/subscriptions`) is ungated,
+      // so renewal stays reachable.
       const memberDashboardPath = pathname || '';
       const isMemberDashboardPath =
         memberDashboardPath === '/dashboard' || memberDashboardPath.startsWith('/dashboard/');
-      const memberCtx: NavVisibilityContext = {
-        features,
-        loaded,
-        catalogue,
-        plan,
-      };
 
-      let memberDestination: string;
+      let memberDestination: string | null;
       if (memberDashboardPath === '/dashboard') {
         const landing = resolveDefaultLandingPage({
           defaultPage: defaultLandingPage,
@@ -267,14 +263,25 @@ export const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ child
           ? landing
           : '/dashboard';
       } else if (isMemberDashboardPath) {
-        memberDestination = isHrefVisible(memberDashboardPath, memberCtx)
-          ? memberDashboardPath
-          : resolveDefaultLandingPage({
-              defaultPage: defaultLandingPage,
-              features,
-              catalogue,
-              plan,
-            });
+        // A plan-gated module route can only be judged once the feature map
+        // has resolved. `isHrefVisible` answers "not visible" while the map is
+        // still loading, so deciding on timing alone used to bounce entitled
+        // members back to the hub — which is why clicking a setup shortcut
+        // could appear to "do nothing". `loaded` is in this effect's
+        // dependencies, so leaving the destination undecided re-runs it the
+        // moment the map lands.
+        if (getFeatureKeyForHref(memberDashboardPath) !== null && !loaded) {
+          memberDestination = null;
+        } else {
+          // Stay on the route either way. An entitled member gets the page; a
+          // member who is not entitled gets the dashboard layout's refusal
+          // card in its place, which names the actual reason — their plan does
+          // not include the feature, or an administrator switched it off — and
+          // offers "View plans". Redirecting to the hub here is exactly what
+          // made a refusal silent: the member was simply back on the dashboard
+          // with no message about why the page they asked for had vanished.
+          memberDestination = memberDashboardPath;
+        }
       } else {
         memberDestination = '/dashboard';
       }

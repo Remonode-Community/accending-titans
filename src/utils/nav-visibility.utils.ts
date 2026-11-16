@@ -19,6 +19,7 @@
 import type {
   FeatureCatalogueEntry,
   FeatureKey,
+  FeatureUnavailableReason,
   MemberPlanEntitlement,
 } from '@/types/platform-settings.types';
 
@@ -38,9 +39,11 @@ export interface NavVisibilityContext {
   catalogue?: FeatureCatalogueEntry[];
   /** The user's plan entitlement, used to gate plan-gated entries. */
   plan?: MemberPlanEntitlement | null;
+  /** Why each false key is false (`plan` vs `disabled`), when the server said. */
+  unavailable?: Record<string, FeatureUnavailableReason>;
 }
 
-const isFeatureAllowed = (key: FeatureKey, ctx: NavVisibilityContext): boolean => {
+export const isFeatureAllowed = (key: FeatureKey, ctx: NavVisibilityContext): boolean => {
   if (!ctx.loaded) return false;
 
   const meta = ctx.catalogue?.find((entry) => entry.key === key);
@@ -114,6 +117,32 @@ export const isHrefVisible = (href: string, ctx: NavVisibilityContext): boolean 
   if (!featureKey) return true;
 
   return isFeatureAllowed(featureKey, ctx);
+};
+
+/**
+ * Why a feature is off, for the refusal card.
+ *
+ * The server labels every false feature in the `/v1/features` payload, so the
+ * label normally comes straight from `ctx.unavailable`. The fallback exists
+ * because mislabelling a plan gap as "switched off" sends the member to
+ * support when they should be sent to billing — the exact confusion between
+ * "you need a plan" and "an admin turned this off" that this whole helper
+ * exists to prevent. Mirrors `SubscriptionEntitlementService::unavailableReasons`:
+ * a plan-gated feature the member's plan does not list reads as `plan`.
+ */
+export const featureUnavailableReason = (
+  key: FeatureKey,
+  ctx: NavVisibilityContext,
+): FeatureUnavailableReason => {
+  const labelled = ctx.unavailable?.[key];
+  if (labelled) return labelled;
+
+  const meta = ctx.catalogue?.find((entry) => entry.key === key);
+  const included = ctx.plan?.features?.includes(key) ?? false;
+
+  if (meta?.plan_gated && !included) return 'plan';
+
+  return 'disabled';
 };
 
 /**

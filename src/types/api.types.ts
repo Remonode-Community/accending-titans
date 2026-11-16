@@ -29,6 +29,15 @@ export interface ApiResponse<T = any> {
    * (`subscription`) or a plan that includes the feature (`upgrade`).
    */
   required?: 'subscription' | 'upgrade';
+  /**
+   * HTTP status of the response this payload came from.
+   *
+   * The envelope itself is always `success: true/false` with an application
+   * `code`, so a plain 403 with no `error_code` (a role/permission refusal)
+   * is indistinguishable from any other failure without this. Access-denied
+   * wording branches on it.
+   */
+  status?: number;
   errors?: Record<string, string[]>;
   pagination?: PaginationMeta;
   stats?: Record<string, any>; // Optional stats object for endpoints that return aggregated data

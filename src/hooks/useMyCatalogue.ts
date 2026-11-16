@@ -2,6 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { portfolioService } from '@/services/portfolio.service';
+import {
+  accessDeniedMessage,
+  describeAccessDenied,
+  type AccessDenied,
+} from '@/utils/access-denied.utils';
 import { useAlert } from './useAlert';
 import type {
   AddPortfolioItemRequest,
@@ -21,6 +26,8 @@ interface UseMyCatalogueResult {
   deletingItemId: number | null;
   uploadingImage: boolean;
   error: string | null;
+  /** Why the load was refused, when the API stated a reason. */
+  denied: AccessDenied | null;
   refresh: () => Promise<void>;
   saveProfile: (payload: UpsertPortfolioRequest) => Promise<boolean>;
   addItem: (payload: AddPortfolioItemRequest) => Promise<boolean>;
@@ -48,10 +55,18 @@ export function useMyCatalogue(): UseMyCatalogueResult {
   const [deletingItemId, setDeletingItemId] = useState<number | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /**
+   * Set only when the *load* was refused and the API said why. Mutation
+   * failures stay toasts — the page still works — but a refused load leaves
+   * nothing to render, so it needs an explanation with a next step rather
+   * than a red line above an empty page.
+   */
+  const [denied, setDenied] = useState<AccessDenied | null>(null);
 
   const load = useCallback(async () => {
     setIsLoading(true);
     setError(null);
+    setDenied(null);
 
     try {
       const res = await portfolioService.getMy();
@@ -60,12 +75,18 @@ export function useMyCatalogue(): UseMyCatalogueResult {
         setPortfolio(res.data.portfolio);
         setCanManage(Boolean(res.data.can_manage));
       } else {
-        setError(res.message || 'We could not load your catalogue.');
+        const reason = describeAccessDenied(res, 'We could not load your catalogue.');
+        setError(reason.message);
+        setDenied(reason.kind === 'unknown' ? null : reason);
       }
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'We could not load your catalogue.',
-      );
+      // `api-client` rejects with a plain object, never an `Error`, so the
+      // old `err instanceof Error` check always fell through to the generic
+      // fallback and hid the API's reason ("your plan does not include
+      // this") behind "We could not load your catalogue."
+      const reason = describeAccessDenied(err, 'We could not load your catalogue.');
+      setError(reason.message);
+      setDenied(reason.kind === 'unknown' ? null : reason);
     } finally {
       setIsLoading(false);
     }
@@ -93,10 +114,10 @@ export function useMyCatalogue(): UseMyCatalogueResult {
           return true;
         }
 
-        showError(res.message || 'We could not save your business profile.');
+        showError(accessDeniedMessage(res, 'We could not save your business profile.'));
         return false;
       } catch (err) {
-        showError(err instanceof Error ? err.message : 'Something went wrong.');
+        showError(accessDeniedMessage(err, 'Something went wrong.'));
         return false;
       } finally {
         setIsSavingProfile(false);
@@ -120,10 +141,10 @@ export function useMyCatalogue(): UseMyCatalogueResult {
           return true;
         }
 
-        showError(res.message || 'We could not add that item.');
+        showError(accessDeniedMessage(res, 'We could not add that item.'));
         return false;
       } catch (err) {
-        showError(err instanceof Error ? err.message : 'Something went wrong.');
+        showError(accessDeniedMessage(err, 'Something went wrong.'));
         return false;
       }
     },
@@ -151,10 +172,10 @@ export function useMyCatalogue(): UseMyCatalogueResult {
           return true;
         }
 
-        showError(res.message || 'We could not update that item.');
+        showError(accessDeniedMessage(res, 'We could not update that item.'));
         return false;
       } catch (err) {
-        showError(err instanceof Error ? err.message : 'Something went wrong.');
+        showError(accessDeniedMessage(err, 'Something went wrong.'));
         return false;
       } finally {
         setSavingItemId(null);
@@ -179,10 +200,10 @@ export function useMyCatalogue(): UseMyCatalogueResult {
           return true;
         }
 
-        showError(res.message || 'We could not remove that item.');
+        showError(accessDeniedMessage(res, 'We could not remove that item.'));
         return false;
       } catch (err) {
-        showError(err instanceof Error ? err.message : 'Something went wrong.');
+        showError(accessDeniedMessage(err, 'Something went wrong.'));
         return false;
       } finally {
         setDeletingItemId(null);
@@ -226,6 +247,7 @@ export function useMyCatalogue(): UseMyCatalogueResult {
     deletingItemId,
     uploadingImage,
     error,
+    denied,
     refresh: load,
     saveProfile,
     addItem,
