@@ -70,7 +70,7 @@ export const Modal = ({
             >
               <Dialog.Panel
                 className={clsx(
-                  'w-full overflow-hidden rounded-t-2xl bg-white shadow-2xl sm:rounded-2xl',
+                  'w-full overflow-hidden rounded-t-2xl bg-white shadow-2xl dark:bg-[#1b1a16] sm:rounded-2xl',
                   'pb-[env(safe-area-inset-bottom)] sm:pb-0',
                   sizeClasses[size],
                 )}
@@ -80,11 +80,11 @@ export const Modal = ({
 
                 {/* Grab handle on mobile */}
                 <div className="flex justify-center pt-2 sm:hidden">
-                  <div className="h-1 w-10 rounded-full bg-gray-200" />
+                  <div className="h-1 w-10 rounded-full bg-gray-200 dark:bg-gray-600" />
                 </div>
 
                 {/* Header */}
-                <div className="flex items-start justify-between gap-4 border-b border-gray-100 px-5 py-4 sm:px-6">
+                <div className="flex items-start justify-between gap-4 border-b border-gray-100 px-5 py-4 dark:border-[#28251e] sm:px-6">
                   <div className="flex min-w-0 items-center gap-3">
                     {Icon && (
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#C9A84C]/20 bg-[#C9A84C]/10">
@@ -92,11 +92,11 @@ export const Modal = ({
                       </div>
                     )}
                     <div className="min-w-0">
-                      <Dialog.Title className="text-base font-bold leading-tight text-gray-900">
+                      <Dialog.Title className="text-base font-bold leading-tight text-gray-900 dark:text-gray-100">
                         {title}
                       </Dialog.Title>
                       {subtitle && (
-                        <p className="mt-0.5 text-sm leading-tight text-gray-500">{subtitle}</p>
+                        <p className="mt-0.5 text-sm leading-tight text-gray-500 dark:text-gray-400">{subtitle}</p>
                       )}
                     </div>
                   </div>
@@ -104,7 +104,7 @@ export const Modal = ({
                   {closeButton && (
                     <button
                       onClick={onClose}
-                      className="-mr-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+                      className="-mr-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-[#24221c] dark:hover:text-gray-200"
                       aria-label="Close dialog"
                     >
                       <X size={18} />
@@ -119,14 +119,16 @@ export const Modal = ({
                     [&::-webkit-scrollbar-track]:bg-transparent
                     [&::-webkit-scrollbar-thumb]:rounded-full
                     [&::-webkit-scrollbar-thumb]:bg-gray-200
-                    hover:[&::-webkit-scrollbar-thumb]:bg-gray-300"
+                    hover:[&::-webkit-scrollbar-thumb]:bg-gray-300
+                    dark:[&::-webkit-scrollbar-thumb]:bg-gray-600
+                    dark:hover:[&::-webkit-scrollbar-thumb]:bg-gray-500"
                 >
                   {children}
                 </div>
 
                 {/* Footer */}
                 {footer && (
-                  <div className="flex flex-col-reverse gap-2 border-t border-gray-100 bg-gray-50/60 px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
+                  <div className="flex flex-col-reverse gap-2 border-t border-gray-100 bg-gray-50/60 px-5 py-4 dark:border-[#28251e] dark:bg-[#24221c] sm:flex-row sm:justify-end sm:px-6">
                     {footer}
                   </div>
                 )}

@@ -963,8 +963,8 @@ export default function AdminSubscriptionsPage() {
             />
           </div>
 
-          {/* Send Invoices & Send SMS */}
-          <div className="grid grid-cols-2 gap-4">
+          {/* Invoice delivery */}
+          <div className="grid grid-cols-1 gap-4">
             <label className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors">
               <input
                 type="checkbox"
@@ -977,20 +977,6 @@ export default function AdminSubscriptionsPage() {
               <div>
                 <p className="text-sm font-semibold text-gray-700">Send Invoices</p>
                 <p className="text-xs text-gray-400">Email invoices to customers</p>
-              </div>
-            </label>
-            <label className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors">
-              <input
-                type="checkbox"
-                checked={planForm.send_sms}
-                onChange={(e) =>
-                  setPlanForm((prev) => ({ ...prev, send_sms: e.target.checked }))
-                }
-                className="w-4 h-4 rounded border-gray-300 text-[#C9A84C] focus:ring-[#C9A84C]"
-              />
-              <div>
-                <p className="text-sm font-semibold text-gray-700">Send SMS</p>
-                <p className="text-xs text-gray-400">SMS notifications to customers</p>
               </div>
             </label>
           </div>

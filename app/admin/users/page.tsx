@@ -82,6 +82,17 @@ function getRoleBadgeVariant(
   return map[role?.toLowerCase()] ?? 'default';
 }
 
+function getDarkBadgeClasses(variant: 'success' | 'danger' | 'warning' | 'info' | 'default'): string {
+  const map = {
+    success: 'dark:bg-green-500/15 dark:text-green-300',
+    danger: 'dark:bg-red-500/15 dark:text-red-300',
+    warning: 'dark:bg-amber-500/15 dark:text-amber-300',
+    info: 'dark:bg-[#C9A84C]/15 dark:text-[#E2C875]',
+    default: 'dark:bg-gray-700 dark:text-gray-200',
+  };
+  return map[variant];
+}
+
 /** Get role badge custom color class */
 function getRoleBadgeColor(role: string): string {
   const map: Record<string, string> = {
@@ -91,6 +102,20 @@ function getRoleBadgeColor(role: string): string {
     agent: 'bg-yellow-100 text-yellow-800 border-yellow-200',
   };
   return map[role?.toLowerCase()] || 'bg-gray-100 text-gray-800 border-gray-200';
+}
+
+function formatUserAddress(address: AdminUser['address'] | string | null | undefined): string | null {
+  if (typeof address === 'string') {
+    return address.trim() || null;
+  }
+
+  if (!address) return null;
+
+  const parts = [address.street, address.city, address.state, address.country, address.postal_code]
+    .map((part) => part?.trim())
+    .filter((part): part is string => Boolean(part));
+
+  return parts.length ? parts.join(', ') : null;
 }
 
 // Filter configuration for FilterPanel component
@@ -144,7 +169,6 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [walletBalance, setWalletBalance] = useState(0);
   const [totalUsersCount, setTotalUsersCount] = useState(0);
 
   // ── State - Selected User ───────────────────────────────────────────────────
@@ -363,9 +387,6 @@ export default function AdminUsersPage() {
           // Use stats if available
           if (apiData.stats) {
             setTotalUsersCount(apiData.stats.total_users ?? pagination?.total ?? userData.length);
-            setWalletBalance(apiData.stats.total_wallet_balance ?? 0);
-          } else {
-            setWalletBalance(0);
           }
         } else {
           setUsers([]);
@@ -407,16 +428,9 @@ export default function AdminUsersPage() {
   const fetchUserDetails = async (userId: string | number) => {
     try {
       const response = await adminService.getUser(String(userId));
-      // Combine data with statistics and other fields from response
       const userData = response?.data?.user || response?.data;
       if (userData && typeof userData === 'object') {
-        // Merge statistics, kyc_data and other root-level properties with user data
-        const completeUserData = {
-          ...userData,
-          statistics: (response as any)?.statistics,
-          kyc_data: (response as any)?.kyc_data,
-        };
-        setUserDetails(completeUserData as AdminUser);
+        setUserDetails(userData as AdminUser);
       }
     } catch (error) {
       console.error('Error fetching user details:', error);
@@ -851,7 +865,7 @@ export default function AdminUsersPage() {
 
         <div
           ref={summaryRef}
-          className="flex gap-5 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide md:grid md:grid-cols-2 md:overflow-x-visible xl:grid-cols-5"
+          className="flex gap-5 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide md:grid md:grid-cols-2 md:overflow-x-visible xl:grid-cols-4"
           onScroll={updateSummaryScrollState}
         >
           {[
@@ -879,15 +893,7 @@ export default function AdminUsersPage() {
               note: 'Dormant or unused accounts',
               Icon: UserMinus,
             },
-            {
-              title: 'Total Wallet Balance',
-              value: `₦${walletBalance.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-              note: 'Combined wallet balance',
-              Icon: Users2,
-              bgColor: 'bg-[#fef2f2]',
-              iconColor: 'text-[#c9a84c]',
-            },
-          ].map(({ title, value, note, Icon, bgColor, iconColor }) => (
+          ].map(({ title, value, note, Icon }) => (
             <Card
               key={title}
               className="min-w-full snap-start rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)] md:min-w-0"
@@ -900,8 +906,8 @@ export default function AdminUsersPage() {
                   </p>
                   <p className="mt-2 text-sm text-[#6b7280]">{note}</p>
                 </div>
-                <div className={`rounded-2xl ${bgColor || 'bg-[#eef2ff]'} p-3`}>
-                  <Icon className={`h-5 w-5 ${iconColor || 'text-[#4a5ff7]'}`} />
+                <div className="rounded-2xl bg-[#eef2ff] p-3">
+                  <Icon className="h-5 w-5 text-[#4a5ff7]" />
                 </div>
               </div>
             </Card>
@@ -1295,351 +1301,199 @@ export default function AdminUsersPage() {
           isOpen={showDetails}
           onClose={() => setShowDetails(false)}
           title="User Details"
-          subtitle={`#${userDetails.id} · ${userDetails.first_name} ${userDetails.last_name}`}
+          subtitle={`Member account · #${userDetails.id}`}
           icon={User}
           size="full"
-        >
-          <div className="space-y-6 max-h-[80vh] overflow-y-auto pr-2">
-            {/* Profile Photo */}
-            {userDetails.profile_photo_url && (
-              <div className="flex justify-center">
-                <div className="relative h-24 w-24 overflow-hidden rounded-full border-4 border-[#c9a84c] shadow-lg">
-                  <img
-                    src={userDetails.profile_photo_url}
-                    alt={`${userDetails.first_name} ${userDetails.last_name}`}
-                    className="h-full w-full object-cover"
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Basic Info */}
-            <div className="rounded-lg border border-[#e5e7eb] bg-[#f8fafc] p-4">
-              <h3 className="mb-4 font-semibold text-[#111827]">
-                Basic Information
-              </h3>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
-                    User ID
-                  </p>
-                  <p className="mt-2 font-mono text-sm font-semibold text-[#111827]">
-                    #{userDetails.id}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
-                    Full Name
-                  </p>
-                  <p className="mt-2 text-sm font-semibold text-[#111827]">
-                    {userDetails.first_name} {userDetails.last_name}
-                  </p>
-                </div>
-                <div className="md:col-span-2">
-                  <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
-                    Email Address
-                  </p>
-                  <p className="mt-2 font-mono text-sm text-[#111827]">
-                    {userDetails.email}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
-                    Phone Number
-                  </p>
-                  <p className="mt-2 font-mono text-sm text-[#111827]">
-                    {userDetails.phone_number ?? 'Not Provided'}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
-                    Date of Birth
-                  </p>
-                  <p className="mt-2 text-sm text-[#111827]">
-                    {userDetails.dob ? formatDate(userDetails.dob) : 'Not Provided'}
-                  </p>
-                </div>
-                {userDetails.address && (
-                  <div className="md:col-span-2">
-                    <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
-                      Address
-                    </p>
-                    <p className="mt-2 text-sm text-[#111827]">
-                      {typeof userDetails.address === 'string'
-                        ? userDetails.address
-                        : userDetails.address
-                        ? `${userDetails.address.street || ''}, ${userDetails.address.city || ''}`
-                        : 'Not Provided'}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Verification Status */}
-            <div className="rounded-lg border border-[#e5e7eb] bg-[#f8fafc] p-4">
-              <h3 className="mb-4 font-semibold text-[#111827]">
-                Verification Status
-              </h3>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
-                    Overall Verification
-                  </p>
-                  <p className="mt-2">
-                    <Badge
-                      variant={userDetails.is_verified ? 'success' : 'warning'}
-                    >
-                      {userDetails.is_verified ? '✓ Verified' : 'Unverified'}
-                    </Badge>
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
-                    Email Verification
-                  </p>
-                  <p className="mt-2">
-                    <Badge
-                      variant={userDetails.isEmailVerified ? 'success' : 'warning'}
-                    >
-                      {userDetails.isEmailVerified ? '✓ Verified' : 'Not Verified'}
-                    </Badge>
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
-                    Phone Verification
-                  </p>
-                  <p className="mt-2">
-                    <Badge
-                      variant={userDetails.isPhoneVerified ? 'success' : 'warning'}
-                    >
-                      {userDetails.isPhoneVerified ? '✓ Verified' : 'Not Verified'}
-                    </Badge>
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
-                    Account Status
-                  </p>
-                  <p className="mt-2">
-                    <Badge variant={getStatusVariant(userDetails.status)}>
-                      {(userDetails.status ?? 'active').charAt(0).toUpperCase() + (userDetails.status ?? 'active').slice(1)}
-                    </Badge>
-                  </p>
-                </div>
-              </div>
-              <div className="mt-4 space-y-2 border-t border-[#e5e7eb] pt-4">
-                {userDetails.email_verified_at && (
-                  <p className="text-xs text-[#6b7280]">
-                    <span className="font-medium">Email verified:</span> {formatDate(userDetails.email_verified_at)}
-                  </p>
-                )}
-                {userDetails.phone_verified_at && (
-                  <p className="text-xs text-[#6b7280]">
-                    <span className="font-medium">Phone verified:</span> {formatDate(userDetails.phone_verified_at)}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {/* KYC Information */}
-            <div className="rounded-lg border border-[#e5e7eb] bg-[#f8fafc] p-4">
-              <h3 className="mb-4 font-semibold text-[#111827]">
-                KYC Information
-              </h3>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
-                    KYC Tier
-                  </p>
-                  <p className="mt-2 text-sm font-semibold text-[#111827]">
-                    {userDetails.kyc_tier ? userDetails.kyc_tier.toUpperCase() : 'N/A'}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
-                    KYC Status
-                  </p>
-                  <p className="mt-2">
-                    <Badge
-                      variant={
-                        userDetails.kyc_status === 'approved'
-                          ? 'success'
-                          : userDetails.kyc_status === 'pending'
-                          ? 'warning'
-                          : 'danger'
-                      }
-                    >
-                      {(userDetails.kyc_status || 'N/A').toUpperCase()}
-                    </Badge>
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
-                    BVN (Bank Verification Number)
-                  </p>
-                  <p className="mt-2 font-mono text-sm font-medium text-[#111827]">
-                    {userDetails.bvn ? `${userDetails.bvn.slice(0, 4)}${'*'.repeat(7)}${userDetails.bvn.slice(-3)}` : 'Not Provided'}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
-                    NIN (National ID Number)
-                  </p>
-                  <p className="mt-2 font-mono text-sm font-medium text-[#111827]">
-                    {userDetails.nin ? `${userDetails.nin.slice(0, 4)}${'*'.repeat(7)}${userDetails.nin.slice(-3)}` : 'Not Provided'}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Maplerad ID */}
-            {userDetails.maplerad_id && (
-              <div className="rounded-lg border border-[#e5e7eb] bg-[#f8fafc] p-4">
-                <h3 className="mb-4 font-semibold text-[#111827]">
-                  Maplerad Information
-                </h3>
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
-                    Maplerad ID
-                  </p>
-                  <p className="mt-2 font-mono text-sm text-[#111827]">
-                    {userDetails.maplerad_id}
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Financial Information */}
-            <div>
-              <h3 className="mb-4 font-semibold text-[#111827]">
-                Financial Information
-              </h3>
-              <div className="rounded-lg border border-[#e5e7eb] bg-[#f8fafc] p-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
-                  Account Balance
-                </p>
-                <p className="mt-2 text-2xl font-bold text-[#111827]">
-                  ₦{(userDetails.balance || userDetails.statistics?.wallet_balance || 0).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </p>
-              </div>
-            </div>
-
-            {/* Statistics */}
-            {userDetails.statistics && (
-              <div>
-                <h3 className="mb-4 font-semibold text-[#111827]">
-                  Transaction Statistics
-                </h3>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <div className="rounded-lg border border-[#e5e7eb] bg-[#f8fafc] p-4">
-                    <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
-                      Total Transactions
-                    </p>
-                    <p className="mt-2 text-2xl font-bold text-[#111827]">
-                      {userDetails.statistics.total_transactions}
-                    </p>
-                  </div>
-                  <div className="rounded-lg border border-[#e5e7eb] bg-[#f8fafc] p-4">
-                    <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
-                      Successful Transactions
-                    </p>
-                    <p className="mt-2 text-2xl font-bold text-[#111827]">
-                      {userDetails.statistics.successful_transactions}
-                    </p>
-                  </div>
-                  <div className="rounded-lg border border-[#e5e7eb] bg-[#f8fafc] p-4">
-                    <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
-                      Total Spending
-                    </p>
-                    <p className="mt-2 text-2xl font-bold text-[#111827]">
-                      ₦{userDetails.statistics.total_spending.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </p>
-                  </div>
-                  <div className="rounded-lg border border-[#e5e7eb] bg-[#f8fafc] p-4">
-                    <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
-                      Unread Notifications
-                    </p>
-                    <p className="mt-2 text-2xl font-bold text-[#111827]">
-                      {userDetails.statistics.unread_notifications}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Roles */}
-            {userDetails.roles && userDetails.roles.length > 0 && (
-              <div className="rounded-lg border border-[#e5e7eb] bg-[#f8fafc] p-4">
-                <h3 className="mb-4 font-semibold text-[#111827]">
-                  User Roles
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {userDetails.roles.map((role: string) => (
-                    <Badge key={role} variant={role === 'admin' ? 'danger' : role === 'agent' ? 'warning' : 'info'}>
-                      {role.charAt(0).toUpperCase() + role.slice(1)}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Account Dates */}
-            <div className="rounded-lg border border-[#e5e7eb] bg-[#f8fafc] p-4">
-              <h3 className="mb-4 font-semibold text-[#111827]">
-                Account Timeline
-              </h3>
-              <div className="space-y-3 text-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">Account Created</span>
-                  <span className="font-mono text-[#111827]">
-                    {(userDetails as any)?.created_at
-                      ? formatDate((userDetails as any)?.created_at)
-                      : 'N/A'}
-                  </span>
-                </div>
-                <div className="border-t border-[#e5e7eb]"></div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">Last Updated</span>
-                  <span className="font-mono text-[#111827]">
-                    {(userDetails as any)?.updated_at
-                      ? formatDate((userDetails as any)?.updated_at)
-                      : 'N/A'}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="flex gap-3 pt-4">
+          footer={
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <Button
+                type="button"
                 variant="outline"
-                size="md"
-                onClick={() => router.push(`/admin/users/${userDetails.id}`)}
-                className="flex-1"
+                onClick={() => setShowDetails(false)}
+                className="w-full dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700 sm:w-auto"
               >
-                Open full profile
+                Close
               </Button>
               <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setShowDetails(false);
+                  router.push(`/admin/users/${userDetails.id}`);
+                }}
+                className="w-full dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700 sm:w-auto"
+              >
+                <ExternalLink size={16} />
+                Full profile
+              </Button>
+              <Button
+                type="button"
                 variant="primary"
-                size="md"
                 onClick={() => {
                   setShowDetails(false);
                   handleOpenEditModal(userDetails);
                 }}
-                className="flex-1"
+                className="w-full sm:w-auto"
               >
-                Edit User
+                Edit user
               </Button>
-              <Button
-                variant="outline"
-                size="md"
-                onClick={() => setShowDetails(false)}
-                className="flex-1"
-              >
-                Close
-              </Button>
+            </div>
+          }
+        >
+          <div className="space-y-4">
+            <section className="flex flex-col gap-4 rounded-2xl border border-[#e5e7eb] bg-gradient-to-br from-white to-[#f8fafc] p-4 dark:border-gray-700 dark:from-gray-800 dark:to-gray-900 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+              <div className="flex min-w-0 items-center gap-4">
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-[#e5e7eb] bg-[#FDFAF3] text-lg font-bold text-[#9A7620] dark:border-gray-600 dark:bg-gray-700 dark:text-[#E2C875]">
+                  {userDetails.profile_photo_url ? (
+                    <img
+                      src={userDetails.profile_photo_url}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <>
+                      {userDetails.first_name?.charAt(0)}
+                      {userDetails.last_name?.charAt(0)}
+                    </>
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-[#6b7280] dark:text-gray-400">
+                    Member profile
+                  </p>
+                  <h3 className="mt-1 truncate text-lg font-bold text-[#111827] dark:text-gray-100">
+                    {userDetails.first_name} {userDetails.last_name}
+                  </h3>
+                  <p className="mt-1 text-sm text-[#6b7280] dark:text-gray-400">User #{userDetails.id}</p>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2 sm:justify-end">
+                <Badge
+                  variant={getStatusVariant(userDetails.status)}
+                  className={getDarkBadgeClasses(getStatusVariant(userDetails.status))}
+                >
+                  {(userDetails.status ?? 'active').charAt(0).toUpperCase() + (userDetails.status ?? 'active').slice(1)}
+                </Badge>
+                <Badge
+                  variant={userDetails.profile_complete_status ? 'success' : 'warning'}
+                  className={getDarkBadgeClasses(userDetails.profile_complete_status ? 'success' : 'warning')}
+                >
+                  {userDetails.profile_complete_status ? 'Profile complete' : 'Profile incomplete'}
+                </Badge>
+              </div>
+            </section>
+
+            <div className="grid gap-4 lg:grid-cols-2">
+              <section className="rounded-2xl border border-[#e5e7eb] bg-white p-4 dark:border-gray-700 dark:bg-gray-800 sm:p-5">
+                <h3 className="font-semibold text-[#111827] dark:text-gray-100">Profile & contact</h3>
+                <dl className="mt-4 grid gap-4 sm:grid-cols-2">
+                  {[
+                    { label: 'Email address', value: userDetails.email || 'Not provided' },
+                    { label: 'Phone number', value: userDetails.phone_number || 'Not provided' },
+                    { label: 'Date of birth', value: userDetails.dob ? formatDate(userDetails.dob) : 'Not provided' },
+                    { label: 'Address', value: formatUserAddress(userDetails.address) || 'Not provided' },
+                  ].map(({ label, value }) => (
+                    <div key={label} className="min-w-0">
+                      <dt className="text-xs font-medium uppercase tracking-wide text-[#6b7280] dark:text-gray-400">{label}</dt>
+                      <dd className="mt-1 break-words text-sm font-medium text-[#111827] dark:text-gray-100">{value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </section>
+
+              <section className="rounded-2xl border border-[#e5e7eb] bg-white p-4 dark:border-gray-700 dark:bg-gray-800 sm:p-5">
+                <h3 className="font-semibold text-[#111827] dark:text-gray-100">Community membership</h3>
+                <dl className="mt-4 grid grid-cols-2 gap-4">
+                  <div className="min-w-0">
+                    <dt className="text-xs font-medium uppercase tracking-wide text-[#6b7280] dark:text-gray-400">Membership ID</dt>
+                    <dd className="mt-1 break-words font-mono text-sm font-medium text-[#111827] dark:text-gray-100">
+                      {userDetails.membership_id || 'Not assigned'}
+                    </dd>
+                  </div>
+                  <div className="min-w-0">
+                    <dt className="text-xs font-medium uppercase tracking-wide text-[#6b7280] dark:text-gray-400">Member type</dt>
+                    <dd className="mt-1 text-sm font-medium text-[#111827] dark:text-gray-100">
+                      {userDetails.is_titan_member ? 'Titan member' : 'Community member'}
+                    </dd>
+                  </div>
+                  <div className="min-w-0">
+                    <dt className="text-xs font-medium uppercase tracking-wide text-[#6b7280] dark:text-gray-400">Current rank</dt>
+                    <dd className="mt-1 text-sm font-medium capitalize text-[#111827] dark:text-gray-100">
+                      {userDetails.current_rank || 'Not ranked'}
+                    </dd>
+                  </div>
+                  <div className="min-w-0">
+                    <dt className="text-xs font-medium uppercase tracking-wide text-[#6b7280] dark:text-gray-400">Subscription tenure</dt>
+                    <dd className="mt-1 text-sm font-medium text-[#111827] dark:text-gray-100">
+                      {typeof userDetails.total_subscription_months === 'number'
+                      && Number.isFinite(userDetails.total_subscription_months)
+                        ? `${userDetails.total_subscription_months} ${userDetails.total_subscription_months === 1 ? 'month' : 'months'}`
+                        : 'Not available'}
+                    </dd>
+                  </div>
+                </dl>
+                <div className="mt-4 border-t border-[#e5e7eb] pt-4 dark:border-gray-700">
+                  <p className="mb-2 text-xs font-medium uppercase tracking-wide text-[#6b7280] dark:text-gray-400">Roles</p>
+                  <div className="flex flex-wrap gap-2">
+                    {userDetails.roles?.length ? userDetails.roles.map((role) => (
+                      <Badge
+                        key={role}
+                        variant={getRoleBadgeVariant(role)}
+                        className={getDarkBadgeClasses(getRoleBadgeVariant(role))}
+                      >
+                        {role.charAt(0).toUpperCase() + role.slice(1)}
+                      </Badge>
+                    )) : <span className="text-sm text-[#6b7280] dark:text-gray-400">No roles assigned</span>}
+                  </div>
+                </div>
+              </section>
+
+              <section className="rounded-2xl border border-[#e5e7eb] bg-white p-4 dark:border-gray-700 dark:bg-gray-800 sm:p-5">
+                <h3 className="font-semibold text-[#111827] dark:text-gray-100">Email verification</h3>
+                <div className="mt-4 max-w-sm">
+                  {[
+                    {
+                      label: 'Email',
+                      verified: Boolean(userDetails.email_verified_at || userDetails.isEmailVerified),
+                      verifiedAt: userDetails.email_verified_at,
+                    },
+                  ].map(({ label, verified, verifiedAt }) => (
+                    <div key={label} className="rounded-xl bg-[#f8fafc] p-3 dark:bg-gray-900">
+                      <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280] dark:text-gray-400">{label}</p>
+                      <div className="mt-2">
+                        <Badge
+                          variant={verified ? 'success' : 'warning'}
+                          className={getDarkBadgeClasses(verified ? 'success' : 'warning')}
+                        >
+                          {verified ? 'Verified' : 'Pending'}
+                        </Badge>
+                      </div>
+                      {verifiedAt && (
+                        <p className="mt-2 text-xs text-[#6b7280] dark:text-gray-400">Since {formatDate(verifiedAt)}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <section className="rounded-2xl border border-[#e5e7eb] bg-white p-4 dark:border-gray-700 dark:bg-gray-800 sm:p-5">
+                <h3 className="font-semibold text-[#111827] dark:text-gray-100">Account timeline</h3>
+                <dl className="mt-4 space-y-3">
+                  <div className="flex items-center justify-between gap-4">
+                    <dt className="text-sm text-[#6b7280] dark:text-gray-400">Joined</dt>
+                    <dd className="text-right text-sm font-medium text-[#111827] dark:text-gray-100">
+                      {userDetails.created_at ? formatDate(userDetails.created_at) : 'Not available'}
+                    </dd>
+                  </div>
+                  <div className="border-t border-[#e5e7eb] dark:border-gray-700" />
+                  <div className="flex items-center justify-between gap-4">
+                    <dt className="text-sm text-[#6b7280] dark:text-gray-400">Last sign-in</dt>
+                    <dd className="text-right text-sm font-medium text-[#111827] dark:text-gray-100">
+                      {userDetails.last_login ? formatDate(userDetails.last_login) : 'No sign-in recorded'}
+                    </dd>
+                  </div>
+                </dl>
+              </section>
             </div>
           </div>
         </AdminModal>

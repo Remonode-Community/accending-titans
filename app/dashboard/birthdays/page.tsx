@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import type { ReactNode } from 'react';
+import type { KeyboardEvent, ReactNode } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
@@ -23,6 +23,7 @@ import { EmptyState } from '@/components/shared/EmptyState';
 import { Modal } from '@/components/shared/Modal';
 import { AccessDeniedNotice } from '@/components/shared/AccessDeniedNotice';
 import { BirthdayCountdownCard } from '@/components/birthday/BirthdayCountdownCard';
+import { MemberBirthdayCalendar } from '@/components/birthday/BirthdayCalendar';
 import { BirthdayPreferencesWizard } from '@/components/birthday/BirthdayPreferencesWizard';
 import { birthdayService } from '@/services/birthday.service';
 import { useAuth } from '@/hooks/useAuth';
@@ -69,6 +70,7 @@ export default function BirthdaysPage() {
   const [denied, setDenied] = useState<AccessDenied | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showPlanEditor, setShowPlanEditor] = useState(false);
+  const [activeSection, setActiveSection] = useState('my-birthday');
 
   const load = useCallback(async () => {
     try {
@@ -82,6 +84,9 @@ export default function BirthdaysPage() {
 
       if (mineRes.success && mineRes.data) {
         setMine(mineRes.data);
+        setActiveSection(
+          mineRes.data.profile.preferences_complete ? 'calendar' : 'my-birthday'
+        );
       } else if (!mineRes.success) {
         // A refusal rather than an empty account: say why instead of
         // rendering a hub that silently has nothing in it.
@@ -119,6 +124,54 @@ export default function BirthdaysPage() {
 
   const celebrantName = `${user?.first_name ?? ''} ${user?.last_name ?? ''}`.trim() || 'You';
   const plan = mine?.profile.preferences ?? null;
+  const hasCompletedBirthdayPlan = mine?.profile.preferences_complete === true;
+  const myBirthdayTab = { id: 'my-birthday', label: 'My birthday', icon: <Cake size={14} /> };
+  const calendarTab = { id: 'calendar', label: 'Calendar', icon: <CalendarDays size={14} /> };
+  const sectionTabs: { id: string; label: string; icon: ReactNode }[] = [
+    ...(hasCompletedBirthdayPlan
+      ? [calendarTab, myBirthdayTab]
+      : [myBirthdayTab]),
+    ...(plan
+      ? [{ id: 'birthday-plan', label: 'Birthday plan', icon: <Sparkles size={14} /> }]
+      : []),
+    ...(reward
+      ? [{ id: 'reward', label: 'Reward', icon: <Gift size={14} /> }]
+      : []),
+    ...(!hasCompletedBirthdayPlan ? [calendarTab] : []),
+    { id: 'network', label: 'Network', icon: <Users size={14} /> },
+  ];
+
+  const handleSectionTabKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    const buttons = Array.from(
+      event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]')
+    );
+    const activeIndex = buttons.findIndex(
+      (button) => button.getAttribute('aria-selected') === 'true'
+    );
+    let nextIndex: number;
+
+    switch (event.key) {
+      case 'ArrowRight':
+        nextIndex = (activeIndex + 1) % buttons.length;
+        break;
+      case 'ArrowLeft':
+        nextIndex = (activeIndex - 1 + buttons.length) % buttons.length;
+        break;
+      case 'Home':
+        nextIndex = 0;
+        break;
+      case 'End':
+        nextIndex = buttons.length - 1;
+        break;
+      default:
+        return;
+    }
+
+    event.preventDefault();
+    const nextButton = buttons[nextIndex];
+    nextButton?.focus();
+    nextButton?.click();
+  };
 
   /**
    * The planning form is compulsory for members whose plan includes birthdays.
@@ -201,8 +254,48 @@ export default function BirthdaysPage() {
         </div>
       ) : (
         <>
+          <div
+            className={`${CARD} flex gap-1 overflow-x-auto p-2`}
+            role="tablist"
+            aria-label="Birthday sections"
+            aria-orientation="horizontal"
+            onKeyDown={handleSectionTabKeyDown}
+          >
+            {sectionTabs.map((tab) => {
+              const selected = activeSection === tab.id;
+
+              return (
+                <button
+                  key={tab.id}
+                  id={`birthday-tab-${tab.id}`}
+                  type="button"
+                  role="tab"
+                  aria-selected={selected}
+                  aria-controls={`birthday-panel-${tab.id}`}
+                  tabIndex={selected ? 0 : -1}
+                  onClick={() => setActiveSection(tab.id)}
+                  className={`inline-flex shrink-0 items-center gap-2 rounded-xl px-4 py-3 text-xs font-bold transition ${
+                    selected
+                      ? 'bg-[#FDFAF3] text-[#8A6F1F] dark:bg-[#24221c] dark:text-[#D4B85A]'
+                      : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-[#24221c] dark:hover:text-gray-100'
+                  }`}
+                >
+                  {tab.icon}
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+
           {/* ── My birthday ── */}
-          <section className={CARD}>
+          <section
+            id="birthday-panel-my-birthday"
+            role="tabpanel"
+            aria-labelledby="birthday-tab-my-birthday"
+            tabIndex={0}
+            hidden={activeSection !== 'my-birthday'}
+            className={`${CARD} mt-6`}
+          >
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#e5e7eb] px-5 py-4 dark:border-[#28251e] sm:px-6">
               <div className="flex items-center gap-3">
                 <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#FDFAF3] text-[#C9A84C]">
@@ -261,7 +354,14 @@ export default function BirthdaysPage() {
 
           {/* ── My birthday plan ── */}
           {plan && (
-            <section className={CARD}>
+            <section
+              id="birthday-panel-birthday-plan"
+              role="tabpanel"
+              aria-labelledby="birthday-tab-birthday-plan"
+              tabIndex={0}
+              hidden={activeSection !== 'birthday-plan'}
+              className={`${CARD} mt-6`}
+            >
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#e5e7eb] px-5 py-4 dark:border-[#28251e] sm:px-6">
                 <div className="flex items-center gap-3">
                   <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#FDFAF3] text-[#C9A84C]">
@@ -343,7 +443,14 @@ export default function BirthdaysPage() {
 
           {/* ── My birthday reward (platform loyalty scheme) ── */}
           {reward && (
-            <section className={CARD}>
+            <section
+              id="birthday-panel-reward"
+              role="tabpanel"
+              aria-labelledby="birthday-tab-reward"
+              tabIndex={0}
+              hidden={activeSection !== 'reward'}
+              className={`${CARD} mt-6`}
+            >
               <div className="flex items-center gap-3 border-b border-[#e5e7eb] px-5 py-4 dark:border-[#28251e] sm:px-6">
                 <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#FDFAF3] text-[#C9A84C]">
                   <Gift size={17} />
@@ -411,8 +518,26 @@ export default function BirthdaysPage() {
             </section>
           )}
 
+          <div
+            id="birthday-panel-calendar"
+            role="tabpanel"
+            aria-labelledby="birthday-tab-calendar"
+            tabIndex={0}
+            hidden={activeSection !== 'calendar'}
+            className="mt-6"
+          >
+            {activeSection === 'calendar' && <MemberBirthdayCalendar />}
+          </div>
+
           {/* ── Network birthdays ── */}
-          <section className={CARD}>
+          <section
+            id="birthday-panel-network"
+            role="tabpanel"
+            aria-labelledby="birthday-tab-network"
+            tabIndex={0}
+            hidden={activeSection !== 'network'}
+            className={`${CARD} mt-6`}
+          >
             <div className="flex items-center gap-3 border-b border-[#e5e7eb] px-5 py-4 sm:px-6">
               <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#FDFAF3] text-[#C9A84C]">
                 <Users size={17} />

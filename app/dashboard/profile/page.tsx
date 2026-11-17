@@ -14,7 +14,6 @@ import {
   Loader2,
   Lock,
   Mail,
-  MapPin,
   Phone,
   Save,
   Shield,
@@ -128,8 +127,8 @@ const SectionHeader: React.FC<{ title: string; description: string }> = ({
   description,
 }) => (
   <div className="mb-2 pt-1">
-    <h2 className="text-base font-black text-gray-900">{title}</h2>
-    <p className="mt-0.5 text-sm text-gray-400">{description}</p>
+    <h2 className="text-base font-black text-gray-900 dark:text-gray-100">{title}</h2>
+    <p className="mt-0.5 text-sm text-gray-400 dark:text-gray-400">{description}</p>
   </div>
 );
 
@@ -149,7 +148,6 @@ const MyDetailsTab: React.FC<{
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [address, setAddress] = useState('');
 
   // Seed the inputs once the real profile arrives. Guarded on the id so a later
   // re-render never stomps edits in progress.
@@ -161,7 +159,6 @@ const MyDetailsTab: React.FC<{
     setLastName(basic.last_name ?? '');
     setEmail(basic.email ?? '');
     setPhone(savedPhone);
-    setAddress(basic.address ?? '');
   }, [basic, savedPhone]);
 
   const phoneError =
@@ -174,8 +171,7 @@ const MyDetailsTab: React.FC<{
     (firstName !== (basic.first_name ?? '') ||
       lastName !== (basic.last_name ?? '') ||
       email !== (basic.email ?? '') ||
-      phone !== savedPhone ||
-      address !== (basic.address ?? ''));
+      phone !== savedPhone);
 
   const handleSave = async () => {
     if (phoneError || !basic) return;
@@ -185,7 +181,6 @@ const MyDetailsTab: React.FC<{
         first_name: firstName.trim(),
         last_name: lastName.trim(),
         email: email.trim(),
-        address: address.trim(),
       },
       phone.trim(),
     );
@@ -205,7 +200,7 @@ const MyDetailsTab: React.FC<{
     <div>
       <SectionHeader
         title="Personal information"
-        description="Update your name, contact details, and location."
+        description="Update your name and contact details."
       />
 
       <FieldRow label="Full name" required>
@@ -250,22 +245,6 @@ const MyDetailsTab: React.FC<{
           />
         </div>
         {phoneError && <p className="mt-1.5 text-xs text-red-500">{phoneError}</p>}
-      </FieldRow>
-
-      {/*
-        The backend keeps a single free-text `address` column â€” there are no
-        separate city / country columns â€” so those are not faked as fields.
-      */}
-      <FieldRow label="Address" hint="Street, city and state">
-        <div className="relative">
-          <MapPin size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            className={`${inputClass} pl-9`}
-            placeholder="e.g. 12 Broad Street, Lagos"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-          />
-        </div>
       </FieldRow>
 
       <div className="flex flex-wrap items-center justify-end gap-3 pt-5">
@@ -521,25 +500,6 @@ const ProfileTab: React.FC<{
         </p>
       </FieldRow>
 
-      {/*
-        This tab used to offer editable photo / bio / website / role fields
-        behind a Save button that slept for a second and then claimed
-        "Saved" \u2014 nothing was written. Those fields also have no backend
-        storage: there is no profile-photo upload endpoint and no bio or
-        website columns. Rather than keep a convincing lie, the real stored
-        values are shown and the gap is stated plainly.
-      */}
-      <div className="mt-5 flex items-start gap-3 rounded-xl border border-[#C9A84C]/25 bg-[#FDFAF3] p-4">
-        <AlertCircle size={16} className="mt-0.5 shrink-0 text-[#B8962E]" />
-        <div className="text-sm">
-          <p className="font-bold text-gray-900">Not available yet</p>
-          <p className="mt-1 text-gray-600">
-            Bio and website need backend storage before they can be saved. Your
-            profile photo uploads above; your name, email, phone, address and
-            business name are fully working under My details.
-          </p>
-        </div>
-      </div>
     </div>
   );
 };
@@ -944,23 +904,23 @@ const SecurityTab: React.FC = () => {
 
       {/* Active sessions â€” real API tokens */}
       <div className="mt-6">
-        <p className="mb-3 text-sm font-black text-gray-900">Active sessions</p>
+        <p className="mb-3 text-sm font-black text-gray-900 dark:text-gray-100">Active sessions</p>
 
         {loading ? (
-          <div className="space-y-2 rounded-xl border border-gray-200/80 p-4" aria-busy="true">
+          <div className="space-y-2 rounded-xl border border-gray-200/80 p-4 dark:border-[#28251e]" aria-busy="true">
             {[0, 1, 2].map((i) => (
-              <div key={i} className="h-10 animate-pulse rounded-lg bg-gray-100" />
+              <div key={i} className="h-10 animate-pulse rounded-lg bg-gray-100 dark:bg-[#24221c]" />
             ))}
           </div>
         ) : sessions.length === 0 ? (
-          <div className="rounded-xl border border-gray-200/80 px-5 py-6 text-center">
-            <p className="text-sm font-semibold text-gray-700">No other sessions</p>
-            <p className="mt-1 text-xs text-gray-400">
+          <div className="rounded-xl border border-gray-200/80 px-5 py-6 text-center dark:border-[#28251e]">
+            <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">No other sessions</p>
+            <p className="mt-1 text-xs text-gray-400 dark:text-gray-400">
               This is the only client signed in to your account.
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-100 overflow-hidden rounded-xl border border-gray-200/80 bg-white">
+          <div className="divide-y divide-gray-100 overflow-hidden rounded-xl border border-gray-200/80 bg-white dark:divide-[#28251e] dark:border-[#28251e] dark:bg-[#1b1a16]">
             {sessions.map((s) => (
               <div
                 key={s.id}
@@ -968,16 +928,16 @@ const SecurityTab: React.FC = () => {
               >
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className="truncate text-sm font-semibold text-gray-800">
+                    <p className="truncate text-sm font-semibold text-gray-800 dark:text-gray-100">
                       {s.name}
                     </p>
                     {s.is_current && (
-                      <span className="rounded-full border border-[#C9A84C]/20 bg-[#FDFAF3] px-2 py-0.5 text-[10px] font-semibold text-[#C9A84C]">
+                      <span className="rounded-full border border-[#C9A84C]/20 bg-[#FDFAF3] px-2 py-0.5 text-[10px] font-semibold text-[#C9A84C] dark:border-[#302b20] dark:bg-[#24221c] dark:text-[#d4af37]">
                         This device
                       </span>
                     )}
                   </div>
-                  <p className="mt-0.5 text-xs text-gray-400">
+                  <p className="mt-0.5 text-xs text-gray-400 dark:text-gray-400">
                     {s.last_used_at
                       ? `Last used ${new Date(s.last_used_at).toLocaleString()}`
                       : 'Never used'}
@@ -992,7 +952,7 @@ const SecurityTab: React.FC = () => {
                     type="button"
                     onClick={() => void handleRevoke(s)}
                     disabled={revokingId === s.id}
-                    className="shrink-0 text-xs font-semibold text-red-500 transition hover:text-red-700 disabled:opacity-50"
+                    className="shrink-0 text-xs font-semibold text-red-500 transition hover:text-red-700 disabled:opacity-50 dark:text-red-400 dark:hover:text-red-300"
                   >
                     {revokingId === s.id ? 'Revokingâ€¦' : 'Revoke'}
                   </button>
@@ -1003,28 +963,28 @@ const SecurityTab: React.FC = () => {
         )}
 
         {error && (
-          <p className="mt-2 flex items-center gap-1.5 text-xs font-medium text-red-600">
+          <p className="mt-2 flex items-center gap-1.5 text-xs font-medium text-red-600 dark:text-red-400">
             <AlertCircle size={13} />
             {error}
           </p>
         )}
         {revoked && !error && (
-          <p className="mt-2 flex items-center gap-1.5 text-xs font-medium text-emerald-700">
+          <p className="mt-2 flex items-center gap-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
             <Check size={13} />
             {revoked}
           </p>
         )}
 
-        <p className="mt-2 text-xs text-gray-400">
+        <p className="mt-2 text-xs text-gray-400 dark:text-gray-400">
           Sessions are the API clients signed in to your account. Revoking one
           signs that client out immediately.
         </p>
       </div>
 
       {/* Danger zone */}
-      <div className="mt-6 rounded-xl border border-red-100 bg-red-50/60 p-5">
-        <p className="text-sm font-black text-red-800">Danger zone</p>
-        <p className="mt-0.5 text-xs text-red-500">
+      <div className="mt-6 rounded-xl border border-red-100 bg-red-50/60 p-5 dark:border-red-900/60 dark:bg-red-950/30">
+        <p className="text-sm font-black text-red-800 dark:text-red-300">Danger zone</p>
+        <p className="mt-0.5 text-xs text-red-500 dark:text-red-400">
           Permanently delete your account and all associated data. This cannot be undone.
         </p>
         <div className="mt-4">
@@ -1092,9 +1052,9 @@ export default function ProfilePage() {
     <div className="space-y-6">
 
       {/* â”€â”€ Profile hero card â”€â”€ */}
-      <div className="overflow-hidden rounded-2xl border border-gray-200/80 bg-white shadow-sm">
+      <div className="overflow-hidden rounded-2xl border border-gray-200/80 bg-white shadow-sm dark:border-[#28251e] dark:bg-[#1b1a16]">
         {/* Cover banner — the member's uploaded cover, or the gold gradient */}
-        <div className="relative h-28 sm:h-36 bg-gradient-to-br from-[#FDFAF3] via-[#f5efd4] to-[#e8d9a0]">
+        <div className="relative h-28 bg-gradient-to-br from-[#FDFAF3] via-[#f5efd4] to-[#e8d9a0] dark:from-[#1b1a16] dark:via-[#1b1a16] dark:to-[#1b1a16] sm:h-36">
           {profile?.profile.cover_url ? (
             <Image
               src={profile.profile.cover_url}
@@ -1125,18 +1085,18 @@ export default function ProfilePage() {
                 alt=""
                 width={80}
                 height={80}
-                className="h-20 w-20 rounded-2xl border-4 border-white object-cover shadow-sm"
+                className="h-20 w-20 rounded-2xl border-4 border-white object-cover shadow-sm dark:border-[#1b1a16]"
                 unoptimized
               />
             ) : (
-              <div className="flex h-20 w-20 items-center justify-center rounded-2xl border-4 border-white bg-[#FDFAF3] text-2xl font-black text-[#C9A84C] shadow-sm">
+              <div className="flex h-20 w-20 items-center justify-center rounded-2xl border-4 border-white bg-[#FDFAF3] text-2xl font-black text-[#C9A84C] shadow-sm dark:border-[#1b1a16] dark:bg-[#24221c] dark:text-[#d4af37]">
                 {initials}
               </div>
             )}
             {profile?.profile.email_verified_at && (
               <div
                 title="Email verified"
-                className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-[#C9A84C]"
+                className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-[#C9A84C] dark:border-[#1b1a16] dark:bg-[#d4af37]"
               >
                 <Check size={11} className="text-white" />
               </div>
@@ -1145,16 +1105,16 @@ export default function ProfilePage() {
 
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div className="min-w-0">
-              <h1 className="truncate text-xl font-black tracking-tight text-gray-900">
+              <h1 className="truncate text-xl font-black tracking-tight text-gray-900 dark:text-gray-100">
                 {fullName}
               </h1>
-              <p className="mt-0.5 truncate text-sm text-gray-400">
+              <p className="mt-0.5 truncate text-sm text-gray-400 dark:text-gray-400">
                 {profile?.basicInfo.email ?? '—'}
               </p>
             </div>
 
             <div className="flex gap-2">
-              <button className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-600 transition hover:border-[#C9A84C]/30 hover:bg-[#FDFAF3] hover:text-[#C9A84C]">
+              <button className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-600 transition hover:border-[#C9A84C]/30 hover:bg-[#FDFAF3] hover:text-[#C9A84C] dark:border-[#28251e] dark:bg-[#1b1a16] dark:text-gray-300 dark:hover:bg-[#24221c] dark:hover:text-[#d4af37]">
                 <UserCircle size={14} />
                 View profile
               </button>
@@ -1163,7 +1123,7 @@ export default function ProfilePage() {
         </div>
 
         {/* â”€â”€ Tabs â”€â”€ */}
-        <div className="border-t border-gray-100 px-6 sm:px-8">
+        <div className="border-t border-gray-100 px-6 dark:border-[#28251e] sm:px-8">
           <div className="flex gap-0 overflow-x-auto">
             {TABS.map((tab) => {
               const Icon = tab.icon;
@@ -1174,8 +1134,8 @@ export default function ProfilePage() {
                   onClick={() => handleTabChange(tab.id)}
                   className={`group relative flex flex-shrink-0 items-center gap-2 px-4 py-3.5 text-sm font-semibold transition-colors ${
                     active
-                      ? 'text-[#C9A84C]'
-                      : 'text-gray-400 hover:text-gray-700'
+                      ? 'text-[#C9A84C] dark:text-[#d4af37]'
+                      : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
                   }`}
                 >
                   <Icon size={14} className="flex-shrink-0" />
@@ -1183,7 +1143,7 @@ export default function ProfilePage() {
                   {/* Active underline */}
                   <span
                     className={`absolute bottom-0 left-0 right-0 h-0.5 rounded-full transition-all ${
-                      active ? 'bg-[#C9A84C]' : 'bg-transparent group-hover:bg-gray-200'
+                      active ? 'bg-[#C9A84C] dark:bg-[#d4af37]' : 'bg-transparent group-hover:bg-gray-200 dark:group-hover:bg-gray-600'
                     }`}
                   />
                 </button>
@@ -1194,15 +1154,15 @@ export default function ProfilePage() {
       </div>
 
       {/* â”€â”€ Tab content â”€â”€ */}
-      <div className="overflow-hidden rounded-2xl border border-gray-200/80 bg-white px-6 py-6 shadow-sm sm:px-8">
+      <div className="overflow-hidden rounded-2xl border border-gray-200/80 bg-white px-6 py-6 shadow-sm dark:border-[#28251e] dark:bg-[#1b1a16] sm:px-8">
         {loadError ? (
           <div className="flex items-start gap-3">
             <AlertCircle size={18} className="mt-0.5 shrink-0 text-red-500" />
             <div>
-              <p className="font-bold text-gray-900">
+              <p className="font-bold text-gray-900 dark:text-gray-100">
                 We could not load your profile
               </p>
-              <p className="mt-1 text-sm text-gray-600">{loadError}</p>
+              <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">{loadError}</p>
             </div>
           </div>
         ) : (

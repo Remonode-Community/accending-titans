@@ -196,14 +196,6 @@ export default function AdminUserProfilePage() {
                     {profile.email_verified_at && <p className="mt-1 text-xs text-slate-500">{dateLabel(profile.email_verified_at)}</p>}
                   </div>
                 </div>
-                <div className="flex items-start gap-3 py-3">
-                  <Phone size={18} className="mt-0.5 text-slate-400" />
-                  <div>
-                    <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Phone</p>
-                    <p className="mt-1 text-sm font-medium">{profile.phone_verified_at ? 'Verified' : 'Not verified'}</p>
-                    {profile.phone_verified_at && <p className="mt-1 text-xs text-slate-500">{dateLabel(profile.phone_verified_at)}</p>}
-                  </div>
-                </div>
               </CardBody>
             </Card>
 
@@ -240,13 +232,6 @@ export default function AdminUserProfilePage() {
                   <span className="flex items-center gap-1 text-sm font-medium">
                     {profile.email_verified_at && <CheckCircle2 size={15} className="text-green-600" />}
                     {profile.email_verified_at ? 'Verified' : 'Pending'}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between gap-3 py-3">
-                  <span className="text-sm text-slate-600">Phone verification</span>
-                  <span className="flex items-center gap-1 text-sm font-medium">
-                    {profile.phone_verified_at && <CheckCircle2 size={15} className="text-green-600" />}
-                    {profile.phone_verified_at ? 'Verified' : 'Pending'}
                   </span>
                 </div>
               </CardBody>

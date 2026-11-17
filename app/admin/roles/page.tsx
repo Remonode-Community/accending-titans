@@ -56,17 +56,6 @@ const PERMISSION_LABELS: Record<string, string> = {
   view_reports: 'View Reports',
 };
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function getRoleBadgeColor(roleName: string): string {
-  const colorMap: Record<string, string> = {
-    admin: 'bg-red-100 text-red-800 border-red-200',
-    user: 'bg-blue-100 text-blue-800 border-blue-200',
-    customer: 'bg-green-100 text-green-800 border-green-200',
-  };
-  return colorMap[roleName.toLowerCase()] || 'bg-purple-100 text-purple-800 border-purple-200';
-}
-
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function AdminRolesPage() {
@@ -281,7 +270,7 @@ export default function AdminRolesPage() {
   return (
     <div
       style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-      className="min-h-screen space-y-6 bg-[radial-gradient(circle_at_top_right,rgba(215,25,39,0.12),transparent_32%),#f8f8f8] px-4 py-6 text-slate-950 sm:px-6 lg:px-8"
+      className="min-h-screen space-y-6 bg-[radial-gradient(circle_at_top_right,rgba(201,168,76,0.12),transparent_32%),#f8f8f8] px-4 py-6 text-slate-950 sm:px-6 lg:px-8"
     >
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
@@ -335,8 +324,8 @@ export default function AdminRolesPage() {
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Card className="rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
           <div className="flex items-center gap-4">
-            <div className="rounded-xl bg-purple-50 p-3">
-              <Shield className="h-5 w-5 text-purple-600" />
+            <div className="rounded-xl bg-[#FDFAF3] p-3">
+              <Shield className="h-5 w-5 text-[#B8962E]" />
             </div>
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-[#6b7280]">
@@ -350,8 +339,8 @@ export default function AdminRolesPage() {
         </Card>
         <Card className="rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
           <div className="flex items-center gap-4">
-            <div className="rounded-xl bg-blue-50 p-3">
-              <ShieldPlus className="h-5 w-5 text-blue-600" />
+            <div className="rounded-xl bg-[#FDFAF3] p-3">
+              <ShieldPlus className="h-5 w-5 text-[#B8962E]" />
             </div>
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-[#6b7280]">
@@ -365,8 +354,8 @@ export default function AdminRolesPage() {
         </Card>
         <Card className="rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
           <div className="flex items-center gap-4">
-            <div className="rounded-xl bg-green-50 p-3">
-              <Users className="h-5 w-5 text-green-600" />
+            <div className="rounded-xl bg-[#FDFAF3] p-3">
+              <Users className="h-5 w-5 text-[#B8962E]" />
             </div>
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-[#6b7280]">
@@ -393,8 +382,8 @@ export default function AdminRolesPage() {
 
         {filteredRoles.length === 0 ? (
           <div className="px-6 py-16 text-center">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-[#eef2ff]">
-              <ShieldOff className="h-8 w-8 text-[#4a5ff7]" />
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-[#FDFAF3]">
+              <ShieldOff className="h-8 w-8 text-[#B8962E]" />
             </div>
             <h3 className="mt-5 text-xl font-bold text-[#111827]">
               No roles found
@@ -435,11 +424,13 @@ export default function AdminRolesPage() {
                       {/* Role Name */}
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <span
-                            className={`inline-flex items-center rounded-full border px-3 py-1 text-sm font-bold ${getRoleBadgeColor(role.name)}`}
+                          <Badge
+                            variant="info"
+                            size="md"
+                            className="border border-[#C9A84C]/25 font-bold"
                           >
                             {role.name.charAt(0).toUpperCase() + role.name.slice(1)}
-                          </span>
+                          </Badge>
                         </div>
                       </td>
 
@@ -476,7 +467,7 @@ export default function AdminRolesPage() {
                           <button
                             onClick={() => handleOpenEdit(role)}
                             title="Edit Role"
-                            className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-semibold text-[#4a5ff7] transition hover:bg-[#eef2ff]"
+                            className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-semibold text-[#B8962E] transition hover:bg-[#FDFAF3]"
                           >
                             <Edit3 size={15} />
                           </button>
@@ -509,11 +500,13 @@ export default function AdminRolesPage() {
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <span
-                        className={`inline-flex items-center rounded-full border px-3 py-1 text-sm font-bold ${getRoleBadgeColor(role.name)}`}
+                      <Badge
+                        variant="info"
+                        size="md"
+                        className="border border-[#C9A84C]/25 font-bold"
                       >
                         {role.name.charAt(0).toUpperCase() + role.name.slice(1)}
-                      </span>
+                      </Badge>
                       <p className="mt-2 text-xs text-[#6b7280]">
                         Guard: <code className="rounded bg-[#f1f5f9] px-1.5 py-0.5 font-mono">{role.guard_name}</code>
                       </p>
@@ -521,7 +514,7 @@ export default function AdminRolesPage() {
                     <div className="flex gap-1">
                       <button
                         onClick={() => handleOpenEdit(role)}
-                        className="rounded-lg p-2 text-[#4a5ff7] transition hover:bg-[#eef2ff]"
+                        className="rounded-lg p-2 text-[#B8962E] transition hover:bg-[#FDFAF3]"
                       >
                         <Edit3 size={16} />
                       </button>
@@ -594,7 +587,7 @@ export default function AdminRolesPage() {
               <div className="flex gap-2">
                 <button
                   onClick={selectAllPermissions}
-                  className="text-xs font-semibold text-[#4a5ff7] hover:text-[#3a4fe7] transition"
+                  className="text-xs font-semibold text-[#B8962E] transition hover:text-[#8A7434]"
                 >
                   Select All
                 </button>
@@ -696,7 +689,7 @@ export default function AdminRolesPage() {
               <div className="flex gap-2">
                 <button
                   onClick={selectAllPermissions}
-                  className="text-xs font-semibold text-[#4a5ff7] hover:text-[#3a4fe7] transition"
+                  className="text-xs font-semibold text-[#B8962E] transition hover:text-[#8A7434]"
                 >
                   Select All
                 </button>

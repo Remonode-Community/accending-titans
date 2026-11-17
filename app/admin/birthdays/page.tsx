@@ -20,6 +20,7 @@ import { Button } from '@/components/shared/Button';
 import { Badge } from '@/components/shared/Badge';
 import { Card } from '@/components/shared/Card';
 import { AdminModal } from '@/components/admin/AdminModal';
+import { AdminBirthdayCalendar } from '@/components/birthday/BirthdayCalendar';
 import { TableSkeleton } from '@/components/shared/SkeletonLoader';
 import { useAuthStore } from '@/store/auth.store';
 import { useAlert } from '@/hooks/useAlert';
@@ -415,6 +416,8 @@ export default function AdminBirthdaysPage() {
           </div>
         </Card>
       )}
+
+      <AdminBirthdayCalendar />
 
       {/* Birthday plans submitted by members */}
       <Card className="rounded-2xl border border-[#e5e7eb] bg-white shadow-[0_10px_35px_rgba(0,0,0,0.04)]">

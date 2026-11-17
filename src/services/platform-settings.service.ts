@@ -9,6 +9,18 @@ import type {
 } from '@/types/platform-settings.types';
 
 class PlatformSettingsService {
+  /** GET /maintenance-status */
+  async getMaintenanceStatus(): Promise<ApiResponse<{ maintenance_mode: boolean }>> {
+    return apiClient.get('/maintenance-status');
+  }
+
+  /** PUT /admin/platform-settings/maintenance-mode */
+  async adminUpdateMaintenanceMode(
+    enabled: boolean
+  ): Promise<ApiResponse<{ maintenance_mode: boolean }>> {
+    return apiClient.put('/admin/platform-settings/maintenance-mode', { enabled });
+  }
+
   /** GET /features — the signed-in member's feature map. */
   async getFeatures(): Promise<ApiResponse<FeatureMapResponse>> {
     return apiClient.get('/features');

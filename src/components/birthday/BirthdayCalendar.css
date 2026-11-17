@@ -1,0 +1,190 @@
+.birthday-calendar {
+  color: #374151;
+  font-size: 0.75rem;
+}
+
+.birthday-calendar .rbc-toolbar {
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-bottom: 0.85rem;
+}
+
+.birthday-calendar .rbc-toolbar-label {
+  color: #111827;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.birthday-calendar .rbc-toolbar button {
+  border-color: #e5e7eb;
+  color: #6b7280;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.birthday-calendar .rbc-toolbar button:hover,
+.birthday-calendar .rbc-toolbar button:focus {
+  background-color: #fdfaf3;
+  border-color: #c9a84c;
+  color: #8a6f1f;
+}
+
+.birthday-calendar .rbc-toolbar button.rbc-active {
+  background-color: #c9a84c;
+  border-color: #c9a84c;
+  box-shadow: none;
+  color: #fff;
+}
+
+.birthday-calendar .rbc-month-view,
+.birthday-calendar .rbc-time-view,
+.birthday-calendar .rbc-agenda-view,
+.birthday-calendar .rbc-header,
+.birthday-calendar .rbc-day-bg + .rbc-day-bg,
+.birthday-calendar .rbc-month-row + .rbc-month-row,
+.birthday-calendar .rbc-time-header-content,
+.birthday-calendar .rbc-time-content,
+.birthday-calendar .rbc-timeslot-group,
+.birthday-calendar .rbc-agenda-table,
+.birthday-calendar .rbc-agenda-table tbody > tr > td {
+  border-color: #e5e7eb;
+}
+
+.birthday-calendar .rbc-header {
+  padding: 0.55rem 0.15rem;
+  color: #6b7280;
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.birthday-calendar .rbc-off-range-bg {
+  background-color: #f9fafb;
+}
+
+.birthday-calendar .rbc-today {
+  background-color: #fdfaf3;
+}
+
+.birthday-calendar .rbc-date-cell {
+  padding: 0.25rem 0.35rem;
+  color: #6b7280;
+  font-size: 0.68rem;
+}
+
+.birthday-calendar .rbc-event {
+  border: 0;
+  border-radius: 0.45rem;
+  padding: 0.15rem 0.35rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+}
+
+.birthday-calendar .cal-chip-birthday {
+  background: #fce7f3;
+  color: #9d174d;
+}
+
+.birthday-calendar .cal-chip-reminder {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.birthday-calendar .cal-chip-event {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.birthday-calendar .cal-chip-tentative {
+  border: 1px dashed currentColor;
+}
+
+.birthday-calendar .rbc-show-more {
+  color: #8a6f1f;
+  font-weight: 800;
+}
+
+[data-theme='dark'] .birthday-calendar {
+  color: #d1d5db;
+}
+
+[data-theme='dark'] .birthday-calendar .rbc-toolbar-label {
+  color: #f4f0e5;
+}
+
+[data-theme='dark'] .birthday-calendar .rbc-toolbar button {
+  background: #1b1a16;
+  border-color: #3b3628;
+  color: #d1d5db;
+}
+
+[data-theme='dark'] .birthday-calendar .rbc-toolbar button:hover,
+[data-theme='dark'] .birthday-calendar .rbc-toolbar button:focus {
+  background: #24221c;
+  border-color: #c9a84c;
+  color: #d4b85a;
+}
+
+[data-theme='dark'] .birthday-calendar .rbc-toolbar button.rbc-active {
+  background: #c9a84c;
+  border-color: #c9a84c;
+  color: #11100d;
+}
+
+[data-theme='dark'] .birthday-calendar .rbc-month-view,
+[data-theme='dark'] .birthday-calendar .rbc-time-view,
+[data-theme='dark'] .birthday-calendar .rbc-agenda-view,
+[data-theme='dark'] .birthday-calendar .rbc-header,
+[data-theme='dark'] .birthday-calendar .rbc-day-bg + .rbc-day-bg,
+[data-theme='dark'] .birthday-calendar .rbc-month-row + .rbc-month-row,
+[data-theme='dark'] .birthday-calendar .rbc-time-header-content,
+[data-theme='dark'] .birthday-calendar .rbc-time-content,
+[data-theme='dark'] .birthday-calendar .rbc-timeslot-group,
+[data-theme='dark'] .birthday-calendar .rbc-agenda-table,
+[data-theme='dark'] .birthday-calendar .rbc-agenda-table tbody > tr > td {
+  border-color: #3b3628;
+}
+
+[data-theme='dark'] .birthday-calendar .rbc-header,
+[data-theme='dark'] .birthday-calendar .rbc-date-cell {
+  color: #b6b09f;
+}
+
+[data-theme='dark'] .birthday-calendar .rbc-off-range-bg {
+  background: #161510;
+}
+
+[data-theme='dark'] .birthday-calendar .rbc-today {
+  background: #24221c;
+}
+
+[data-theme='dark'] .birthday-calendar .cal-chip-birthday {
+  background: #4a1f34;
+  color: #fbcfe8;
+}
+
+[data-theme='dark'] .birthday-calendar .cal-chip-reminder {
+  background: #4a3415;
+  color: #fde68a;
+}
+
+[data-theme='dark'] .birthday-calendar .cal-chip-event {
+  background: #1e3a5f;
+  color: #bfdbfe;
+}
+
+@media (max-width: 640px) {
+  .birthday-calendar .rbc-toolbar {
+    justify-content: center;
+  }
+
+  .birthday-calendar .rbc-toolbar-label {
+    flex-basis: 100%;
+    order: -1;
+    text-align: center;
+  }
+
+  .birthday-calendar .rbc-month-view {
+    min-height: 480px !important;
+  }
+}

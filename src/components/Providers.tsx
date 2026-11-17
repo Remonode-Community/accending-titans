@@ -3,6 +3,7 @@
 import React, { useEffect } from 'react';
 import { Toast } from '@/components/shared/Toast';
 import { AuthInitializer } from '@/components/AuthInitializer';
+import { MaintenanceGate } from '@/components/MaintenanceGate';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { EmailVerificationEnforcer } from '@/components/EmailVerificationEnforcer';
 import { PhoneVerificationEnforcer } from '@/components/PhoneVerificationEnforcer';
@@ -37,18 +38,20 @@ export const Providers: React.FC<ProvidersProps> = ({ children }) => {
     <ErrorBoundary>
       <InitializationProvider>
         <AuthInitializer>
-          <AnalyticsInitializer />
-          <EmailVerificationEnforcer>
-            <PhoneVerificationEnforcer>
-              <PINSetupEnforcer>
-                <>
-                  {children}
-                  <Toast />
-                  <Error403Modal />
-                </>
-              </PINSetupEnforcer>
-            </PhoneVerificationEnforcer>
-          </EmailVerificationEnforcer>
+          <MaintenanceGate>
+            <AnalyticsInitializer />
+            <EmailVerificationEnforcer>
+              <PhoneVerificationEnforcer>
+                <PINSetupEnforcer>
+                  <>
+                    {children}
+                    <Toast />
+                    <Error403Modal />
+                  </>
+                </PINSetupEnforcer>
+              </PhoneVerificationEnforcer>
+            </EmailVerificationEnforcer>
+          </MaintenanceGate>
         </AuthInitializer>
       </InitializationProvider>
     </ErrorBoundary>

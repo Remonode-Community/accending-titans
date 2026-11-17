@@ -120,48 +120,37 @@ export const Topbar: React.FC<TopbarProps> = ({
 
               {/* Dropdown Menu */}
               {showUserMenu && (
-                <div className="absolute right-0 mt-2 w-56 rounded-lg bg-white border border-gray-200 shadow-lg z-50 overflow-hidden">
-                  {/* User Email and Phone Status */}
-                  <div className="border-b border-gray-100 bg-gray-50 px-4 py-3">
-                    <p className="text-xs font-semibold text-gray-600 mb-3">Account Status</p>
-                    <div className="space-y-3">
-                      {/* Email Status */}
-                      <div className="flex flex-col items-start">
-                        <span
-                          className={`text-xs font-semibold mb-1 ${user.email_verified_at ? 'text-green-600' : 'text-amber-600'}`}>
-                          {user.email_verified_at ? '✓ Verified' : '⚠ Pending'}
-                        </span>
-                        <span className="text-xs text-gray-700 truncate">{user.email}</span>
-                      </div>
-
-                      {/* Phone Status */}
-                      <div className="flex flex-col items-start">
-                        <span
-                          className={`text-xs font-semibold mb-1 ${user.phone_verified_at ? 'text-green-600' : 'text-amber-600'}`}>
-                          {user.phone_verified_at ? '✓ Verified' : '⚠ Pending'}
-                        </span>
-                        <span className="text-xs text-gray-700">Phone</span>
-                      </div>
+                <div className="absolute right-0 z-50 mt-2 w-64 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-900">
+                  {/* User Email Status */}
+                  <div className="border-b border-gray-100 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-800">
+                    <p className="mb-2 text-xs font-semibold text-gray-600 dark:text-gray-300">Email status</p>
+                    <div className="min-w-0">
+                      <span className={`text-xs font-semibold ${user.email_verified_at ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                        {user.email_verified_at ? '✓ Verified' : '⚠ Pending'}
+                      </span>
+                      <p className="mt-1 truncate text-xs text-gray-700 dark:text-gray-200" title={user.email}>
+                        {user.email}
+                      </p>
                     </div>
                   </div>
 
                   {/* Settings */}
                   <Link
                     href="/dashboard/profile"
-                    className="flex items-center gap-3 px-4 py-3 text-sm font-semibold text-gray-900 hover:bg-gray-50 transition"
+                    className="flex items-center gap-3 px-4 py-3 text-sm font-semibold text-gray-900 transition hover:bg-gray-50 dark:text-gray-100 dark:hover:bg-gray-800"
                     onClick={() => setShowUserMenu(false)}
                   >
                     <Settings size={16} /> Settings
                   </Link>
 
                   {/* Divider */}
-                  <div className="border-t border-gray-100" />
+                  <div className="border-t border-gray-100 dark:border-gray-700" />
 
                   {/* Logout */}
                   <button
                     onClick={handleLogout}
                     disabled={isLoading}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-red-600 hover:bg-red-50 transition disabled:opacity-50"
+                    className="flex w-full items-center gap-3 px-4 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-50 dark:text-red-400 dark:hover:bg-red-500/10"
                   >
                     <LogOut size={16} /> {isLoading ? 'Logging out...' : 'Logout'}
                   </button>

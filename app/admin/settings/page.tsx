@@ -16,6 +16,7 @@ import {
 import { useAuthStore } from '@/store/auth.store';
 import { Card, CardBody, CardHeader } from '@/components/shared/Card';
 import { Button } from '@/components/shared/Button';
+import { platformSettingsService } from '@/services/platform-settings.service';
 import { Toast } from '@/utils/toast.utils';
 
 // ─── Types ──────────────────────────────────────────────────────────────
@@ -34,7 +35,6 @@ interface AdminSettings {
     require_phone_verification: boolean;
     max_login_attempts: number;
     session_timeout_minutes: number;
-    two_factor_required: boolean;
     pin_required_for_transactions: boolean;
   };
   notifications: {
@@ -62,7 +62,6 @@ const DEFAULT_SETTINGS: AdminSettings = {
     require_phone_verification: true,
     max_login_attempts: 5,
     session_timeout_minutes: 60,
-    two_factor_required: false,
     pin_required_for_transactions: true,
   },
   notifications: {
@@ -88,7 +87,7 @@ interface SectionConfig {
 const SECTIONS: SectionConfig[] = [
   { id: 'general', label: 'General', description: 'Platform name, support info, and regional settings', icon: Globe, color: 'text-blue-600', bgColor: 'bg-blue-50' },
   { id: 'security', label: 'Security', description: 'Authentication, verification, and session policies', icon: Shield, color: 'text-emerald-600', bgColor: 'bg-emerald-50' },
-  { id: 'notifications', label: 'Notifications', description: 'Email, push, SMS, and admin alert preferences', icon: Bell, color: 'text-amber-600', bgColor: 'bg-amber-50' },
+  { id: 'notifications', label: 'Notifications', description: 'Email, push, and admin alert preferences', icon: Bell, color: 'text-amber-600', bgColor: 'bg-amber-50' },
 ];
 
 // ─── Helper ─────────────────────────────────────────────────────────────
@@ -115,6 +114,8 @@ export default function AdminSettingsPage() {
 
   const [settings, setSettings] = useState<AdminSettings>(DEFAULT_SETTINGS);
   const [loading, setLoading] = useState(true);
+  const [maintenanceModeLoaded, setMaintenanceModeLoaded] = useState(false);
+  const [savedMaintenanceMode, setSavedMaintenanceMode] = useState(false);
   const [saving, setSaving] = useState(false);
   const [activeSection, setActiveSection] = useState('general');
   const [successMessage, setSuccessMessage] = useState('');
@@ -135,13 +136,22 @@ export default function AdminSettingsPage() {
     const loadSettings = async () => {
       try {
         setLoading(true);
-        // Simulate API call - replace with actual service call
-        await new Promise((r) => setTimeout(r, 800));
-        // In production: const response = await adminService.getSettings();
-        setSettings(DEFAULT_SETTINGS);
+        const response = await platformSettingsService.getMaintenanceStatus();
+        const maintenanceMode = response.data?.maintenance_mode;
+
+        if (!response.success || typeof maintenanceMode !== 'boolean') {
+          throw new Error(response.message || 'Could not load maintenance mode.');
+        }
+
+        setSettings((current) => ({
+          ...current,
+          general: { ...current.general, maintenance_mode: maintenanceMode },
+        }));
+        setSavedMaintenanceMode(maintenanceMode);
+        setMaintenanceModeLoaded(true);
       } catch (err) {
         console.error('Failed to load settings:', err);
-        setError('Failed to load settings. Using defaults.');
+        setError(err instanceof Error ? err.message : 'Could not load maintenance mode.');
       } finally {
         setLoading(false);
       }
@@ -163,12 +173,26 @@ export default function AdminSettingsPage() {
       setSuccessMessage('');
       setError('');
 
-      // Simulate API call - replace with actual service call
-      await new Promise((r) => setTimeout(r, 1500));
-      // In production: await adminService.updateSettings(settings);
+      const maintenanceMode = settings.general.maintenance_mode;
+      const maintenanceModeChanged = maintenanceMode !== savedMaintenanceMode;
 
-      setSuccessMessage('Settings saved successfully');
-      Toast.success('Settings saved successfully');
+      if (maintenanceModeChanged) {
+        const response = await platformSettingsService.adminUpdateMaintenanceMode(maintenanceMode);
+        if (!response.success || response.data?.maintenance_mode !== maintenanceMode) {
+          throw new Error(response.message || 'Failed to update maintenance mode.');
+        }
+
+        setSavedMaintenanceMode(maintenanceMode);
+      } else {
+        // Other settings on this screen do not have backend storage yet.
+        await new Promise((r) => setTimeout(r, 1500));
+      }
+
+      const message = maintenanceModeChanged
+        ? 'Maintenance mode updated successfully'
+        : 'Settings saved successfully';
+      setSuccessMessage(message);
+      Toast.success(message);
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to save settings';
@@ -285,7 +309,12 @@ export default function AdminSettingsPage() {
                 { value: 'Europe/London', label: 'Europe/London (GMT/BST)' },
               ])}
             </div>
-            {renderTextField('general.maintenance_mode', 'Maintenance Mode', '', 'boolean')}
+            <div className="space-y-2">
+              {renderTextField('general.maintenance_mode', 'Maintenance Mode', '', 'boolean')}
+              <p className="pl-14 text-xs leading-relaxed text-gray-500">
+                When enabled, non-admins see a maintenance notice. Admins retain access.
+              </p>
+            </div>
           </div>
         );
 
@@ -298,7 +327,6 @@ export default function AdminSettingsPage() {
               <div className="space-y-3">
                 {renderTextField('security.require_email_verification', 'Require Email Verification', '', 'boolean')}
                 {renderTextField('security.require_phone_verification', 'Require Phone Verification', '', 'boolean')}
-                {renderTextField('security.two_factor_required', 'Require Two-Factor Authentication (2FA)', '', 'boolean')}
                 {renderTextField('security.pin_required_for_transactions', 'Require PIN for Transactions', '', 'boolean')}
               </div>
             </div>
@@ -318,11 +346,9 @@ export default function AdminSettingsPage() {
               <div className="space-y-3">
                 {renderTextField('notifications.email_notifications', 'Enable Email Notifications', '', 'boolean')}
                 {renderTextField('notifications.push_notifications', 'Enable Push Notifications', '', 'boolean')}
-                {renderTextField('notifications.sms_notifications', 'Enable SMS Notifications', '', 'boolean')}
                 {renderTextField('notifications.admin_email_alerts', 'Admin Email Alerts', '', 'boolean')}
               </div>
             </div>
-            {renderNumberField('notifications.low_balance_threshold', 'Low Balance Alert Threshold (₦)', '10000', 0)}
           </div>
         );
 
@@ -450,7 +476,7 @@ export default function AdminSettingsPage() {
                     </p>
                     <Button
                       onClick={handleSave}
-                      disabled={saving}
+                      disabled={saving || !maintenanceModeLoaded}
                       className="inline-flex items-center gap-2 rounded-xl bg-[#C9A84C] px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-[#C9A84C]/20 transition hover:bg-[#B8962E] disabled:opacity-50"
                     >
                       {saving ? (

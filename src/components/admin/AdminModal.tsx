@@ -68,8 +68,7 @@ export const AdminModal = ({
             >
               <Dialog.Panel
                 className={clsx(
-                  'w-full rounded-2xl bg-white shadow-2xl shadow-black/10 overflow-hidden',
-                  'border border-gray-100',
+                  'w-full overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-2xl shadow-black/10 dark:border-gray-700 dark:bg-gray-900',
                   sizeClasses[size]
                 )}
               >
@@ -77,20 +76,20 @@ export const AdminModal = ({
                 <div className="h-1.5 bg-gradient-to-r from-[#C9A84C] via-[#D4B85A] to-[#B8962E]" />
 
                 {/* Header */}
-                <div className="relative px-6 pt-6 pb-4 border-b border-gray-100">
+                <div className="relative border-b border-gray-100 px-6 pb-4 pt-6 dark:border-gray-700">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-center gap-3 min-w-0">
                       {Icon && (
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#C9A84C]/10 border border-[#C9A84C]/20">
-                          <Icon className="h-5 w-5 text-[#C9A84C]" />
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#C9A84C]/20 bg-[#C9A84C]/10 dark:border-[#C9A84C]/30 dark:bg-[#C9A84C]/15">
+                          <Icon className="h-5 w-5 text-[#C9A84C] dark:text-[#D4B85A]" />
                         </div>
                       )}
                       <div className="min-w-0">
-                        <Dialog.Title className="text-lg font-bold text-gray-900 leading-tight">
+                        <Dialog.Title className="text-lg font-bold leading-tight text-gray-900 dark:text-gray-100">
                           {title}
                         </Dialog.Title>
                         {subtitle && (
-                          <p className="mt-0.5 text-sm text-gray-500 leading-tight">
+                          <p className="mt-0.5 text-sm leading-tight text-gray-500 dark:text-gray-400">
                             {subtitle}
                           </p>
                         )}
@@ -98,7 +97,7 @@ export const AdminModal = ({
                     </div>
                     <button
                       onClick={onClose}
-                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-200"
                       aria-label="Close"
                     >
                       <X size={18} />
@@ -112,14 +111,16 @@ export const AdminModal = ({
                   [&::-webkit-scrollbar-track]:bg-transparent
                   [&::-webkit-scrollbar-thumb]:bg-gray-200
                   [&::-webkit-scrollbar-thumb]:rounded-full
-                  hover:[&::-webkit-scrollbar-thumb]:bg-gray-300"
+                  hover:[&::-webkit-scrollbar-thumb]:bg-gray-300
+                  dark:[&::-webkit-scrollbar-thumb]:bg-gray-700
+                  dark:hover:[&::-webkit-scrollbar-thumb]:bg-gray-600"
                 >
                   {children}
                 </div>
 
                 {/* Footer */}
                 {footer && (
-                  <div className="border-t border-gray-100 bg-gray-50/50 px-6 py-4">
+                  <div className="border-t border-gray-100 bg-gray-50/50 px-6 py-4 dark:border-gray-700 dark:bg-gray-900">
                     {footer}
                   </div>
                 )}
