@@ -32,6 +32,20 @@ import type { AdminBirthdayMember, AdminBirthdayPlan } from '@/types/birthday.ty
 import type { BirthdayEligibilityRule, BirthdayNotificationSettings } from '@/types/platform-settings.types';
 import type { PortfolioItem } from '@/types/portfolio.types';
 
+/** The reminder leads the administrator can switch on the birthday schedule. */
+const REMINDER_LEADS: Array<{ days: number; label: string }> = [
+  { days: 7, label: 'One week before' },
+  { days: 3, label: 'Three days before' },
+  { days: 1, label: 'One day before' },
+  { days: 0, label: 'On the day' },
+];
+
+/** Human label for one reminder lead, e.g. `7 days before` / `On the day`. */
+function reminderLeadLabel(days: number): string {
+  if (days <= 0) return 'On the day';
+  return `${days} day${days === 1 ? '' : 's'} before`;
+}
+
 export default function AdminBirthdaysPage() {
   const router = useRouter();
   const { user } = useAuthStore();
@@ -71,11 +85,13 @@ export default function AdminBirthdaysPage() {
   const [notifForm, setNotifForm] = useState<BirthdayNotificationSettings>({
     reminders_enabled: true,
     reminder_days_before: 7,
+    reminder_days_before_list: [7, 3, 1, 0],
     wishes_enabled: true,
     community_enabled: true,
     email_enabled: true,
     push_enabled: true,
     admin_digest_enabled: true,
+    monthly_reminder_enabled: true,
     send_hour: 8,
   });
 
@@ -123,6 +139,21 @@ export default function AdminBirthdaysPage() {
     } finally {
       setRuleSaving(false);
     }
+  };
+
+  /** Toggle one lead time (in days before the birthday) on the reminder schedule. */
+  const toggleReminderLead = (days: number) => {
+    setNotifForm((prev) => {
+      const current = prev.reminder_days_before_list ?? [];
+      const next = current.includes(days)
+        ? current.filter((lead) => lead !== days)
+        : [...current, days];
+
+      return {
+        ...prev,
+        reminder_days_before_list: Array.from(new Set(next)).sort((a, b) => a - b),
+      };
+    });
   };
 
   const openNotificationsModal = () => {
@@ -385,7 +416,7 @@ export default function AdminBirthdaysPage() {
               </h2>
               <p className="mt-1 text-xs text-gray-500">
                 {notifications.reminders_enabled
-                  ? `Reminder ${notifications.reminder_days_before} day${notifications.reminder_days_before === 1 ? '' : 's'} before the birthday.`
+                  ? `Reminder ${(notifications.reminder_days_before_list ?? [notifications.reminder_days_before]).map(reminderLeadLabel).join(', ')}.`
                   : 'No advance reminder.'}{' '}
                 {notifications.wishes_enabled
                   ? 'Wish sent on the day.'
@@ -774,26 +805,31 @@ export default function AdminBirthdaysPage() {
 
               {notifForm.reminders_enabled && (
                 <div className="rounded-xl border border-gray-200 p-4">
-                  <label className="mb-2 block text-sm font-semibold text-gray-900">
-                    Days before the birthday
-                  </label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={30}
-                    value={notifForm.reminder_days_before}
-                    onChange={(e) =>
-                      setNotifForm((prev) => ({
-                        ...prev,
-                        reminder_days_before: Math.max(
-                          1,
-                          Math.min(30, Number(e.target.value) || 1)
-                        ),
-                      }))
-                    }
-                    className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-900 focus:border-[#C9A84C] focus:outline-none focus:ring-2 focus:ring-[#C9A84C]/20"
-                  />
-                  <p className="mt-1.5 text-xs text-gray-500">Between 1 and 30 days.</p>
+                  <p className="mb-2 text-sm font-semibold text-gray-900">Reminder schedule</p>
+                  <p className="mt-0.5 text-xs text-gray-500">
+                    One reminder per member per lead time, ahead of the birthday. Day-of doubles as
+                    the birthday wish unless wishes are switched off.
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {REMINDER_LEADS.map((lead) => {
+                      const enabled = (notifForm.reminder_days_before_list ?? []).includes(lead.days);
+                      return (
+                        <button
+                          key={lead.days}
+                          type="button"
+                          aria-pressed={enabled}
+                          onClick={() => toggleReminderLead(lead.days)}
+                          className={`rounded-full border px-3 py-1.5 text-xs font-bold transition ${
+                            enabled
+                              ? 'border-[#C9A84C] bg-[#C9A84C]/10 text-[#8A6F1F] dark:border-[#C9A84C]/40 dark:text-[#D4B85A]'
+                              : 'border-[#e5e7eb] bg-white text-gray-500 hover:border-[#C9A84C]/40 hover:text-gray-900 dark:border-[#3b3628] dark:bg-[#24221c] dark:text-gray-300 dark:hover:text-gray-100'
+                          }`}
+                        >
+                          {lead.label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 
@@ -839,6 +875,27 @@ export default function AdminBirthdaysPage() {
               </label>
             </div>
           </div>
+
+              <label className="flex cursor-pointer items-start justify-between gap-4 rounded-xl border border-gray-200 p-4 transition hover:bg-gray-50">
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">Monthly calendar reminder</p>
+                  <p className="mt-0.5 text-xs text-gray-500">
+                    The recurring reminder on the 25th that nudges members who have not
+                    celebrated yet this month. It is a calendar entry, not a birthday.
+                  </p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={Boolean(notifForm.monthly_reminder_enabled)}
+                  onChange={(e) =>
+                    setNotifForm((prev) => ({
+                      ...prev,
+                      monthly_reminder_enabled: e.target.checked,
+                    }))
+                  }
+                  className="mt-0.5 h-4 w-4 flex-shrink-0 accent-[#C9A84C]"
+                />
+              </label>
 
           <div>
             <p className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-400">Channels</p>

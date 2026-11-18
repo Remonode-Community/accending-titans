@@ -95,8 +95,10 @@ declare module 'react-big-calendar' {
     title: ReactNode;
     continuesPrior: boolean;
     continuesAfter: boolean;
-    isAgendaView: boolean;
-    selected: boolean;
+    isAllDay: boolean;
+    localizer: CalendarLocalizer;
+    slotStart: Date;
+    slotEnd: Date;
   };
 
   export interface CalendarComponents<E = CalendarEventObj> {

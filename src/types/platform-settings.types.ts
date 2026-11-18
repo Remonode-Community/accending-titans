@@ -68,6 +68,12 @@ export interface BirthdayNotificationSettings {
   reminders_enabled: boolean;
   /** How many days before the birthday the reminder goes out (1-30). */
   reminder_days_before: number;
+  /**
+   * The full advance-reminder schedule, in days before the birthday. The
+   * backend defaults to 7 / 3 / 1 plus day-of and folds in `reminder_days_before`
+   * as well, so the two never drift apart.
+   */
+  reminder_days_before_list?: number[];
   /** Send a wish on the birthday itself. */
   wishes_enabled: boolean;
   /** Tell every member about the day's celebrants, not only the celebrant. */
@@ -78,6 +84,8 @@ export interface BirthdayNotificationSettings {
   push_enabled: boolean;
   /** Send administrators a daily digest when something needs attention. */
   admin_digest_enabled: boolean;
+  /** Send the separate monthly calendar reminder on the 25th. */
+  monthly_reminder_enabled: boolean;
   /** Hour of the day (0-23, server time) at which messages go out. */
   send_hour: number;
 }
