@@ -144,6 +144,15 @@ export interface AskBoardResponse {
   open_near_you: number;
 }
 
+/**
+ * The open slice of the ask board, read through the `opportunities` feature.
+ * Deliberately the same `Ask` shape — there is no second store and no second
+ * presenter, so an opportunity can never drift from an ask.
+ */
+export interface OpportunitiesResponse {
+  opportunities: Ask[];
+}
+
 export interface CreateAskRequest {
   kind: AskKind;
   title: string;

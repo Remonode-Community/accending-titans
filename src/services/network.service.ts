@@ -10,6 +10,7 @@ import type {
   MyReport,
   NetworkOverview,
   NetworkPreferences,
+  OpportunitiesResponse,
   UpdatePreferencesRequest,
   AdminAskRow,
   AdminReportRow,
@@ -109,6 +110,20 @@ class NetworkService {
   /** DELETE /asks/{id} */
   async deleteAsk(id: number): Promise<ApiResponse<null>> {
     return apiClient.delete(`/asks/${id}`);
+  }
+
+  /* ── Opportunities ── */
+
+  /**
+   * GET /opportunities
+   *
+   * The open slice of the ask board, behind the `opportunities` feature flag.
+   * Same server-side consent rules as `/asks`: nothing is hidden or revealed
+   * here, the payload already decided both.
+   */
+  async getOpportunities(limit?: number): Promise<ApiResponse<OpportunitiesResponse>> {
+    const qs = limit ? `?limit=${limit}` : '';
+    return apiClient.get(`/opportunities${qs}`);
   }
 
   /* ── Safety ── */
