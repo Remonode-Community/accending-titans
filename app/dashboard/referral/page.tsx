@@ -43,8 +43,54 @@ const formatCurrency = (amount?: number | null): string => {
   }).format(amount);
 };
 
-const getReferralLink = (code: string): string => {
-  return `https://ascending-titans.vercel.app/auth/register?ref=${code}`;
+const PRODUCTION_ORIGIN = 'https://accedingtitans.com';
+
+/**
+ * The origin a shared link must point at.
+ *
+ * `NEXT_PUBLIC_APP_URL` is the deployment's own public origin and is inlined at
+ * build time. `window.location.origin` is only a runtime fallback; the constant
+ * keeps the server-rendered pass (this page is prerendered) from ever emitting
+ * a relative or localhost link.
+ */
+const appOrigin = (): string => {
+  const configured = process.env.NEXT_PUBLIC_APP_URL?.trim();
+
+  if (configured) return configured.replace(/\/+$/, '');
+  if (typeof window !== 'undefined') return window.location.origin;
+
+  return PRODUCTION_ORIGIN;
+};
+
+/**
+ * Build the link a member copies or shares.
+ *
+ * The server owns the path (and the referral code); this only re-anchors the
+ * host onto the site the member is actually on. That matters because a stale
+ * or legacy row — a staging Vercel deployment, or the API host — must never end
+ * up in someone's clipboard: a shared link that points anywhere else simply
+ * does not credit the referrer.
+ */
+const getReferralLink = (code: string, serverLink?: string): string => {
+  const origin = appOrigin();
+  const fallback = `${origin}/auth/register?ref=${encodeURIComponent(code)}`;
+
+  if (!serverLink) return fallback;
+
+  try {
+    const url = new URL(serverLink, `${origin}/`);
+
+    // Pre-v2 rows stored the bare word `register`; the member route lives
+    // under `/auth`, exactly as the API normalises it.
+    const path =
+      !url.pathname || url.pathname === '/' || url.pathname === '/register'
+        ? '/auth/register'
+        : url.pathname;
+
+    return `${origin}${path}${url.search || `?ref=${encodeURIComponent(code)}`}`;
+  } catch {
+    return fallback;
+  }
 };
 
 const shareUrls = {
@@ -268,7 +314,7 @@ export default function ReferralPage() {
 
 
   const primaryLink = links[0] ?? null;
-  const referralUrl = primaryLink ? getReferralLink(primaryLink.code) : '';
+  const referralUrl = primaryLink ? getReferralLink(primaryLink.code, primaryLink.link) : '';
   const totalReferrals = stats?.total_referrals ?? 0;
   const activeReferrals = stats?.active_referrals ?? 0;
   const totalEarnings = stats?.total_earnings ?? 0;
