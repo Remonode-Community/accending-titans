@@ -30,6 +30,34 @@ const NAV_LINKS = [
 ] as const;
 
 /**
+ * Next's router appends a new hash to the current URL instead of replacing
+ * it, so clicking Features while parked on /#membership-plans produced the
+ * malformed `/#membership-plans#features`. Take over: rewrite the URL to a
+ * single hash, then scroll ourselves.
+ */
+function handleSectionClick(
+  event: React.MouseEvent<HTMLAnchorElement>,
+  href: string
+) {
+  const hashIndex = href.indexOf('#');
+  if (hashIndex === -1) return; // plain page link (/about, /faq) — let Next handle it
+
+  const hash = href.slice(hashIndex);
+  const path = href.slice(0, hashIndex); // '' or '/'
+
+  // Only intercept when the destination is the page we're already on;
+  // otherwise a normal navigation (with a full load) is correct.
+  if (path !== '' && path !== window.location.pathname) return;
+
+  event.preventDefault();
+  const target = document.getElementById(hash.slice(1));
+  if (!target) return;
+
+  history.replaceState(null, '', `${window.location.pathname}${hash}`);
+  target.scrollIntoView({ behavior: 'smooth' });
+}
+
+/**
  * LandingTopbar Component
  * 
  * Shows different navigation based on authentication state:
@@ -64,6 +92,7 @@ export function LandingTopbar() {
                 key={link.href}
                 href={link.href}
                 aria-current={isActive ? 'page' : undefined}
+                onClick={(event) => handleSectionClick(event, link.href)}
                 className={`transition-colors hover:text-[#C9A84C] ${
                   isActive ? 'text-[#C9A84C]' : ''
                 }`}
