@@ -2,9 +2,23 @@
 
 import Link from 'next/link';
 import { Mail, Phone, MapPin, Facebook, Twitter, Linkedin, Instagram } from 'lucide-react';
+import { useSiteContact } from '@/contexts/SiteContactContext';
+import { mailtoHref, whatsappHref } from '@/utils/contact.utils';
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
+  const contact = useSiteContact();
+
+  const emailHref = mailtoHref(contact.support_email);
+  // The support phone is a WhatsApp line: clicking it opens a chat.
+  const phoneHref = whatsappHref(contact.whatsapp_number);
+
+  const socials = [
+    { href: contact.facebook_url, label: 'Facebook', Icon: Facebook },
+    { href: contact.twitter_url, label: 'Twitter', Icon: Twitter },
+    { href: contact.linkedin_url, label: 'LinkedIn', Icon: Linkedin },
+    { href: contact.instagram_url, label: 'Instagram', Icon: Instagram },
+  ].filter((social) => social.href.trim() !== '');
 
   return (
     <footer className="border-t border-gray-200 bg-white">
@@ -18,18 +32,18 @@ export function Footer() {
               <p className="text-sm text-gray-600">Connect, Showcase, and Grow</p>
             </div>
             <div className="flex gap-3">
-              <a href="https://facebook.com" className="text-gray-400 hover:text-[#C9A84C] transition">
-                <Facebook className="h-5 w-5" />
-              </a>
-              <a href="https://twitter.com" className="text-gray-400 hover:text-[#C9A84C] transition">
-                <Twitter className="h-5 w-5" />
-              </a>
-              <a href="https://linkedin.com" className="text-gray-400 hover:text-[#C9A84C] transition">
-                <Linkedin className="h-5 w-5" />
-              </a>
-              <a href="https://instagram.com" className="text-gray-400 hover:text-[#C9A84C] transition">
-                <Instagram className="h-5 w-5" />
-              </a>
+              {socials.map(({ href, label, Icon }) => (
+                <a
+                  key={label}
+                  href={href}
+                  aria-label={label}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-gray-400 hover:text-[#C9A84C] transition"
+                >
+                  <Icon className="h-5 w-5" />
+                </a>
+              ))}
             </div>
           </div>
 
@@ -125,19 +139,32 @@ export function Footer() {
             <ul className="space-y-3">
               <li className="flex items-start gap-3">
                 <Mail className="h-5 w-5 text-[#C9A84C] flex-shrink-0 mt-0.5" />
-                <a href="mailto:support@ascendingtitans.com" className="text-sm text-gray-600 hover:text-[#C9A84C] transition">
-                  support@ascendingtitans.com
-                </a>
+                {emailHref ? (
+                  <a href={emailHref} className="text-sm text-gray-600 hover:text-[#C9A84C] transition">
+                    {contact.support_email}
+                  </a>
+                ) : (
+                  <span className="text-sm text-gray-600">{contact.support_email}</span>
+                )}
               </li>
               <li className="flex items-start gap-3">
                 <Phone className="h-5 w-5 text-[#C9A84C] flex-shrink-0 mt-0.5" />
-                <a href="tel:+2347000000000" className="text-sm text-gray-600 hover:text-[#C9A84C] transition">
-                  +234 (0) 700 000 0000
-                </a>
+                {phoneHref ? (
+                  <a
+                    href={phoneHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-gray-600 hover:text-[#C9A84C] transition"
+                  >
+                    {contact.support_phone}
+                  </a>
+                ) : (
+                  <span className="text-sm text-gray-600">{contact.support_phone}</span>
+                )}
               </li>
               <li className="flex items-start gap-3">
                 <MapPin className="h-5 w-5 text-[#C9A84C] flex-shrink-0 mt-0.5" />
-                <span className="text-sm text-gray-600">Lagos, Nigeria</span>
+                <span className="text-sm text-gray-600">{contact.location}</span>
               </li>
             </ul>
           </div>

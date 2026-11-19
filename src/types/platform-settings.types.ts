@@ -90,11 +90,49 @@ export interface BirthdayNotificationSettings {
   send_hour: number;
 }
 
+/**
+ * Public support and social details.
+ *
+ * These are administrator-managed and read by the footer, the support and
+ * about pages and the error screens, so they are deliberately public. Every
+ * field is a string: the backend resolves blanks and the WhatsApp fallback
+ * before returning them, so the client never has to guess.
+ */
+export interface SiteContact {
+  support_email: string;
+  support_phone: string;
+  /** Falls back to `support_phone` on the server when not set separately. */
+  whatsapp_number: string;
+  location: string;
+  facebook_url: string;
+  twitter_url: string;
+  linkedin_url: string;
+  instagram_url: string;
+}
+
+/**
+ * Rendered before the public request resolves (and when it fails).
+ *
+ * Mirroring the backend defaults keeps the first paint honest instead of
+ * showing empty links; the fetch replaces them with whatever the admin saved.
+ */
+export const DEFAULT_SITE_CONTACT: SiteContact = {
+  support_email: 'support@ascendingtitans.com',
+  support_phone: '+234 700 000 0000',
+  whatsapp_number: '+234 700 000 0000',
+  location: 'Lagos, Nigeria',
+  facebook_url: 'https://facebook.com/remonode',
+  twitter_url: 'https://twitter.com/remonode',
+  linkedin_url: 'https://linkedin.com/company/remonode',
+  instagram_url: 'https://instagram.com/remonode',
+};
+
 export interface AdminPlatformSettings {
   features: FeatureFlag[];
   default_landing_page?: string;
   birthday_eligibility: BirthdayEligibilityRule;
   birthday_notifications: BirthdayNotificationSettings;
+  contact?: SiteContact;
 }
 
 export interface FeatureMapResponse {

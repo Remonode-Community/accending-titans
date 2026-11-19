@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Wifi, WifiOff, Home, RotateCw } from 'lucide-react';
 import { ErrorPageProvider } from '@/contexts/ErrorPageContext';
+import { useSiteContact } from '@/contexts/SiteContactContext';
+import { mailtoHref } from '@/utils/contact.utils';
 
 /**
  * Offline Error Page
@@ -13,6 +15,8 @@ import { ErrorPageProvider } from '@/contexts/ErrorPageContext';
  */
 function OfflineContent() {
   const router = useRouter();
+  const contact = useSiteContact();
+  const supportEmailHref = mailtoHref(contact.support_email);
   const [isOnline, setIsOnline] = useState(true);
   const [retrying, setRetrying] = useState(false);
 
@@ -148,9 +152,13 @@ function OfflineContent() {
         {/* Help Text */}
         <p className="text-center text-xs text-gray-500 mt-6">
           If the problem persists, please{' '}
-          <a href="mailto:support@Acceding Titans.com" className="text-[#c9a84c] font-semibold hover:underline">
-            contact support
-          </a>
+          {supportEmailHref ? (
+            <a href={supportEmailHref} className="text-[#c9a84c] font-semibold hover:underline">
+              contact {contact.support_email}
+            </a>
+          ) : (
+            <span className="text-[#c9a84c] font-semibold">contact support</span>
+          )}
         </p>
       </div>
     </div>

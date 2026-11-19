@@ -4,8 +4,43 @@ import { Mail, MessageSquare, Phone, Clock, ArrowRight, LifeBuoy, Sparkles, Shie
 import Link from 'next/link';
 import { LandingTopbar } from '@/components/LandingTopbar';
 import { Footer } from '@/components/shared/Footer';
+import { useSiteContact } from '@/contexts/SiteContactContext';
+import { mailtoHref, whatsappHref } from '@/utils/contact.utils';
 
 export default function SupportPage() {
+  const contact = useSiteContact();
+
+  const contactMethods = [
+    {
+      icon: Mail,
+      title: 'Email',
+      desc: contact.support_email,
+      time: 'Response within 2 hours',
+      href: mailtoHref(contact.support_email),
+    },
+    {
+      icon: MessageSquare,
+      title: 'Live Chat',
+      desc: 'Available in app',
+      time: 'Response in < 5 minutes',
+      href: '',
+    },
+    {
+      icon: Phone,
+      title: 'Phone / WhatsApp',
+      desc: contact.support_phone,
+      time: 'Mon-Sun: 9AM - 10PM WAT',
+      href: whatsappHref(contact.whatsapp_number),
+    },
+    {
+      icon: Clock,
+      title: 'Hours',
+      desc: 'Available 24/7',
+      time: 'Holiday support included',
+      href: '',
+    },
+  ];
+
   return (
     <>
       <LandingTopbar />
@@ -30,43 +65,31 @@ export default function SupportPage() {
       <section className="px-5 py-20 lg:px-8 bg-white">
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[
-              {
-                icon: Mail,
-                title: 'Email',
-                desc: 'Acceding Titans.operations@gmail.com',
-                time: 'Response within 2 hours',
-              },
-              {
-                icon: MessageSquare,
-                title: 'Live Chat',
-                desc: 'Available in app',
-                time: 'Response in < 5 minutes',
-              },
-              {
-                icon: Phone,
-                title: 'Phone',
-                desc: '+1 833 803 2507',
-                time: 'Mon-Sun: 9AM - 10PM WAT',
-              },
-              {
-                icon: Clock,
-                title: 'Hours',
-                desc: 'Available 24/7',
-                time: 'Holiday support included',
-              },
-            ].map((method, idx) => {
+            {contactMethods.map((method) => {
               const Icon = method.icon;
               return (
                 <div
-                  key={idx}
+                  key={method.title}
                   className="rounded-2xl border border-gray-200 bg-white p-6 hover:border-[#C9A84C]/30 hover:shadow-lg transition-all"
                 >
                   <div className="w-12 h-12 rounded-xl bg-[#C9A84C]/10 flex items-center justify-center mb-4">
                     <Icon className="text-[#C9A84C]" size={24} />
                   </div>
                   <h3 className="font-semibold text-gray-900 mb-2 text-lg">{method.title}</h3>
-                  <p className="text-sm text-gray-700 font-medium mb-2">{method.desc}</p>
+                  <p className="text-sm text-gray-700 font-medium mb-2">
+                    {method.href ? (
+                      <a
+                        href={method.href}
+                        target={method.href.startsWith('http') ? '_blank' : undefined}
+                        rel={method.href.startsWith('http') ? 'noopener noreferrer' : undefined}
+                        className="hover:text-[#C9A84C] hover:underline transition-colors"
+                      >
+                        {method.desc}
+                      </a>
+                    ) : (
+                      method.desc
+                    )}
+                  </p>
                   <p className="text-xs text-gray-500">{method.time}</p>
                 </div>
               );

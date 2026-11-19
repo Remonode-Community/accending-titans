@@ -4,6 +4,8 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AlertCircle, Home, RotateCw } from 'lucide-react';
 import { ErrorPageProvider } from '@/contexts/ErrorPageContext';
+import { useSiteContact } from '@/contexts/SiteContactContext';
+import { mailtoHref } from '@/utils/contact.utils';
 
 function ErrorContent({
   error,
@@ -13,6 +15,8 @@ function ErrorContent({
   reset: () => void;
 }) {
   const router = useRouter();
+  const contact = useSiteContact();
+  const supportEmailHref = mailtoHref(contact.support_email);
 
   useEffect(() => {
     const isConnectionError =
@@ -115,12 +119,16 @@ function ErrorContent({
 
         <p className="mt-5 text-center text-xs text-gray-400">
           Experiencing persistent issues?{' '}
-          <a
-            href="mailto:support@yourapp.com"
-            className="font-semibold text-[#C9A84C] hover:text-[#B8962E] transition-colors"
-          >
-            Contact Support
-          </a>
+          {supportEmailHref ? (
+            <a
+              href={supportEmailHref}
+              className="font-semibold text-[#C9A84C] hover:text-[#B8962E] transition-colors"
+            >
+              Contact {contact.support_email}
+            </a>
+          ) : (
+            <span className="font-semibold text-[#C9A84C]">Contact support</span>
+          )}
         </p>
       </div>
     </div>

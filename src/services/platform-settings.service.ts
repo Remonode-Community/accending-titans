@@ -6,6 +6,7 @@ import type {
   BirthdayNotificationSettings,
   FeatureKey,
   FeatureMapResponse,
+  SiteContact,
 } from '@/types/platform-settings.types';
 
 class PlatformSettingsService {
@@ -19,6 +20,11 @@ class PlatformSettingsService {
     enabled: boolean
   ): Promise<ApiResponse<{ maintenance_mode: boolean }>> {
     return apiClient.put('/admin/platform-settings/maintenance-mode', { enabled });
+  }
+
+  /** GET /site-settings — public support and social details. */
+  async getSiteSettings(): Promise<ApiResponse<{ contact: SiteContact }>> {
+    return apiClient.get('/site-settings');
   }
 
   /** GET /features — the signed-in member's feature map. */
@@ -57,6 +63,13 @@ class PlatformSettingsService {
     settings: BirthdayNotificationSettings
   ): Promise<ApiResponse<{ birthday_notifications: BirthdayNotificationSettings }>> {
     return apiClient.put('/admin/platform-settings/birthday-notifications', settings);
+  }
+
+  /** PUT /admin/platform-settings/contact — blank optional fields clear them. */
+  async adminUpdateContact(
+    contact: Partial<SiteContact>
+  ): Promise<ApiResponse<{ contact: SiteContact }>> {
+    return apiClient.put('/admin/platform-settings/contact', contact);
   }
 }
 

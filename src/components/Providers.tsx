@@ -11,6 +11,7 @@ import { PINSetupEnforcer } from '@/components/PINSetupEnforcer';
 import { Error403Modal } from '@/components/Error403Modal';
 import { AnalyticsInitializer } from '@/components/AnalyticsInitializer';
 import { InitializationProvider } from '@/contexts/InitializationContext';
+import { SiteContactProvider } from '@/contexts/SiteContactContext';
 import { debug, initializeDebugLogging } from '@/utils/debug.utils';
 import { initializeErrorTracking } from '@/utils/error-tracking.utils';
 import { initializeIdempotencyMaintenance } from '@/utils/idempotency-maintenance.utils';
@@ -36,24 +37,26 @@ export const Providers: React.FC<ProvidersProps> = ({ children }) => {
 
   return (
     <ErrorBoundary>
-      <InitializationProvider>
-        <AuthInitializer>
-          <MaintenanceGate>
-            <AnalyticsInitializer />
-            <EmailVerificationEnforcer>
-              <PhoneVerificationEnforcer>
-                <PINSetupEnforcer>
-                  <>
-                    {children}
-                    <Toast />
-                    <Error403Modal />
-                  </>
-                </PINSetupEnforcer>
-              </PhoneVerificationEnforcer>
-            </EmailVerificationEnforcer>
-          </MaintenanceGate>
-        </AuthInitializer>
-      </InitializationProvider>
+      <SiteContactProvider>
+        <InitializationProvider>
+          <AuthInitializer>
+            <MaintenanceGate>
+              <AnalyticsInitializer />
+              <EmailVerificationEnforcer>
+                <PhoneVerificationEnforcer>
+                  <PINSetupEnforcer>
+                    <>
+                      {children}
+                      <Toast />
+                      <Error403Modal />
+                    </>
+                  </PINSetupEnforcer>
+                </PhoneVerificationEnforcer>
+              </EmailVerificationEnforcer>
+            </MaintenanceGate>
+          </AuthInitializer>
+        </InitializationProvider>
+      </SiteContactProvider>
     </ErrorBoundary>
   );
 };

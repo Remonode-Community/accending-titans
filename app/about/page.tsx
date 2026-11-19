@@ -24,8 +24,28 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { LandingTopbar } from '@/components/LandingTopbar';
 import { Footer } from '@/components/shared/Footer';
+import { useSiteContact } from '@/contexts/SiteContactContext';
+import { mailtoHref, whatsappHref } from '@/utils/contact.utils';
 
 export default function AboutPage() {
+  const contact = useSiteContact();
+
+  const contactDetails = [
+    {
+      label: 'Email',
+      value: contact.support_email,
+      href: mailtoHref(contact.support_email),
+      Icon: Mail,
+    },
+    {
+      label: 'Phone',
+      value: contact.support_phone,
+      href: whatsappHref(contact.whatsapp_number),
+      Icon: Phone,
+    },
+    { label: 'Location', value: contact.location, href: '', Icon: MapPin },
+  ];
+
   return (
     <>
       <LandingTopbar />
@@ -427,21 +447,28 @@ export default function AboutPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-3xl mx-auto">
-            {[
-              { label: 'Email', value: 'support@community.com', Icon: Mail },
-              { label: 'Phone', value: '+1 (555) 123-4567', Icon: Phone },
-              { label: 'Location', value: 'Lagos, Nigeria', Icon: MapPin },
-            ].map((contact, idx) => {
-              const IconComponent = contact.Icon;
+            {contactDetails.map((detail) => {
+              const IconComponent = detail.Icon;
               return (
-                <div key={idx} className="rounded-2xl border border-gray-200 bg-white p-8 text-center hover:shadow-lg hover:border-[#C9A84C]/30 transition-all">
+                <div key={detail.label} className="rounded-2xl border border-gray-200 bg-white p-8 text-center hover:shadow-lg hover:border-[#C9A84C]/30 transition-all">
                   <div className="flex justify-center mb-4">
                     <div className="w-12 h-12 rounded-lg bg-[#C9A84C]/10 flex items-center justify-center">
                       <IconComponent className="w-6 h-6 text-[#C9A84C]" />
                     </div>
                   </div>
-                  <p className="text-sm text-gray-600 mb-2 font-semibold">{contact.label}</p>
-                  <p className="font-semibold text-gray-900">{contact.value}</p>
+                  <p className="text-sm text-gray-600 mb-2 font-semibold">{detail.label}</p>
+                  {detail.href ? (
+                    <a
+                      href={detail.href}
+                      target={detail.href.startsWith('http') ? '_blank' : undefined}
+                      rel={detail.href.startsWith('http') ? 'noopener noreferrer' : undefined}
+                      className="font-semibold text-gray-900 hover:text-[#C9A84C] transition-colors"
+                    >
+                      {detail.value}
+                    </a>
+                  ) : (
+                    <p className="font-semibold text-gray-900">{detail.value}</p>
+                  )}
                 </div>
               );
             })}

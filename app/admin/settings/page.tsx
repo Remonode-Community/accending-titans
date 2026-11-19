@@ -11,12 +11,14 @@ import {
   CheckCircle,
   AlertCircle,
   Settings,
+  Share2,
 } from 'lucide-react';
 
 import { useAuthStore } from '@/store/auth.store';
 import { Card, CardBody, CardHeader } from '@/components/shared/Card';
 import { Button } from '@/components/shared/Button';
 import { platformSettingsService } from '@/services/platform-settings.service';
+import { DEFAULT_SITE_CONTACT, type SiteContact } from '@/types/platform-settings.types';
 import { Toast } from '@/utils/toast.utils';
 
 // ─── Types ──────────────────────────────────────────────────────────────
@@ -24,8 +26,6 @@ import { Toast } from '@/utils/toast.utils';
 interface AdminSettings {
   general: {
     platform_name: string;
-    support_email: string;
-    support_phone: string;
     default_currency: string;
     timezone: string;
     maintenance_mode: boolean;
@@ -44,6 +44,7 @@ interface AdminSettings {
     admin_email_alerts: boolean;
     low_balance_threshold: number;
   };
+  contact: SiteContact;
 }
 
 // ─── Default Settings ───────────────────────────────────────────────────
@@ -51,8 +52,6 @@ interface AdminSettings {
 const DEFAULT_SETTINGS: AdminSettings = {
   general: {
     platform_name: 'Acceding Titans',
-    support_email: 'support@acceding-titans.com',
-    support_phone: '+2348000000000',
     default_currency: 'NGN',
     timezone: 'Africa/Lagos',
     maintenance_mode: false,
@@ -71,6 +70,7 @@ const DEFAULT_SETTINGS: AdminSettings = {
     admin_email_alerts: true,
     low_balance_threshold: 10000,
   },
+  contact: { ...DEFAULT_SITE_CONTACT },
 };
 
 // ─── Section Config ─────────────────────────────────────────────────────
@@ -85,7 +85,8 @@ interface SectionConfig {
 }
 
 const SECTIONS: SectionConfig[] = [
-  { id: 'general', label: 'General', description: 'Platform name, support info, and regional settings', icon: Globe, color: 'text-blue-600', bgColor: 'bg-blue-50' },
+  { id: 'general', label: 'General', description: 'Platform name and regional settings', icon: Globe, color: 'text-blue-600', bgColor: 'bg-blue-50' },
+  { id: 'contact', label: 'Contact & Social', description: 'Support email, WhatsApp line, location and social profiles', icon: Share2, color: 'text-purple-600', bgColor: 'bg-purple-50' },
   { id: 'security', label: 'Security', description: 'Authentication, verification, and session policies', icon: Shield, color: 'text-emerald-600', bgColor: 'bg-emerald-50' },
   { id: 'notifications', label: 'Notifications', description: 'Email, push, and admin alert preferences', icon: Bell, color: 'text-amber-600', bgColor: 'bg-amber-50' },
 ];
@@ -116,6 +117,7 @@ export default function AdminSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [maintenanceModeLoaded, setMaintenanceModeLoaded] = useState(false);
   const [savedMaintenanceMode, setSavedMaintenanceMode] = useState(false);
+  const [contactLoaded, setContactLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [activeSection, setActiveSection] = useState('general');
   const [successMessage, setSuccessMessage] = useState('');
@@ -159,6 +161,40 @@ export default function AdminSettingsPage() {
     if (isAdmin) loadSettings();
   }, [isAdmin]);
 
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    let active = true;
+
+    const loadContact = async () => {
+      try {
+        const response = await platformSettingsService.adminGet();
+        const loaded = response.data?.contact;
+
+        if (!response.success || !loaded) {
+          throw new Error(response.message || 'Could not load contact details.');
+        }
+
+        if (!active) return;
+
+        setSettings((current) => ({ ...current, contact: loaded }));
+        setContactLoaded(true);
+      } catch (err) {
+        if (active) {
+          setError(
+            err instanceof Error ? err.message : 'Could not load contact details.'
+          );
+        }
+      }
+    };
+
+    loadContact();
+
+    return () => {
+      active = false;
+    };
+  }, [isAdmin]);
+
   const handleChange = (path: string, value: any) => {
     setSettings((prev) => {
       const updated = { ...prev };
@@ -173,24 +209,39 @@ export default function AdminSettingsPage() {
       setSuccessMessage('');
       setError('');
 
-      const maintenanceMode = settings.general.maintenance_mode;
-      const maintenanceModeChanged = maintenanceMode !== savedMaintenanceMode;
+      let message: string;
 
-      if (maintenanceModeChanged) {
-        const response = await platformSettingsService.adminUpdateMaintenanceMode(maintenanceMode);
-        if (!response.success || response.data?.maintenance_mode !== maintenanceMode) {
-          throw new Error(response.message || 'Failed to update maintenance mode.');
+      if (activeSection === 'contact') {
+        const response = await platformSettingsService.adminUpdateContact(settings.contact);
+
+        if (!response.success || !response.data?.contact) {
+          throw new Error(response.message || 'Failed to update contact details.');
         }
 
-        setSavedMaintenanceMode(maintenanceMode);
+        const updated = response.data.contact;
+        setSettings((current) => ({ ...current, contact: updated }));
+        message = 'Contact details updated successfully';
       } else {
-        // Other settings on this screen do not have backend storage yet.
-        await new Promise((r) => setTimeout(r, 1500));
+        const maintenanceMode = settings.general.maintenance_mode;
+        const maintenanceModeChanged = maintenanceMode !== savedMaintenanceMode;
+
+        if (maintenanceModeChanged) {
+          const response = await platformSettingsService.adminUpdateMaintenanceMode(maintenanceMode);
+          if (!response.success || response.data?.maintenance_mode !== maintenanceMode) {
+            throw new Error(response.message || 'Failed to update maintenance mode.');
+          }
+
+          setSavedMaintenanceMode(maintenanceMode);
+        } else {
+          // Other settings on this screen do not have backend storage yet.
+          await new Promise((r) => setTimeout(r, 1500));
+        }
+
+        message = maintenanceModeChanged
+          ? 'Maintenance mode updated successfully'
+          : 'Settings saved successfully';
       }
 
-      const message = maintenanceModeChanged
-        ? 'Maintenance mode updated successfully'
-        : 'Settings saved successfully';
       setSuccessMessage(message);
       Toast.success(message);
       setTimeout(() => setSuccessMessage(''), 3000);
@@ -291,10 +342,6 @@ export default function AdminSettingsPage() {
           <div className="space-y-5">
             {renderTextField('general.platform_name', 'Platform Name', 'Your platform name')}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {renderTextField('general.support_email', 'Support Email', 'support@example.com')}
-              {renderTextField('general.support_phone', 'Support Phone', '+2348000000000')}
-            </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {renderTextField('general.default_currency', 'Default Currency', 'NGN', 'text', [
                 { value: 'NGN', label: 'NGN - Nigerian Naira' },
                 { value: 'USD', label: 'USD - US Dollar' },
@@ -315,6 +362,43 @@ export default function AdminSettingsPage() {
                 When enabled, non-admins see a maintenance notice. Admins retain access.
               </p>
             </div>
+          </div>
+        );
+
+      case 'contact':
+        return (
+          <div className="space-y-5">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {renderTextField('contact.support_email', 'Support Email', 'support@example.com', 'email')}
+              {renderTextField('contact.support_phone', 'Support Phone', '+234 700 000 0000', 'tel')}
+            </div>
+            <p className="text-xs leading-relaxed text-gray-500">
+              Members who tap the support phone are taken to WhatsApp.
+            </p>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {renderTextField(
+                'contact.whatsapp_number',
+                'WhatsApp Number (optional)',
+                'Leave blank to use the support phone',
+                'tel'
+              )}
+              {renderTextField('contact.location', 'Location', 'Lagos, Nigeria')}
+            </div>
+            <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
+              <p className="mb-1 text-sm font-semibold text-gray-700">Social Profiles</p>
+              <p className="mb-4 text-xs text-gray-500">
+                Leave a field blank to hide that icon in the footer.
+              </p>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {renderTextField('contact.facebook_url', 'Facebook URL', 'https://facebook.com/...')}
+                {renderTextField('contact.twitter_url', 'Twitter / X URL', 'https://x.com/...')}
+                {renderTextField('contact.linkedin_url', 'LinkedIn URL', 'https://linkedin.com/company/...')}
+                {renderTextField('contact.instagram_url', 'Instagram URL', 'https://instagram.com/...')}
+              </div>
+            </div>
+            {!contactLoaded && (
+              <p className="text-xs text-amber-600">Loading saved contact details…</p>
+            )}
           </div>
         );
 
@@ -476,7 +560,11 @@ export default function AdminSettingsPage() {
                     </p>
                     <Button
                       onClick={handleSave}
-                      disabled={saving || !maintenanceModeLoaded}
+                      disabled={
+                        saving ||
+                        !maintenanceModeLoaded ||
+                        (activeSection === 'contact' && !contactLoaded)
+                      }
                       className="inline-flex items-center gap-2 rounded-xl bg-[#C9A84C] px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-[#C9A84C]/20 transition hover:bg-[#B8962E] disabled:opacity-50"
                     >
                       {saving ? (
