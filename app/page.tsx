@@ -11,8 +11,6 @@ import {
   Gift,
   Globe,
   Headphones,
-  Linkedin,
-  Mail,
   MessageSquare,
   ShieldCheck,
   Sparkles,
@@ -25,6 +23,7 @@ import {
   Share2,
 } from 'lucide-react';
 import { LandingTopbar } from '@/components/LandingTopbar';
+import { Footer } from '@/components/shared/Footer';
 import { SubscriptionPlansSection } from '@/components/subscription/SubscriptionPlansSection';
 import BusinessShowcase from '@/components/landing/BusinessShowcase';
 
@@ -546,67 +545,8 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ═══════════════════ FOOTER ═══════════════════ */}
-      <footer className="bg-gray-900 text-gray-300 dark:bg-[#11100d] py-10 sm:py-12 md:py-14 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 mb-10">
-            <div className="col-span-2 lg:col-span-1">
-              <div className="flex items-center gap-2 mb-3">
-                <Image src="/icon.png" alt="Logo" width={36} height={36} className="h-8 w-8 sm:h-9 sm:w-9" />
-                <span className="font-bold text-white text-base sm:text-lg">Community</span>
-              </div>
-              <p className="text-xs sm:text-sm text-gray-400 leading-relaxed">
-                Empowering entrepreneurs and business owners through community, connection, and opportunity.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-bold text-white text-sm mb-3">Company</h3>
-              <ul className="space-y-2">
-                {[['About Us', '/about'], ['Blog', '/'], ['Careers', '/about'], ['Contact', '/support']].map(([label, href]) => (
-                  <li key={label}>
-                    <Link href={href} className="text-xs sm:text-sm text-gray-400 hover:text-[#C9A84C] transition-colors">
-                      {label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div>
-              <h3 className="font-bold text-white text-sm mb-3">Resources</h3>
-              <ul className="space-y-2">
-                {[['Help Center', '/support'], ['Documentation', '/'], ['Terms of Service', '/terms'], ['Privacy Policy', '/privacy']].map(([label, href]) => (
-                  <li key={label}>
-                    <Link href={href} className="text-xs sm:text-sm text-gray-400 hover:text-[#C9A84C] transition-colors">
-                      {label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div>
-              <h3 className="font-bold text-white text-sm mb-3">Connect</h3>
-              <div className="flex gap-2.5">
-                <a href="#" className="flex items-center justify-center w-9 h-9 rounded-lg bg-gray-800 hover:bg-[#C9A84C]/20 transition-colors">
-                  <Linkedin size={17} />
-                </a>
-                <a href="mailto:support@community.com" className="flex items-center justify-center w-9 h-9 rounded-lg bg-gray-800 hover:bg-[#C9A84C]/20 transition-colors">
-                  <Mail size={17} />
-                </a>
-              </div>
-            </div>
-          </div>
-
-          <div className="border-t border-gray-800 pt-6 flex flex-col sm:flex-row justify-between items-center gap-3">
-            <p className="text-xs text-gray-500">© 2026 Community Platform. All rights reserved.</p>
-            <p className="text-xs text-gray-500">
-              Made with <span className="text-[#C9A84C]">♥</span> for entrepreneurs
-            </p>
-          </div>
-        </div>
-      </footer>
+      {/* ══════════════════ FOOTER ══════════════════ */}
+      <Footer />
     </main>
   );
 }
