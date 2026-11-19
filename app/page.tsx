@@ -241,7 +241,7 @@ export default function LandingPage() {
               </div>
 
               {/* Social proof */}
-              <div className="flex flex-wrap items-center gap-5 sm:gap-8">
+              {/* <div className="flex flex-wrap items-center gap-5 sm:gap-8">
                 <div>
                   <div className="flex -space-x-2 sm:-space-x-3 mb-2">
                     {[1, 2, 3, 4, 5].map((i) => (
@@ -263,7 +263,7 @@ export default function LandingPage() {
                   <p className="text-xs sm:text-sm font-semibold text-white">Rated 4.9/5</p>
                   <p className="text-xs text-white/60">From real members</p>
                 </div>
-              </div>
+              </div> */}
             </div>
           </div>
 
@@ -284,7 +284,6 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-
       {/* ═══════════════════ HOW IT WORKS ═══════════════════ */}
       <section id="how-it-works" className="bg-gradient-to-b from-white to-gray-50 py-12 sm:py-16 md:py-24 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">

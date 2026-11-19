@@ -2,11 +2,32 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
+import { usePathname } from 'next/navigation';
 import { ChevronDown, LogOut, LayoutDashboard, UserPlus } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
 import { useAuth } from '@/hooks/useAuth';
 import { useState } from 'react';
 import { ThemeToggle } from '@/components/shared/ThemeToggle';
+
+/**
+ * Primary public navigation.
+ *
+ * Every landing-page destination is absolute (`/#...`). A bare `#features`
+ * link resolves against whatever page is rendering the topbar, so on /about,
+ * /faq, /support or a catalogue page it pointed at an ID that did not exist
+ * and clicking it did nothing. The absolute form always reaches the section.
+ *
+ * `Pricing` targets `#membership-plans` — the id the plans section actually
+ * uses — rather than the old `#pricing`, which never existed on any page.
+ */
+const NAV_LINKS = [
+  { label: 'How It Works', href: '/#how-it-works' },
+  { label: 'Features', href: '/#features' },
+  { label: 'Pricing', href: '/#membership-plans' },
+  { label: 'Testimonials', href: '/#testimonials' },
+  { label: 'About', href: '/about' },
+  { label: 'FAQ', href: '/faq' },
+] as const;
 
 /**
  * LandingTopbar Component
@@ -16,6 +37,7 @@ import { ThemeToggle } from '@/components/shared/ThemeToggle';
  * - Authenticated: User name, profile menu with dashboard and logout
  */
 export function LandingTopbar() {
+  const pathname = usePathname();
   const { isAuthenticated, user } = useAuthStore();
   const { logout, isLoading } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -33,12 +55,23 @@ export function LandingTopbar() {
           <span className="text-2xl font-black tracking-tight text-white">Acceding Titans</span>
         </Link>
 
-        <div className="hidden items-center gap-8 text-sm font-semibold text-white/85 lg:flex">
-          <a href="#how-it-works" className="hover:text-[#C9A84C] transition-colors">How It Works</a>
-          <a href="#features" className="hover:text-[#C9A84C] transition-colors">Features</a>
-          <a href="#pricing" className="hover:text-[#C9A84C] transition-colors">Pricing</a>
-          <a href="#testimonials" className="hover:text-[#C9A84C] transition-colors">Testimonials</a>
-          <a href="#stats" className="hover:text-[#C9A84C] transition-colors">Stats</a>
+        <div className="hidden items-center gap-6 text-sm font-semibold text-white/85 lg:flex xl:gap-8">
+          {NAV_LINKS.map((link) => {
+            const isActive = link.href === pathname;
+
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                aria-current={isActive ? 'page' : undefined}
+                className={`transition-colors hover:text-[#C9A84C] ${
+                  isActive ? 'text-[#C9A84C]' : ''
+                }`}
+              >
+                {link.label}
+              </Link>
+            );
+          })}
         </div>
 
         <div className="flex items-center gap-3">

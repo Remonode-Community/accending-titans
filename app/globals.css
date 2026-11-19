@@ -89,6 +89,16 @@ html {
 }
 
 /*
+ * The landing topbar is fixed and 5rem tall. Anchor jumps to `/#features`,
+ * `/#membership-plans` and friends would otherwise park the section heading
+ * underneath it. Scroll margin is only consulted for scroll operations, so
+ * this is safe for the rest of the app.
+ */
+main [id] {
+  scroll-margin-top: 5rem;
+}
+
+/*
  * Map Tailwind's `font-black` (700 → 900 scale, resolves to 900) onto 800.
  *
  * Plus Jakarta Sans tops out at ExtraBold 800, so a 900 request has no real

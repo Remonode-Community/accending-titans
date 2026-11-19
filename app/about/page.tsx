@@ -429,7 +429,7 @@ export default function AboutPage() {
               Get Started Now <ArrowRight size={20} />
             </Link>
             <Link
-              href="/"
+              href="/#membership-plans"
               className="inline-flex items-center justify-center gap-2 px-8 py-4 border-2 border-[#C9A84C] text-[#C9A84C] font-semibold rounded-xl hover:bg-[#C9A84C]/5 transition-all"
             >
               View Pricing Plans
