@@ -311,6 +311,76 @@ svg.lucide {
   border-color: var(--border-color);
 }
 
+/*
+ * Gradient stops.
+ *
+ * `bg-gradient-*` builds its colours from the `--tw-gradient-from/via/to`
+ * custom properties, so the `bg-white` remap above never reached a panel
+ * written as `from-white via-white/95 to-gray-50`. That left the /about hero
+ * and its alternating sections white in dark mode, with the (remapped) light
+ * text sitting on top of them.
+ *
+ * Mapping the stops rather than the gradient utilities keeps the direction of
+ * every existing gradient: white/light greys become the dark surfaces, while
+ * brand-coloured gradients (gold, maroon) are untouched.
+ */
+[data-theme="dark"] :is(
+  [class~="from-white"]
+):not([class*="dark:from-"]) {
+  --tw-gradient-from: var(--surface);
+}
+
+[data-theme="dark"] :is(
+  [class~="from-gray-50"],
+  [class~="from-slate-50"],
+  [class~="from-zinc-50"],
+  [class~="from-neutral-50"],
+  [class~="from-stone-50"],
+  [class~="from-gray-100"],
+  [class~="from-slate-100"],
+  [class~="from-zinc-100"],
+  [class~="from-neutral-100"],
+  [class~="from-stone-100"]
+):not([class*="dark:from-"]) {
+  --tw-gradient-from: #161510;
+}
+
+[data-theme="dark"] :is(
+  [class~="via-white"],
+  [class~="via-white/80"],
+  [class~="via-white/90"],
+  [class~="via-white/95"],
+  [class~="via-gray-50"],
+  [class~="via-gray-50/50"],
+  [class~="via-gray-100"]
+):not([class*="dark:via-"]) {
+  --tw-gradient-via: var(--surface);
+}
+
+[data-theme="dark"] :is(
+  [class~="to-white"],
+  [class~="to-white/80"],
+  [class~="to-white/90"],
+  [class~="to-white/95"]
+):not([class*="dark:to-"]) {
+  --tw-gradient-to: var(--surface);
+}
+
+[data-theme="dark"] :is(
+  [class~="to-gray-50"],
+  [class~="to-slate-50"],
+  [class~="to-zinc-50"],
+  [class~="to-neutral-50"],
+  [class~="to-stone-50"],
+  [class~="to-gray-100"],
+  [class~="to-slate-100"],
+  [class~="to-zinc-100"],
+  [class~="to-neutral-100"],
+  [class~="to-stone-100"]
+):not([class*="dark:to-"]) {
+  --tw-gradient-to: #161510;
+}
+
 [data-theme="dark"] [class*="hover:bg-gray-50"]:hover,
 [data-theme="dark"] [class*="hover:bg-gray-100"]:hover,
 [data-theme="dark"] [class*="hover:bg-slate-50"]:hover,
