@@ -6,6 +6,7 @@ import type {
   BirthdayNotificationSettings,
   FeatureKey,
   FeatureMapResponse,
+  LandingContent,
   SiteContact,
 } from '@/types/platform-settings.types';
 
@@ -22,8 +23,10 @@ class PlatformSettingsService {
     return apiClient.put('/admin/platform-settings/maintenance-mode', { enabled });
   }
 
-  /** GET /site-settings — public support and social details. */
-  async getSiteSettings(): Promise<ApiResponse<{ contact: SiteContact }>> {
+  /** GET /site-settings — public support details and landing-page content. */
+  async getSiteSettings(): Promise<
+    ApiResponse<{ contact: SiteContact; landing?: LandingContent }>
+  > {
     return apiClient.get('/site-settings');
   }
 
@@ -70,6 +73,13 @@ class PlatformSettingsService {
     contact: Partial<SiteContact>
   ): Promise<ApiResponse<{ contact: SiteContact }>> {
     return apiClient.put('/admin/platform-settings/contact', contact);
+  }
+
+  /** PUT /admin/platform-settings/landing — hero copy/slides and showcase strip. */
+  async adminUpdateLandingContent(
+    landing: LandingContent
+  ): Promise<ApiResponse<{ landing: LandingContent }>> {
+    return apiClient.put('/admin/platform-settings/landing', landing);
   }
 }
 

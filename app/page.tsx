@@ -26,6 +26,8 @@ import { LandingTopbar } from '@/components/LandingTopbar';
 import { Footer } from '@/components/shared/Footer';
 import { SubscriptionPlansSection } from '@/components/subscription/SubscriptionPlansSection';
 import BusinessShowcase from '@/components/landing/BusinessShowcase';
+import { useLandingContent } from '@/contexts/SiteContactContext';
+import { DEFAULT_LANDING_CONTENT } from '@/types/platform-settings.types';
 
 const features = [
   {
@@ -117,41 +119,30 @@ const stats = [
   { value: '98%', label: 'Member Satisfaction', icon: Star },
 ];
 
-const heroSlides = [
-  {
-    image: 'https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&w=1920&q=90',
-    headline: 'Showcase Your Business',
-    subtext: 'Display your products and services to thousands of engaged entrepreneurs and grow your sales',
-    service: 'Business Catalogue',
-  },
-  {
-    image: 'https://images.unsplash.com/photo-1515187029135-18ee286d815b?auto=format&fit=crop&w=1920&q=90',
-    headline: 'Network & Collaborate',
-    subtext: 'Connect with like-minded business owners, find partners, and unlock unlimited opportunities',
-    service: 'Community Networking',
-  },
-  {
-    image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1920&q=90',
-    headline: 'Promote Your Services',
-    subtext: 'Reach thousands of members with targeted advertising through text, images, and video content',
-    service: 'Advertising Platform',
-  },
-  {
-    image: 'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=1920&q=90',
-    headline: 'Find Jobs & Opportunities',
-    subtext: 'Post gigs, find skilled professionals, and discover new business opportunities in your network',
-    service: 'Job Opportunities',
-  },
-];
-
 export default function LandingPage() {
   const [activeTestimonial, setActiveTestimonial] = useState(0);
   const testimonialsRef = useRef<HTMLDivElement>(null);
   const [activeHeroSlide, setActiveHeroSlide] = useState(0);
   const [isTextVisible, setIsTextVisible] = useState(true);
 
+  /*
+   * Hero copy, background slides and the showcase strip come from the admin
+   * settings screen. The provider hands back the defaults on first paint, so
+   * this page renders immediately and updates in place once the public
+   * site-settings request resolves.
+   */
+  const { hero, showcase } = useLandingContent();
+  const heroSlides = hero.slides.length > 0 ? hero.slides : DEFAULT_LANDING_CONTENT.hero.slides;
+  const slideCount = heroSlides.length;
+  /*
+   * The configuration can shrink after it loads (an admin removes a slide), so
+   * the stored index is taken modulo the current count instead of relying on
+   * an effect to reset it.
+   */
+  const currentSlide = slideCount > 0 ? activeHeroSlide % slideCount : 0;
+
   const goToSlide = (idx: number) => {
-    if (idx === activeHeroSlide) return;
+    if (idx === currentSlide) return;
     setIsTextVisible(false);
     setTimeout(() => {
       setActiveHeroSlide(idx);
@@ -161,15 +152,17 @@ export default function LandingPage() {
 
   // Auto-advance hero slides
   useEffect(() => {
+    if (slideCount <= 1) return;
+
     const interval = setInterval(() => {
       setIsTextVisible(false);
       setTimeout(() => {
-        setActiveHeroSlide((prev) => (prev + 1) % heroSlides.length);
+        setActiveHeroSlide((prev) => (prev + 1) % slideCount);
         setIsTextVisible(true);
       }, 350);
     }, 6000);
     return () => clearInterval(interval);
-  }, []);
+  }, [slideCount]);
 
   return (
     <main className="min-h-screen bg-white text-gray-900">
@@ -183,11 +176,11 @@ export default function LandingPage() {
           {heroSlides.map((slide, idx) => (
             <img
               key={idx}
-              src={slide.image}
+              src={slide.image_url}
               alt=""
               aria-hidden="true"
               className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ease-in-out ${
-                idx === activeHeroSlide ? 'opacity-100' : 'opacity-0'
+                idx === currentSlide ? 'opacity-100' : 'opacity-0'
               }`}
             />
           ))}
@@ -214,13 +207,15 @@ export default function LandingPage() {
             >
               {/* Main headline */}
               <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight text-white mb-4 sm:mb-5 min-h-[80px] sm:min-h-[100px] md:min-h-[130px]">
-                {heroSlides[activeHeroSlide].headline}
-                <span className="block text-[#C9A84C] mt-2">with Acceding Titans</span>
+                {heroSlides[currentSlide].headline}
+                {hero.headline_accent && (
+                  <span className="block text-[#C9A84C] mt-2">{hero.headline_accent}</span>
+                )}
               </h1>
 
               {/* Subheading */}
               <p className="text-sm sm:text-base md:text-lg text-white/85 mb-6 sm:mb-8 leading-relaxed max-w-lg font-light min-h-[48px] sm:min-h-[60px] md:min-h-[72px]">
-                {heroSlides[activeHeroSlide].subtext}
+                {heroSlides[currentSlide].subtext}
               </p>
 
               {/* CTA Buttons */}
@@ -229,13 +224,13 @@ export default function LandingPage() {
                   href="/auth/register"
                   className="inline-flex items-center justify-center gap-2 px-6 py-3 sm:px-7 sm:py-3.5 bg-gradient-to-r from-[#C9A84C] to-[#B8962E] text-gray-900 text-sm sm:text-base font-semibold rounded-xl hover:shadow-2xl hover:shadow-[#C9A84C]/40 transition-all duration-300 transform hover:scale-105"
                 >
-                  Get Started Free <ArrowRight size={18} />
+                  {hero.primary_cta_label} <ArrowRight size={18} />
                 </Link>
                 <a
                   href="#features"
                   className="inline-flex items-center justify-center gap-2 px-6 py-3 sm:px-7 sm:py-3.5 border-2 border-[#C9A84C]/60 text-white text-sm sm:text-base font-semibold rounded-xl hover:bg-[#C9A84C]/15 transition-all backdrop-blur-md hover:border-[#C9A84C] group"
                 >
-                  Explore Services
+                  {hero.secondary_cta_label}
                   <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
                 </a>
               </div>
@@ -274,7 +269,7 @@ export default function LandingPage() {
                 key={idx}
                 onClick={() => goToSlide(idx)}
                 className={`transition-all duration-300 ${
-                  idx === activeHeroSlide
+                  idx === currentSlide
                     ? 'w-6 h-1.5 bg-[#C9A84C] rounded-full'
                     : 'w-1.5 h-1.5 bg-white/40 rounded-full hover:bg-white/60'
                 }`}
@@ -467,7 +462,7 @@ export default function LandingPage() {
       </section>
 
       {/* ═══════════════════ BUSINESS SHOWCASE ═══════════════════ */}
-      <BusinessShowcase />
+      <BusinessShowcase content={showcase} />
 
       {/* ═══════════════════ TESTIMONIALS ═══════════════════ */}
       <section id="testimonials" className="bg-white py-12 sm:py-16 md:py-24 px-4 sm:px-6 lg:px-8">

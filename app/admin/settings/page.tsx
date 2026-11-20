@@ -12,13 +12,20 @@ import {
   AlertCircle,
   Settings,
   Share2,
+  LayoutTemplate,
 } from 'lucide-react';
 
 import { useAuthStore } from '@/store/auth.store';
 import { Card, CardBody, CardHeader } from '@/components/shared/Card';
 import { Button } from '@/components/shared/Button';
+import LandingContentEditor from '@/components/admin/LandingContentEditor';
 import { platformSettingsService } from '@/services/platform-settings.service';
-import { DEFAULT_SITE_CONTACT, type SiteContact } from '@/types/platform-settings.types';
+import {
+  DEFAULT_LANDING_CONTENT,
+  DEFAULT_SITE_CONTACT,
+  type LandingContent,
+  type SiteContact,
+} from '@/types/platform-settings.types';
 import { Toast } from '@/utils/toast.utils';
 
 // ─── Types ──────────────────────────────────────────────────────────────
@@ -45,6 +52,7 @@ interface AdminSettings {
     low_balance_threshold: number;
   };
   contact: SiteContact;
+  landing: LandingContent;
 }
 
 // ─── Default Settings ───────────────────────────────────────────────────
@@ -71,6 +79,7 @@ const DEFAULT_SETTINGS: AdminSettings = {
     low_balance_threshold: 10000,
   },
   contact: { ...DEFAULT_SITE_CONTACT },
+  landing: structuredClone(DEFAULT_LANDING_CONTENT),
 };
 
 // ─── Section Config ─────────────────────────────────────────────────────
@@ -87,6 +96,7 @@ interface SectionConfig {
 const SECTIONS: SectionConfig[] = [
   { id: 'general', label: 'General', description: 'Platform name and regional settings', icon: Globe, color: 'text-blue-600', bgColor: 'bg-blue-50' },
   { id: 'contact', label: 'Contact & Social', description: 'Support email, WhatsApp line, location and social profiles', icon: Share2, color: 'text-purple-600', bgColor: 'bg-purple-50' },
+  { id: 'landing', label: 'Landing Page', description: 'Hero copy, background images and the businesses showcase', icon: LayoutTemplate, color: 'text-rose-600', bgColor: 'bg-rose-50' },
   { id: 'security', label: 'Security', description: 'Authentication, verification, and session policies', icon: Shield, color: 'text-emerald-600', bgColor: 'bg-emerald-50' },
   { id: 'notifications', label: 'Notifications', description: 'Email, push, and admin alert preferences', icon: Bell, color: 'text-amber-600', bgColor: 'bg-amber-50' },
 ];
@@ -118,6 +128,7 @@ export default function AdminSettingsPage() {
   const [maintenanceModeLoaded, setMaintenanceModeLoaded] = useState(false);
   const [savedMaintenanceMode, setSavedMaintenanceMode] = useState(false);
   const [contactLoaded, setContactLoaded] = useState(false);
+  const [landingLoaded, setLandingLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [activeSection, setActiveSection] = useState('general');
   const [successMessage, setSuccessMessage] = useState('');
@@ -170,6 +181,7 @@ export default function AdminSettingsPage() {
       try {
         const response = await platformSettingsService.adminGet();
         const loaded = response.data?.contact;
+        const loadedLanding = response.data?.landing;
 
         if (!response.success || !loaded) {
           throw new Error(response.message || 'Could not load contact details.');
@@ -177,8 +189,14 @@ export default function AdminSettingsPage() {
 
         if (!active) return;
 
-        setSettings((current) => ({ ...current, contact: loaded }));
+        setSettings((current) => ({
+          ...current,
+          contact: loaded,
+          // Older backends omit `landing`; keep the defaults then.
+          ...(loadedLanding ? { landing: loadedLanding } : {}),
+        }));
         setContactLoaded(true);
+        setLandingLoaded(true);
       } catch (err) {
         if (active) {
           setError(
@@ -221,6 +239,16 @@ export default function AdminSettingsPage() {
         const updated = response.data.contact;
         setSettings((current) => ({ ...current, contact: updated }));
         message = 'Contact details updated successfully';
+      } else if (activeSection === 'landing') {
+        const response = await platformSettingsService.adminUpdateLandingContent(settings.landing);
+
+        if (!response.success || !response.data?.landing) {
+          throw new Error(response.message || 'Failed to update the landing page.');
+        }
+
+        const updated = response.data.landing;
+        setSettings((current) => ({ ...current, landing: updated }));
+        message = 'Landing page updated successfully';
       } else {
         const maintenanceMode = settings.general.maintenance_mode;
         const maintenanceModeChanged = maintenanceMode !== savedMaintenanceMode;
@@ -402,6 +430,21 @@ export default function AdminSettingsPage() {
           </div>
         );
 
+      case 'landing':
+        return (
+          <div className="space-y-5">
+            <LandingContentEditor
+              value={settings.landing}
+              onChange={(landing) =>
+                setSettings((current) => ({ ...current, landing }))
+              }
+            />
+            {!landingLoaded && (
+              <p className="text-xs text-amber-600">Loading saved landing content…</p>
+            )}
+          </div>
+        );
+
       case 'security':
         return (
           <div className="space-y-5">
@@ -563,7 +606,8 @@ export default function AdminSettingsPage() {
                       disabled={
                         saving ||
                         !maintenanceModeLoaded ||
-                        (activeSection === 'contact' && !contactLoaded)
+                        (activeSection === 'contact' && !contactLoaded) ||
+                        (activeSection === 'landing' && !landingLoaded)
                       }
                       className="inline-flex items-center gap-2 rounded-xl bg-[#C9A84C] px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-[#C9A84C]/20 transition hover:bg-[#B8962E] disabled:opacity-50"
                     >

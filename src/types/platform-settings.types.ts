@@ -133,7 +133,183 @@ export interface AdminPlatformSettings {
   birthday_eligibility: BirthdayEligibilityRule;
   birthday_notifications: BirthdayNotificationSettings;
   contact?: SiteContact;
+  landing?: LandingContent;
 }
+
+/* ────────────────────────────────────────────
+ * Landing page content
+ * ──────────────────────────────────────────── */
+
+/**
+ * One frame of the landing-page hero carousel.
+ *
+ * `image_url` is whatever the administrator saved: a Cloudinary URL returned by
+ * the upload endpoint, or any pasted CDN link. `service` is the short label the
+ * slide promotes (it also titles the indicator for screen readers).
+ */
+export interface LandingHeroSlide {
+  image_url: string;
+  headline: string;
+  subtext: string;
+  service: string;
+}
+
+export interface LandingHero {
+  /** The gold second line of the headline, e.g. "with Acceding Titans". */
+  headline_accent: string;
+  primary_cta_label: string;
+  secondary_cta_label: string;
+  slides: LandingHeroSlide[];
+}
+
+/**
+ * A business shown in the "Businesses That Use …" strip.
+ *
+ * `logo` may be blank: the card then draws the gradient with `initials`.
+ * `website` is normalised to an absolute https URL by the API.
+ */
+export interface ShowcaseBusiness {
+  /** Present on responses; the admin editor keys rows by index instead. */
+  id?: number;
+  name: string;
+  website: string;
+  logo: string;
+  /** Tailwind gradient utilities, e.g. "from-violet-600 to-indigo-600". */
+  gradient: string;
+  initials: string;
+  rating: number;
+  industry: string;
+}
+
+export interface LandingShowcase {
+  heading_prefix: string;
+  heading_accent: string;
+  subheading: string;
+  businesses: ShowcaseBusiness[];
+}
+
+export interface LandingContent {
+  hero: LandingHero;
+  showcase: LandingShowcase;
+}
+
+/**
+ * Rendered before the public request resolves, and by the admin screen before
+ * its payload arrives. Mirrors the backend defaults, so an installation that
+ * never opened the settings screen looks and behaves exactly as before.
+ */
+export const DEFAULT_LANDING_CONTENT: LandingContent = {
+  hero: {
+    headline_accent: 'with Acceding Titans',
+    primary_cta_label: 'Get Started Free',
+    secondary_cta_label: 'Explore Services',
+    slides: [
+      {
+        image_url:
+          'https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&w=1920&q=90',
+        headline: 'Showcase Your Business',
+        subtext:
+          'Display your products and services to thousands of engaged entrepreneurs and grow your sales',
+        service: 'Business Catalogue',
+      },
+      {
+        image_url:
+          'https://images.unsplash.com/photo-1515187029135-18ee286d815b?auto=format&fit=crop&w=1920&q=90',
+        headline: 'Network & Collaborate',
+        subtext:
+          'Connect with like-minded business owners, find partners, and unlock unlimited opportunities',
+        service: 'Community Networking',
+      },
+      {
+        image_url:
+          'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1920&q=90',
+        headline: 'Promote Your Services',
+        subtext:
+          'Reach thousands of members with targeted advertising through text, images, and video content',
+        service: 'Advertising Platform',
+      },
+      {
+        image_url:
+          'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=1920&q=90',
+        headline: 'Find Jobs & Opportunities',
+        subtext:
+          'Post gigs, find skilled professionals, and discover new business opportunities in your network',
+        service: 'Job Opportunities',
+      },
+    ],
+  },
+  showcase: {
+    heading_prefix: 'Businesses That Use',
+    heading_accent: 'Acceding Titans',
+    subheading:
+      'Join hundreds of forward-thinking companies already growing their reach on our platform',
+    businesses: [
+      {
+        name: 'Remonode',
+        website: 'https://remonode.com',
+        logo: 'https://api.remopay.remonode.com/remonode.jpg',
+        gradient: 'from-violet-600 to-indigo-600',
+        initials: 'RM',
+        rating: 5.0,
+        industry: 'Technology',
+      },
+      {
+        name: 'Remopay',
+        website: 'https://remopay.remonode.com',
+        logo: 'https://api.remopay.remonode.com/remopay.png',
+        gradient: 'from-emerald-500 to-teal-600',
+        initials: 'RE',
+        rating: 5.0,
+        industry: 'Finance',
+      },
+      {
+        name: 'Remonyx',
+        website: 'https://bluewavedigital.ng',
+        logo: 'https://api.remopay.remonode.com/remonyx.png',
+        gradient: 'from-sky-500 to-blue-600',
+        initials: 'BD',
+        rating: 4.7,
+        industry: 'Telcom',
+      },
+      {
+        name: 'AFRIDataNG',
+        website: 'https://afridata-cta.vercel.app',
+        logo: 'https://api.remopay.remonode.com/AFRIDataNG.png',
+        gradient: 'from-white to-white',
+        initials: 'PB',
+        rating: 4.6,
+        industry: 'Telcom',
+      },
+      {
+        name: 'MassAxis',
+        website: 'https://massaxis.com',
+        logo: 'https://api.remopay.remonode.com/massaxis.jpg',
+        gradient: 'from-rose-500 to-pink-600',
+        initials: 'AC',
+        rating: 4.5,
+        industry: 'Food & Beverage',
+      },
+      {
+        name: 'LuxuryX',
+        website: 'https://luxuryxtech.org.ng/',
+        logo: 'https://api.remopay.remonode.com/luxuryx.png',
+        gradient: 'from-red-500 to-rose-600',
+        initials: 'LU',
+        rating: 4.8,
+        industry: 'Blockchain',
+      },
+      {
+        name: 'feMOJ World',
+        website: 'https://luxuryxtech.org.ng/',
+        logo: 'https://api.remopay.remonode.com/femoj_world.png',
+        gradient: 'from-red-500 to-rose-600',
+        initials: 'FW',
+        rating: 4.8,
+        industry: 'E-Commerce',
+      },
+    ],
+  },
+};
 
 export interface FeatureMapResponse {
   features: Record<string, boolean>;

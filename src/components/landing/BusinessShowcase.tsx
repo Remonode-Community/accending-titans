@@ -1,99 +1,26 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Briefcase, ExternalLink, Star } from 'lucide-react';
+import { ExternalLink, Star } from 'lucide-react';
+import {
+  DEFAULT_LANDING_CONTENT,
+  type LandingShowcase,
+  type ShowcaseBusiness,
+} from '@/types/platform-settings.types';
 
-/* ─── Dummy data ─────────────────────────────────────────────── */
-interface Business {
-  id: number;
-  name: string;
-  website: string;
-  logo: string;
-  gradient: string;
-  initials: string;
-  rating: number;
-  industry: string;
-}
-
-const businesses: Business[] = [
-  {
-    id: 1,
-    name: 'Remonode',
-    website: 'https://remonode.com',
-    logo: 'https://api.remopay.remonode.com/remonode.jpg',
-    gradient: 'from-violet-600 to-indigo-600',
-    initials: 'RM',
-    rating: 5.0,
-    industry: 'Technology',
-  },
-  {
-    id: 2,
-    name: 'Remopay',
-    website: 'https://remopay.remonode.com',
-    logo: 'https://api.remopay.remonode.com/remopay.png',
-    gradient: 'from-emerald-500 to-teal-600',
-    initials: 'RE',
-    rating: 5.0,
-    industry: 'Finance',
-  },
-  {
-    id: 3,
-    name: 'Remonyx',
-    website: 'https://bluewavedigital.ng',
-    logo: 'https://api.remopay.remonode.com/remonyx.png',
-    gradient: 'from-sky-500 to-blue-600',
-    initials: 'BD',
-    rating: 4.7,
-    industry: 'Telcom',
-  },
-  {
-    id: 4,
-    name: 'AFRIDataNG',
-    website: 'afridata-cta.vercel.app',
-    logo: 'https://api.remopay.remonode.com/AFRIDataNG.png',
-    gradient: 'from-white to-white',
-    initials: 'PB',
-    rating: 4.6,
-    industry: 'Telcom',
-  },
-  {
-    id: 5,
-    name: 'MassAxis',
-    website: 'massaxis.com',
-    logo: 'https://api.remopay.remonode.com/massaxis.jpg',
-    gradient: 'from-rose-500 to-pink-600',
-    initials: 'AC',
-    rating: 4.5,
-    industry: 'Food & Beverage',
-  },
-  {
-    id: 6,
-    name: 'LuxuryX',
-    website: 'https://luxuryxtech.org.ng/',
-    logo: 'https://api.remopay.remonode.com/luxuryx.png',
-    gradient: 'from-red-500 to-rose-600',
-    initials: 'LU',
-    rating: 4.8,
-    industry: 'Blockchain',
-  },
-  {
-    id: 6,
-    name: 'feMOJ World',
-    website: 'https://luxuryxtech.org.ng/',
-    logo: 'https://api.remopay.remonode.com/femoj_world.png',
-    gradient: 'from-red-500 to-rose-600',
-    initials: 'FW',
-    rating: 4.8,
-    industry: 'E-Commerce',
-  },
-
-];
+/*
+ * The businesses below were hard-coded here; they are now administrator-managed
+ * from the settings screen and arrive through the public site-settings
+ * endpoint. The defaults in `DEFAULT_LANDING_CONTENT` keep the strip populated
+ * on first paint and on an installation that has never opened that screen.
+ */
 
 /* ─── Single card ────────────────────────────────────────────── */
-function BusinessCard({ business }: { business: Business }) {
+function BusinessCard({ business }: { business: ShowcaseBusiness }) {
   const [imgFailed, setImgFailed] = useState(false);
 
   const handleClick = () => {
+    if (!business.website) return;
     window.open(business.website, '_blank', 'noopener,noreferrer');
   };
 
@@ -117,7 +44,7 @@ function BusinessCard({ business }: { business: Business }) {
           </div>
 
           {/* CDN image — hidden if failed */}
-          {!imgFailed && (
+          {business.logo && !imgFailed && (
             <img
               src={business.logo}
               alt={`${business.name} logo`}
@@ -134,7 +61,9 @@ function BusinessCard({ business }: { business: Business }) {
         </h3>
 
         {/* Industry tag */}
-        <p className="text-[10px] sm:text-xs text-gray-400 mb-2">{business.industry}</p>
+        {business.industry && (
+          <p className="text-[10px] sm:text-xs text-gray-400 mb-2">{business.industry}</p>
+        )}
 
         {/* Rating */}
         <div className="flex items-center gap-1">
@@ -154,9 +83,15 @@ function BusinessCard({ business }: { business: Business }) {
 }
 
 /* ─── Section ────────────────────────────────────────────────── */
-export default function BusinessShowcase() {
+export default function BusinessShowcase({ content }: { content?: LandingShowcase }) {
   const [isPaused, setIsPaused] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const showcase = content ?? DEFAULT_LANDING_CONTENT.showcase;
+  const businesses =
+    showcase.businesses.length > 0
+      ? showcase.businesses
+      : DEFAULT_LANDING_CONTENT.showcase.businesses;
 
   /* Inject keyframes once on mount */
   useEffect(() => {
@@ -180,7 +115,6 @@ export default function BusinessShowcase() {
 
   /* Duplicate items for seamless infinite loop */
   const duplicated = [...businesses, ...businesses];
-
   return (
     <section id="business-showcase" className="relative bg-gradient-to-b from-gray-50 to-white py-12 sm:py-16 md:py-24 px-4 sm:px-6 lg:px-8 overflow-hidden">
       {/* Decorative background */}
@@ -191,11 +125,11 @@ export default function BusinessShowcase() {
         {/* Section header */}
         <div className="mb-10 sm:mb-14 text-center">
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-3">
-            Businesses That Use{' '}
-            <span className="text-[#C9A84C]">Acceding Titans</span>
+            {showcase.heading_prefix}{' '}
+            <span className="text-[#C9A84C]">{showcase.heading_accent}</span>
           </h2>
           <p className="text-sm sm:text-base text-gray-600 max-w-xl mx-auto">
-            Join hundreds of forward-thinking companies already growing their reach on our platform
+            {showcase.subheading}
           </p>
         </div>
 
@@ -214,7 +148,10 @@ export default function BusinessShowcase() {
             }}
           >
             {duplicated.map((business, idx) => (
-              <BusinessCard key={`${business.id}-${idx}`} business={business} />
+              <BusinessCard
+                key={`${business.id ?? business.name}-${idx}`}
+                business={business}
+              />
             ))}
           </div>
         </div>
