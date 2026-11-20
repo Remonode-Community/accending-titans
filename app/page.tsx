@@ -264,7 +264,7 @@ export default function LandingPage() {
 
           {/* Slide indicators */}
           <div className="mt-6 sm:mt-8 flex justify-center gap-2">
-            {heroSlides.map((_, idx) => (
+            {heroSlides.map((slide, idx) => (
               <button
                 key={idx}
                 onClick={() => goToSlide(idx)}
@@ -273,7 +273,7 @@ export default function LandingPage() {
                     ? 'w-6 h-1.5 bg-[#C9A84C] rounded-full'
                     : 'w-1.5 h-1.5 bg-white/40 rounded-full hover:bg-white/60'
                 }`}
-                aria-label={`Go to service ${idx + 1}`}
+                aria-label={slide.service ? `Show ${slide.service}` : `Show slide ${idx + 1}`}
               />
             ))}
           </div>
