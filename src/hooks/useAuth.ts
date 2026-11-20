@@ -3,7 +3,7 @@ import { useAuthStore } from '@/store/auth.store';
 import { useUIStore } from '@/store/ui.store';
 import { authService } from '@/services/auth.service';
 import { LoginSchema, RegisterSchema, VerifyEmailSchema } from '@/utils/validation.utils';
-import { RegisterRequest } from '@/types/api.types';
+import { parseWishList } from '@/utils/birthday.utils';
 import { useRouter } from 'next/navigation';
 import { FEATURES } from '@/config/features';
 
@@ -122,7 +122,12 @@ export const useAuth = () => {
       setIsLoading(true);
       setError(null);
       try {
-        const response = await authService.register(data as RegisterRequest);
+        const response = await authService.register({
+          ...data,
+          // The form collects wishes as free text (one per line); the API
+          // stores them as an array on the member's birthday profile.
+          wish_list: parseWishList(data.wish_list),
+        });
 
         if (response.success) {
           addToast({

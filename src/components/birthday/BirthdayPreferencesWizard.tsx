@@ -28,16 +28,17 @@ import type {
 } from '@/types/birthday.types';
 
 /**
- * The compulsory birthday planning form.
+ * The birthday planning form.
  *
- * Entitled members (plan includes `birthdays`) see this before the Birthdays
- * hub until they have submitted it once. It collects the five things the team
- * needs to arrange a birthday: favourite colour, delivery address, wish list,
- * gender and the style of gift the member prefers.
+ * The answers are collected during signup — steps 4 and 5 of the
+ * registration form — and this component is how a member edits them
+ * afterwards from the Birthdays hub. It holds the five things the team
+ * needs to arrange a birthday: favourite colour, delivery address, wish
+ * list, gender and the style of gift the member prefers.
  *
  * Split into steps rather than one long form because each group is a different
  * kind of question; the address alone would otherwise bury the wish list. The
- * review step exists so a compulsory form is never a blind submit.
+ * review step exists so the form is never a blind submit.
  *
  * A draft is kept in localStorage between visits, so a member who closes the
  * tab mid-way does not start over.
@@ -151,7 +152,7 @@ function formFromPreferences(preferences?: BirthdayPreferences | null): FormStat
 
 interface BirthdayPreferencesWizardProps {
   initial?: BirthdayPreferences | null;
-  /** Gate mode is the compulsory first run; edit mode is opened on demand. */
+  /** 'edit' shows Cancel (the hub's modal); 'gate' is the bare first run. */
   mode?: 'gate' | 'edit';
   /** Rendered inside an existing modal: drops its own card chrome. */
   embedded?: boolean;

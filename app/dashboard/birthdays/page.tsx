@@ -174,37 +174,11 @@ export default function BirthdaysPage() {
   };
 
   /**
-   * The planning form is compulsory for members whose plan includes birthdays.
-   * Until it is saved, the hub is replaced by the wizard rather than shown
-   * behind it: the details are what makes a gift possible, so skipping them
-   * would silently leave the member with a half-working feature.
+   * No compulsory gate here: the plan is collected during signup (steps 4
+   * and 5 of the registration form), so a member arrives with it complete.
+   * Anyone whose account predates that change can still finish it from the
+   * "Birthday plan" tab below.
    */
-  if (!loading && mine && mine.profile.preferences_complete === false) {
-    return (
-      <div className="space-y-6">
-        <header>
-          <h1 className="text-2xl font-black tracking-tight text-gray-900">Birthdays</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Your network is coming together to celebrate.
-          </p>
-        </header>
-
-        <div className="rounded-2xl border border-[#C9A84C]/25 bg-[#FDFAF3]/60 px-5 py-4">
-          <p className="text-sm font-black text-gray-900">Set up your birthday plan</p>
-          <p className="mt-1 text-xs leading-relaxed text-gray-500">
-            Tell us your favourite colour, where a gift should go, what you would love to receive
-            and how you would like to be celebrated. It takes about a minute, and only you and the
-            birthday team can see it.
-          </p>
-        </div>
-
-        <BirthdayPreferencesWizard
-          initial={mine.profile.preferences}
-          onCompleted={() => void load()}
-        />
-      </div>
-    );
-  }
 
   /*
    * A refusal that came with a stated reason replaces the hub entirely.

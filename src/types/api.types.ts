@@ -135,6 +135,24 @@ export interface RegisterRequest {
   password: string;
   password_confirmation: string;
   referral_code?: string;
+  /**
+   * Birthday plan — signup steps 4 and 5. Collected during registration and
+   * stored on the member's birthday profile, so the plan is complete before
+   * they ever open the Birthdays hub. Optional here because the API still
+   * accepts registrations that omit it (clients that predate the form).
+   */
+  favorite_color?: string;
+  gender?: 'male' | 'female' | 'other';
+  address_line1?: string;
+  address_line2?: string;
+  city?: string;
+  state?: string;
+  postal_code?: string;
+  country?: string;
+  /** One item per wish; the form collects it as free text, one per line. */
+  wish_list?: string[];
+  gift_preference?: 'consumable' | 'appliance' | 'service' | 'surprise';
+  gift_preference_notes?: string;
 }
 
 export interface LoginRequest {

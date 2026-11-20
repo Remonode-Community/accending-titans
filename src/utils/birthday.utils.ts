@@ -37,3 +37,15 @@ export function birthdayColorHex(name: string | null | undefined): string | null
 
   return BIRTHDAY_COLOR_HEX.get(name.trim().toLowerCase()) ?? null;
 }
+
+/**
+ * The wish list as the signup form collects it — free text, one item per
+ * line — as the array the API stores. Blank lines and surrounding
+ * whitespace are not wishes.
+ */
+export function parseWishList(raw: string): string[] {
+  return raw
+    .split('\n')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}

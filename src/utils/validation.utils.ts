@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { E164_PHONE_REGEX } from './constants';
+import { parseWishList } from './birthday.utils';
 
 // Authentication Schemas
 export const registerSchema = z
@@ -22,6 +23,42 @@ export const registerSchema = z
       .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character'),
     password_confirmation: z.string(),
     referral_code: z.string().optional(),
+
+    // ── Birthday plan (signup steps 4 and 5) ──
+    //
+    // Collected here rather than behind a compulsory form on the Birthdays
+    // page: the API stores these on the member's birthday profile during
+    // registration, so the plan is complete before the hub is ever opened.
+    favorite_color: z.string().trim().min(2, 'Tell us your favourite colour.').max(40),
+    gender: z.enum(['male', 'female', 'other'], 'Select an option.'),
+    address_line1: z.string().trim().min(1, 'Enter your street address.').max(255),
+    address_line2: z.string().trim().max(255).optional(),
+    city: z.string().trim().min(1, 'Enter your city.').max(100),
+    state: z.string().trim().min(1, 'Enter your state.').max(100),
+    postal_code: z.string().trim().max(20).optional(),
+    country: z.string().trim().min(1, 'Enter your country.').max(100),
+    // Free text in the form (one wish per line); `useAuth` converts it to
+    // the array the API stores.
+    wish_list: z
+      .string()
+      .refine(value => parseWishList(value).length > 0, 'Add at least one item to your wish list.')
+      .refine(
+        value => {
+          const items = parseWishList(value);
+          return new Set(items.map(item => item.toLowerCase())).size === items.length;
+        },
+        'Remove the duplicate items.'
+      )
+      .refine(value => parseWishList(value).length <= 10, 'Keep it to 10 wishes or fewer.')
+      .refine(
+        value => parseWishList(value).every(item => item.length <= 120),
+        'Each wish must be 120 characters or fewer.'
+      ),
+    gift_preference: z.enum(
+      ['consumable', 'appliance', 'service', 'surprise'],
+      'Choose the kind of gift you would prefer.'
+    ),
+    gift_preference_notes: z.string().trim().max(500).optional(),
   })
   .refine((data) => data.password === data.password_confirmation, {
     message: 'Passwords do not match',

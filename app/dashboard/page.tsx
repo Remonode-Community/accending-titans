@@ -203,8 +203,9 @@ export default function DashboardPage() {
    *
    * Only asked for once the feature map says the member has Birthdays: calling
    * the endpoint before that would be refused, and asking a member without the
-   * feature would be noise. A failure is silent — the prompt is a convenience,
-   * and the Birthdays page still enforces the form.
+   * feature would be noise. A failure is silent — the prompt is a convenience;
+   * members whose account predates signup-time collection can still complete
+   * the plan from the Birthdays page.
    */
   useEffect(() => {
     if (!isAuthenticated || !featuresLoaded || !birthdaysEnabled) return;

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -15,8 +15,15 @@ import {
   User,
   Eye,
   EyeOff,
+  Check,
   CheckCircle2,
   Gift,
+  Home,
+  MapPin,
+  Palette,
+  Sparkles,
+  UserRound,
+  UtensilsCrossed,
 } from 'lucide-react';
 
 import { Suspense } from 'react';
@@ -25,6 +32,8 @@ import { Button } from '@/components/shared/Button';
 import { AuthProtectedRoute } from '@/components/AuthProtectedRoute';
 import { PhoneInput } from '@/components/shared/PhoneInput';
 import { registerSchema, type RegisterSchema } from '@/utils/validation.utils';
+import { BIRTHDAY_COLORS } from '@/utils/birthday.utils';
+import type { BirthdayGender, BirthdayGiftPreference } from '@/types/birthday.types';
 
 const STEPS = [
   {
@@ -45,11 +54,76 @@ const STEPS = [
     fields: ['password', 'password_confirmation'] as const,
     description: 'Secure your account',
   },
+  {
+    id: 4,
+    label: 'Birthday',
+    fields: ['favorite_color', 'gender', 'address_line1', 'city', 'state', 'country'] as const,
+    description: 'Your birthday details',
+  },
+  {
+    id: 5,
+    label: 'Plan',
+    fields: ['wish_list', 'gift_preference'] as const,
+    description: 'Your gift preferences',
+  },
+];
+
+/**
+ * The birthday plan (steps 4 and 5) replaces the compulsory form that used
+ * to block the Birthdays hub. The fields are validated by the same zod
+ * schema as everything else; optional inputs (apartment, postal code, gift
+ * notes) are deliberately absent from this map, because "empty" is a valid
+ * answer for them and the missing-value check below would reject it.
+ */
+const stepFields: Record<number, (keyof RegisterSchema)[]> = {
+  1: ['first_name', 'last_name', 'email'],
+  2: ['phone_number'],
+  3: ['password', 'password_confirmation'],
+  4: ['favorite_color', 'gender', 'address_line1', 'city', 'state', 'country'],
+  5: ['wish_list', 'gift_preference'],
+};
+
+const GENDERS: { value: BirthdayGender; label: string }[] = [
+  { value: 'male', label: 'Male' },
+  { value: 'female', label: 'Female' },
+  { value: 'other', label: 'Other' },
+];
+
+const GIFT_OPTIONS: {
+  value: BirthdayGiftPreference;
+  title: string;
+  description: string;
+  icon: typeof Gift;
+}[] = [
+  {
+    value: 'consumable',
+    title: 'Consumables',
+    description: 'Hampers, food, drinks or a voucher to enjoy.',
+    icon: UtensilsCrossed,
+  },
+  {
+    value: 'appliance',
+    title: 'Everyday appliance or product',
+    description: 'Something useful for your home or work.',
+    icon: Home,
+  },
+  {
+    value: 'service',
+    title: 'Service experience',
+    description: 'A spa day, hairstyling session or similar treat.',
+    icon: Sparkles,
+  },
+  {
+    value: 'surprise',
+    title: 'Surprise me',
+    description: 'Leave the choice to the team.',
+    icon: Gift,
+  },
 ];
 
 function StepIndicator({ current }: { current: number }) {
   return (
-    <div className="mb-8 flex items-center justify-center">
+    <div className="mb-8 flex w-full items-center justify-center">
       {STEPS.map((step, idx) => {
         const done = current > step.id;
         const active = current === step.id;
@@ -70,7 +144,7 @@ function StepIndicator({ current }: { current: number }) {
               </div>
 
               <span
-                className={`mt-1.5 text-xs font-medium ${
+                className={`mt-1.5 whitespace-nowrap text-xs font-medium ${
                   active ? 'text-[#C9A84C]' : done ? 'text-gray-600' : 'text-gray-400'
                 }`}
               >
@@ -79,8 +153,10 @@ function StepIndicator({ current }: { current: number }) {
             </div>
 
             {idx < STEPS.length - 1 && (
+              /* flex-1 (not a fixed width): five steps would overflow the
+                 420px card with the old w-12/w-16 connectors. */
               <div
-                className={`mx-1 mb-5 h-[2px] w-12 rounded-full sm:w-16 ${
+                className={`mx-1 mb-5 h-[2px] min-w-2 flex-1 rounded-full ${
                   current > step.id ? 'bg-[#C9A84C]' : 'bg-gray-200'
                 }`}
               />
@@ -158,6 +234,12 @@ function RegisterPageContent() {
   const searchParams = useSearchParams();
   const [currentStep, setCurrentStep] = useState(1);
   const [validationError, setValidationError] = useState<string>('');
+  /**
+   * The terms checkbox lives on step 3, but the account is created on step
+   * 5 — without this the required attribute would no longer be in the DOM
+   * at submit time and agreement would go unenforced.
+   */
+  const [agreed, setAgreed] = useState(false);
 
   const {
     register,
@@ -180,11 +262,11 @@ function RegisterPageContent() {
     }
   }, [refCode, setValue]);
 
-  const stepFields: Record<number, (keyof RegisterSchema)[]> = {
-    1: ['first_name', 'last_name', 'email'],
-    2: ['phone_number'],
-    3: ['password', 'password_confirmation'],
-  };
+  // Live values for the swatch/option buttons on steps 4 and 5.
+  const favoriteColor = useWatch({ control, name: 'favorite_color' });
+  const gender = useWatch({ control, name: 'gender' });
+  const giftPreference = useWatch({ control, name: 'gift_preference' });
+  const giftNotes = useWatch({ control, name: 'gift_preference_notes' }) ?? '';
 
   const handleNext = async () => {
     setValidationError('');
@@ -211,6 +293,11 @@ function RegisterPageContent() {
       setValidationError(`Please fill in all required fields`);
       return;
     }
+
+    if (currentStep === 3 && !agreed) {
+      setValidationError('Please accept the Terms of Service to continue.');
+      return;
+    }
     
     setCurrentStep((step) => Math.min(step + 1, STEPS.length));
   };
@@ -221,6 +308,10 @@ function RegisterPageContent() {
   };
 
   const onSubmit = async (data: RegisterSchema) => {
+    if (!agreed) {
+      setValidationError('Please accept the Terms of Service to continue.');
+      return;
+    }
     await registerUser(data);
   };
 
@@ -376,6 +467,8 @@ function RegisterPageContent() {
                       <input
                         type="checkbox"
                         required
+                        checked={agreed}
+                        onChange={(event) => setAgreed(event.target.checked)}
                         className="mt-0.5 h-3.5 w-3.5 rounded border-gray-300 accent-[#C9A84C]"
                       />
                       <span className="leading-relaxed">
@@ -386,6 +479,324 @@ function RegisterPageContent() {
                         and platform policies.
                       </span>
                     </label>
+                  </div>
+                )}
+
+                {/* ── Step 4: birthday details (was the compulsory form on
+                     the Birthdays hub) ── */}
+                {currentStep === 4 && (
+                  <div className="space-y-5">
+                    <fieldset>
+                      <legend className="flex items-center gap-2 text-[13px] font-medium text-gray-700">
+                        <Palette size={14} className="text-[#C9A84C]" />
+                        Favourite colour
+                      </legend>
+
+                      <div className="mt-2.5 grid grid-cols-4 gap-2">
+                        {BIRTHDAY_COLORS.map((color) => {
+                          const active =
+                            (favoriteColor ?? '').trim().toLowerCase() === color.name.toLowerCase();
+
+                          return (
+                            <button
+                              key={color.name}
+                              type="button"
+                              aria-pressed={active}
+                              onClick={() =>
+                                setValue('favorite_color', color.name, {
+                                  shouldValidate: true,
+                                  shouldDirty: true,
+                                })
+                              }
+                              className={`flex flex-col items-center gap-1.5 rounded-xl border p-2 transition ${
+                                active
+                                  ? 'border-[#C9A84C] bg-[#FDFAF3]'
+                                  : 'border-gray-200 hover:border-[#C9A84C]/60'
+                              }`}
+                            >
+                              <span
+                                className="h-6 w-6 rounded-full border border-black/10 shadow-inner"
+                                style={{ backgroundColor: color.hex }}
+                              />
+                              <span className="text-[10px] font-semibold text-gray-500">
+                                {color.name}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <input
+                        {...register('favorite_color')}
+                        type="text"
+                        maxLength={40}
+                        placeholder="Or type a colour, e.g. Burgundy"
+                        className="mt-2.5 w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#C9A84C] focus:ring-2 focus:ring-[#C9A84C]/12 transition-colors"
+                      />
+                      {errors.favorite_color ? (
+                        <p className="mt-1.5 text-xs text-red-500">
+                          {errors.favorite_color.message}
+                        </p>
+                      ) : (
+                        <p className="mt-1.5 text-xs text-gray-400">
+                          Helps us avoid colours you would not wear or use.
+                        </p>
+                      )}
+                    </fieldset>
+
+                    <fieldset>
+                      <legend className="flex items-center gap-2 text-[13px] font-medium text-gray-700">
+                        <UserRound size={14} className="text-[#C9A84C]" />
+                        Gender
+                      </legend>
+
+                      <div className="mt-2.5 grid grid-cols-3 gap-2">
+                        {GENDERS.map((option) => {
+                          const active = gender === option.value;
+
+                          return (
+                            <button
+                              key={option.value}
+                              type="button"
+                              aria-pressed={active}
+                              onClick={() =>
+                                setValue('gender', option.value, {
+                                  shouldValidate: true,
+                                  shouldDirty: true,
+                                })
+                              }
+                              className={`rounded-xl border px-3 py-3 text-sm font-semibold transition ${
+                                active
+                                  ? 'border-[#C9A84C] bg-[#FDFAF3] text-[#8A6F1F]'
+                                  : 'border-gray-200 text-gray-600 hover:border-[#C9A84C]/60'
+                              }`}
+                            >
+                              {option.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {errors.gender ? (
+                        <p className="mt-1.5 text-xs text-red-500">{errors.gender.message}</p>
+                      ) : (
+                        <p className="mt-1.5 text-xs text-gray-400">
+                          Used only to choose a suitable gift.
+                        </p>
+                      )}
+                    </fieldset>
+
+                    <div className="space-y-4">
+                      <FieldWrapper
+                        label="Street address"
+                        icon={<MapPin size={14} />}
+                        error={errors.address_line1?.message}
+                      >
+                        <input
+                          {...register('address_line1')}
+                          type="text"
+                          maxLength={255}
+                          placeholder="House number and street"
+                          className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 pl-9 pr-3.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#C9A84C] focus:ring-2 focus:ring-[#C9A84C]/12 transition-colors"
+                        />
+                      </FieldWrapper>
+
+                      <FieldWrapper
+                        label="Apartment, suite or landmark (optional)"
+                        icon={<MapPin size={14} />}
+                      >
+                        <input
+                          {...register('address_line2')}
+                          type="text"
+                          maxLength={255}
+                          placeholder="Flat 4B, near the roundabout"
+                          className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 pl-9 pr-3.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#C9A84C] focus:ring-2 focus:ring-[#C9A84C]/12 transition-colors"
+                        />
+                      </FieldWrapper>
+
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <FieldWrapper
+                          label="City"
+                          icon={<MapPin size={14} />}
+                          error={errors.city?.message}
+                        >
+                          <input
+                            {...register('city')}
+                            type="text"
+                            maxLength={100}
+                            placeholder="City"
+                            className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 pl-9 pr-3.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#C9A84C] focus:ring-2 focus:ring-[#C9A84C]/12 transition-colors"
+                          />
+                        </FieldWrapper>
+
+                        <FieldWrapper
+                          label="State or region"
+                          icon={<MapPin size={14} />}
+                          error={errors.state?.message}
+                        >
+                          <input
+                            {...register('state')}
+                            type="text"
+                            maxLength={100}
+                            placeholder="State"
+                            className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 pl-9 pr-3.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#C9A84C] focus:ring-2 focus:ring-[#C9A84C]/12 transition-colors"
+                          />
+                        </FieldWrapper>
+
+                        <FieldWrapper
+                          label="Postal code (optional)"
+                          icon={<MapPin size={14} />}
+                        >
+                          <input
+                            {...register('postal_code')}
+                            type="text"
+                            maxLength={20}
+                            placeholder="Postal code"
+                            className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 pl-9 pr-3.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#C9A84C] focus:ring-2 focus:ring-[#C9A84C]/12 transition-colors"
+                          />
+                        </FieldWrapper>
+
+                        <FieldWrapper
+                          label="Country"
+                          icon={<MapPin size={14} />}
+                          error={errors.country?.message}
+                        >
+                          <input
+                            {...register('country')}
+                            type="text"
+                            maxLength={100}
+                            placeholder="Country"
+                            className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 pl-9 pr-3.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#C9A84C] focus:ring-2 focus:ring-[#C9A84C]/12 transition-colors"
+                          />
+                        </FieldWrapper>
+                      </div>
+
+                      <div className="flex items-start gap-2 rounded-xl bg-[#FDFAF3]/60 px-3 py-2.5">
+                        <MapPin size={13} className="mt-0.5 shrink-0 text-[#C9A84C]" />
+                        <p className="text-[11px] leading-relaxed text-gray-500">
+                          This address is shared only with the team arranging your birthday gift.
+                          It never appears on your public celebration page.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Step 5: wish list and gift style ── */}
+                {currentStep === 5 && (
+                  <div className="space-y-5">
+                    <div>
+                      <label
+                        htmlFor="wish-list"
+                        className="block text-[13px] font-medium text-gray-700"
+                      >
+                        Your wish list <span className="text-red-500">*</span>
+                      </label>
+                      <textarea
+                        id="wish-list"
+                        {...register('wish_list')}
+                        rows={4}
+                        maxLength={1300}
+                        placeholder={'One per line, e.g.\nA leather journal\nWireless headphones'}
+                        className="mt-1.5 w-full resize-none rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#C9A84C] focus:ring-2 focus:ring-[#C9A84C]/12 transition-colors"
+                      />
+                      {errors.wish_list ? (
+                        <p className="mt-1.5 text-xs text-red-500">{errors.wish_list.message}</p>
+                      ) : (
+                        <p className="mt-1.5 text-xs leading-relaxed text-gray-400">
+                          One item per line, up to 10. This is a wish list, not a guarantee — it
+                          tells the team what you would actually enjoy.
+                        </p>
+                      )}
+                    </div>
+
+                    <fieldset>
+                      <legend className="flex items-center gap-2 text-[13px] font-medium text-gray-700">
+                        <Sparkles size={14} className="text-[#C9A84C]" />
+                        What kind of gift would you prefer?
+                      </legend>
+
+                      <div className="mt-2.5 grid gap-2">
+                        {GIFT_OPTIONS.map((option) => {
+                          const Icon = option.icon;
+                          const active = giftPreference === option.value;
+
+                          return (
+                            <button
+                              key={option.value}
+                              type="button"
+                              aria-pressed={active}
+                              onClick={() =>
+                                setValue('gift_preference', option.value, {
+                                  shouldValidate: true,
+                                  shouldDirty: true,
+                                })
+                              }
+                              className={`relative flex items-start gap-3 rounded-xl border p-3 text-left transition ${
+                                active
+                                  ? 'border-[#C9A84C] bg-[#FDFAF3]'
+                                  : 'border-gray-200 hover:border-[#C9A84C]/60'
+                              }`}
+                            >
+                              <span
+                                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
+                                  active
+                                    ? 'bg-[#C9A84C]/15 text-[#B8962E]'
+                                    : 'bg-gray-50 text-gray-400'
+                                }`}
+                              >
+                                <Icon size={15} />
+                              </span>
+                              <span className="min-w-0">
+                                <span className="block text-sm font-bold text-gray-900">
+                                  {option.title}
+                                </span>
+                                <span className="mt-0.5 block text-[11px] leading-relaxed text-gray-500">
+                                  {option.description}
+                                </span>
+                              </span>
+                              {active && (
+                                <span className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full bg-[#C9A84C] text-white">
+                                  <Check size={12} />
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {errors.gift_preference && (
+                        <p className="mt-2 text-xs text-red-500">
+                          {errors.gift_preference.message}
+                        </p>
+                      )}
+                    </fieldset>
+
+                    <div>
+                      <label
+                        htmlFor="gift-notes"
+                        className="block text-[13px] font-medium text-gray-700"
+                      >
+                        Anything specific?{' '}
+                        <span className="font-normal text-gray-400">(optional)</span>
+                      </label>
+                      <textarea
+                        id="gift-notes"
+                        {...register('gift_preference_notes')}
+                        rows={2}
+                        maxLength={500}
+                        placeholder="e.g. I would love a spa day or a hairstyling session"
+                        className="mt-1.5 w-full resize-none rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#C9A84C] focus:ring-2 focus:ring-[#C9A84C]/12 transition-colors"
+                      />
+                      <div className="mt-1 flex items-center justify-between">
+                        <p className="text-[11px] text-gray-400">
+                          If you chose a service, tell us which one you have in mind.
+                        </p>
+                        <span className="text-[10px] font-semibold text-gray-300">
+                          {giftNotes.length}/500
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 )}
 
